@@ -1,0 +1,208 @@
+/* assets/css/main.css - 黑底白字主題 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #60a5fa; /* blue-400 */
+    --color-secondary: #67e8f9; /* cyan-300 */
+    --color-accent: #fbbf24; /* amber-400 */
+    --color-background: #000000;
+    --color-surface: #111111;
+    --color-text: #ffffff;
+    --color-text-muted: #9ca3af; /* gray-400 */
+  }
+
+  html {
+    scroll-behavior: smooth;
+    background-color: var(--color-background);
+    color: var(--color-text);
+  }
+
+  body {
+    @apply bg-black text-white antialiased;
+    font-family: "Inter", "Noto Sans TC", sans-serif;
+  }
+
+  /* 自定義選取顏色 */
+  ::selection {
+    background-color: var(--color-primary);
+    color: var(--color-background);
+  }
+
+  /* 自定義滾動條 */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-surface);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-text-muted);
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary);
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-black transition-colors;
+  }
+
+  .card {
+    @apply bg-gray-900 rounded-xl p-6 hover:bg-gray-800 transition-all border border-gray-800;
+  }
+
+  .card-hover {
+    @apply hover:transform hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20;
+  }
+
+  /* Masonry Grid 黑底優化 */
+  .masonry-grid {
+    column-count: 1;
+    column-gap: 1.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .masonry-grid {
+      column-count: 2;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .masonry-grid {
+      column-count: 3;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .masonry-grid {
+      column-count: 4;
+    }
+  }
+
+  .masonry-item {
+    break-inside: avoid;
+    margin-bottom: 1.5rem;
+  }
+
+  /* 管理後台側邊欄樣式 */
+  .sidebar-link {
+    @apply block px-4 py-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-all;
+  }
+
+  .sidebar-link.router-link-active {
+    @apply bg-blue-600 text-white hover:bg-blue-500;
+  }
+
+  /* 輸入框黑底樣式 */
+  .input-dark {
+    @apply w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  }
+
+  .textarea-dark {
+    @apply w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none;
+  }
+
+  /* 動畫類 */
+  .glow {
+    box-shadow: 0 0 20px rgba(96, 165, 250, 0.5);
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(96, 165, 250, 0.8);
+  }
+
+  /* 漸變文字 */
+  .gradient-text {
+    @apply bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent;
+  }
+}
+
+@layer utilities {
+  /* 背景漸變 */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+
+  /* 黑底噪點紋理 */
+  .bg-noise {
+    position: relative;
+  }
+
+  .bg-noise::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.02;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+
+  /* 動畫延遲類 */
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .animation-delay-600 {
+    animation-delay: 600ms;
+  }
+}
+
+/* 頁面過渡動畫 */
+.page-enter-active,
+.page-leave-active {
+  transition: all 0.4s;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-30px);
+}
+
+/* GSAP 動畫初始狀態 */
+[data-gsap] {
+  opacity: 0;
+  transform: translateY(50px);
+}
+
+input,
+textarea,
+select {
+  color: #000 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.ts$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^src/(.*)$": "<rootDir>/../src/$1"
+  },
+  "setupFilesAfterEnv": ["<rootDir>/jest-e2e.setup.ts"],
+  "testPathIgnorePatterns": ["/node_modules/", "/dist/"],
+  "modulePathIgnorePatterns": ["<rootDir>/dist/"],
+  "collectCoverageFrom": [
+    "src/**/*.ts",
+    "!src/**/*.js",
+    "!src/**/*.d.ts"
+  ],
+  "testTimeout": 30000,
+  "verbose": true
+}

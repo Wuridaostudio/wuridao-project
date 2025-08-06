@@ -4,12 +4,48 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes, ApiBody, ApiParam, A
 import { CloudinaryService } from './cloudinary.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
-@ApiTags('媒體上傳')
+@ApiTags('媒體(Cloudinary)')
 @Controller('cloudinary')
 export class CloudinaryController {
   private readonly logger = new Logger(CloudinaryController.name);
 
   constructor(private readonly cloudinaryService: CloudinaryService) {}
+
+  // ====================================================================
+  // ✅ 公開端點 (Public Endpoint) - 無需認證
+  // ====================================================================
+
+  @Get('health')
+  @ApiOperation({ summary: 'Cloudinary 健康檢查 (無需認證)' })
+  async healthCheck() {
+    try {
+      const config = await this.cloudinaryService.getCloudinaryConfig();
+      return {
+        status: 'ok',
+        configured: config.configured,
+        cloudName: config.cloudName,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  @Get('public-resources')
+  @ApiOperation({ summary: '取得公開資源列表 (給公開網站使用，無需認證)' })
+  @ApiQuery({ name: 'resource_type', required: false, enum: ['image', 'video'], description: '資源類型' })
+  async getPublicResources(@Query('resource_type') resourceType: 'image' | 'video' = 'image') {
+    // 這個端點呼叫的是我們新增的、內部寫死路徑的安全服務
+    return this.cloudinaryService.getPublicResources(resourceType);
+  }
+
+  // ====================================================================
+  // 🔒 私有端點 (Private Endpoints) - 以下全部需要管理員認證
+  // ====================================================================
 
   @Get('test-auth')
   @UseGuards(JwtAuthGuard)
@@ -22,7 +58,7 @@ export class CloudinaryController {
   @Get('signature')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '取得 Cloudinary 上傳簽名' })
+  @ApiOperation({ summary: '取得 Cloudinary 上傳簽名 (需認證)' })
   @ApiQuery({ name: 'folder', required: true, description: '上傳資料夾' })
   generateSignature(@Query('folder') folder: string, @Request() req) {
     // 安全日誌：記錄簽名生成操作
@@ -30,10 +66,28 @@ export class CloudinaryController {
     return this.cloudinaryService.generateUploadSignature(folder);
   }
 
+  @Get('resources')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '取得所有 Cloudinary 資源 (管理員，需認證)' })
+  async getResources(
+    @Query('resource_type') resourceType = 'image',
+    @Query('folder') folder = 'wuridao',
+    @Query('max_results') maxResults = 20,
+  ) {
+    this.logger.log(`[ADMIN ACCESS] Resource listing (type: ${resourceType}, folder: ${folder}) by authenticated user`);
+    return this.cloudinaryService.getResources({
+      resource_type: resourceType,
+      type: 'upload',
+      prefix: folder,
+      max_results: parseInt(maxResults.toString()),
+    });
+  }
+
   @Post('upload/image')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '上傳圖片到 Cloudinary' })
+  @ApiOperation({ summary: '上傳圖片到 Cloudinary (需認證)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -59,7 +113,7 @@ export class CloudinaryController {
   @Post('upload/video')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '上傳影片到 Cloudinary' })
+  @ApiOperation({ summary: '上傳影片到 Cloudinary (需認證)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -83,7 +137,7 @@ export class CloudinaryController {
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('file'))
   @ApiBearerAuth()
-  @ApiOperation({ summary: '上傳檔案到 Cloudinary' })
+  @ApiOperation({ summary: '上傳檔案到 Cloudinary (需認證)' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
@@ -132,14 +186,14 @@ export class CloudinaryController {
       };
     } catch (error) {
       this.logger.error(`[SECURITY] File upload failed: ${error.message}`);
-      throw new BadRequestException(`上傳失敗: ${error.message}`);
+      throw new BadRequestException('上傳失敗');
     }
   }
 
   @Delete(':publicId(*)')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '刪除 Cloudinary 資源' })
+  @ApiOperation({ summary: '刪除 Cloudinary 資源 (需認證)' })
   @ApiParam({ name: 'publicId', required: true })
   @ApiQuery({
     name: 'resource_type',
@@ -165,7 +219,7 @@ export class CloudinaryController {
   @Post('delete-many')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '批次刪除 Cloudinary 資源' })
+  @ApiOperation({ summary: '批次刪除 Cloudinary 資源 (需認證)' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -191,24 +245,10 @@ export class CloudinaryController {
     return this.cloudinaryService.deleteResources(publicIds, resourceType);
   }
 
-  @Get('resources')
-  @ApiOperation({ summary: '取得 Cloudinary 資源列表' })
-  async getResources(
-    @Query('resource_type') resourceType = 'image',
-    @Query('folder') folder = 'wuridao',
-    @Query('max_results') maxResults = 20,
-  ) {
-    this.logger.log(`[CLOUDINARY LIST] Resource listing (type: ${resourceType}, folder: ${folder}, max: ${maxResults})`);
-    return this.cloudinaryService.getResources({
-      resource_type: resourceType,
-      type: 'upload',
-      prefix: folder,
-      max_results: parseInt(maxResults.toString()),
-    });
-  }
-
   @Get('resources/:publicId')
-  @ApiOperation({ summary: '取得 Cloudinary 資源詳情' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '取得 Cloudinary 資源詳情 (需認證)' })
   @ApiParam({ name: 'publicId', required: true })
   @ApiQuery({
     name: 'resource_type',
@@ -226,7 +266,7 @@ export class CloudinaryController {
   @Get('check/:publicId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: '檢查 Cloudinary 資源是否存在' })
+  @ApiOperation({ summary: '檢查 Cloudinary 資源是否存在 (需認證)' })
   @ApiParam({ name: 'publicId', required: true })
   @ApiQuery({
     name: 'resource_type',

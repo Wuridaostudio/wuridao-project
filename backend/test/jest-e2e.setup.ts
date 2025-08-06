@@ -10,7 +10,7 @@ process.env.NODE_ENV = 'test';
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://test:test@localhost:5432/test_db';
 process.env.JWT_SECRET = process.env.TEST_JWT_SECRET || 'test-secret-key';
 process.env.ADMIN_USERNAME = process.env.TEST_ADMIN_USERNAME || 'admin';
-process.env.ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'admin123';
+process.env.ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'test-password';
 process.env.USE_SSL = process.env.TEST_USE_SSL || 'false';
 process.env.AUTO_SEED_DATABASE = 'false'; // 測試環境不自動種子資料
 

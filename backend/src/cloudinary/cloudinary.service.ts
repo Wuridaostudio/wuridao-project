@@ -109,28 +109,39 @@ export class CloudinaryService {
     resourceType: 'image' | 'video' | 'raw' = 'image',
   ) {
     try {
-      this.logger.debug('[CLOUDINARY DELETE ATTEMPT]', { hasPublicId: !!publicId, resourceType });
+      this.logger.log('[CLOUDINARY DELETE] Starting deletion', { 
+        publicId, 
+        resourceType,
+        hasPublicId: !!publicId 
+      });
       
       const result = await cloudinary.uploader.destroy(publicId, {
         resource_type: resourceType,
       });
       
-      this.logger.debug('[CLOUDINARY DELETE RESULT]', result);
+      this.logger.log('[CLOUDINARY DELETE] Result received', result);
       
       // 如果資源不存在，視為成功（可能已經被刪除）
       if (result.result === 'not found') {
-        this.logger.debug('[CLOUDINARY DELETE] Resource not found, treating as success');
+        this.logger.log('[CLOUDINARY DELETE] Resource not found, treating as success');
         return { result: 'ok', message: 'Resource not found (already deleted)' };
       }
       
       if (!result || (result.result && result.result !== 'ok')) {
-        this.logger.error('[CLOUDINARY DELETE FAIL]', result);
+        this.logger.error('[CLOUDINARY DELETE] Failed with result', result);
         throw new BadRequestException('Cloudinary 刪除失敗');
       }
       
+      this.logger.log('[CLOUDINARY DELETE] Successfully deleted', { publicId, result });
       return result;
     } catch (error) {
-      this.logger.error('[CLOUDINARY DELETE ERROR]', error);
+      this.logger.error('[CLOUDINARY DELETE] Error occurred', {
+        publicId,
+        resourceType,
+        errorMessage: error.message,
+        errorCode: error.http_code,
+        errorStack: error.stack
+      });
       throw error;
     }
   }
@@ -162,12 +173,57 @@ export class CloudinaryService {
     }
   }
 
+  // ✅ [新增] 專為公開網站設計的安全方法
+  async getPublicResources(resourceType: 'image' | 'video' = 'image') {
+    // 🔒 安全核心：根據資源類型搜尋對應的資料夾
+    const publicFolder = resourceType === 'image' ? 'wuridao/photos' : 'wuridao/videos';
+
+    this.logger.log(`[PUBLIC ACCESS] Fetching public resources from folder: ${publicFolder}`);
+
+    try {
+      // 這裡的選項是固定的，不接受前端傳來的參數
+      const options = {
+        type: 'upload',
+        resource_type: resourceType,
+        prefix: publicFolder, // 🔒 只搜尋對應的資料夾
+        max_results: 50, // 可以設定一個合理的上限，防止一次請求過多資源
+      };
+      
+      this.logger.log(`[PUBLIC ACCESS] Cloudinary API options:`, options);
+      
+      const result = await cloudinary.api.resources(options);
+      
+      this.logger.log(`[PUBLIC ACCESS] Successfully fetched ${result.resources?.length || 0} resources`);
+      
+      // 添加詳細的資源日誌
+      if (result.resources && result.resources.length > 0) {
+        this.logger.log(`[PUBLIC ACCESS] Resource details:`);
+        result.resources.forEach((resource: any, index: number) => {
+          this.logger.log(`  ${index + 1}. public_id: ${resource.public_id}, secure_url: ${resource.secure_url}`);
+        });
+      }
+      
+      return result;
+    } catch (error) {
+      this.logger.error(`[PUBLIC ACCESS] Failed to get public resources: ${error.message}`);
+      this.logger.error(`[PUBLIC ACCESS] Error details:`, {
+        resourceType,
+        publicFolder,
+        errorCode: error.http_code,
+        errorMessage: error.message
+      });
+      // 向上拋出錯誤，讓 Controller 處理
+      throw new BadRequestException('資源存取暫時不可用');
+    }
+  }
+
+  // 原有的 getResources 方法維持不變，供管理員使用
   async getResources(options: any = {}) {
     try {
       const result = await cloudinary.api.resources(options);
       return result;
     } catch (error) {
-      throw new BadRequestException(`取得資源列表失敗: ${error.message}`);
+      throw new BadRequestException('取得資源列表失敗');
     }
   }
 

@@ -166,8 +166,9 @@
               class="w-full h-full object-cover"
               muted
               loop
-              @mouseenter="playVideo"
-              @mouseleave="pauseVideo"
+              @mouseenter="handleMouseEnter"
+              @mouseleave="handleMouseLeave"
+              @loadeddata="handleVideoLoaded"
             />
 
             <!-- 播放按鈕 -->
@@ -258,16 +259,9 @@
 </template>
 
 <script setup lang="ts">
-// ===== DEBUG: 開始載入 ContentCard.vue =====
-console.log("🔍 [ContentCard.vue] Script setup 開始執行");
-
 import { ref, computed } from "vue";
 
-console.log("🔍 [ContentCard.vue] 所有 imports 完成");
-
 // ===== Props 定義 =====
-console.log("🔍 [ContentCard.vue] 開始定義 Props");
-
 interface Props {
   type: "article" | "photo" | "video";
   item: any;
@@ -278,54 +272,41 @@ const props = withDefaults(defineProps<Props>(), {
   isLoading: false,
 });
 
-console.log("🔍 [ContentCard.vue] Props 接收:", {
-  type: props.type,
-  itemId: props.item?.id,
-  itemTitle: props.item?.title,
-  isLoading: props.isLoading,
-});
-
 const { $gsap } = useNuxtApp();
 
-console.log("🔍 [ContentCard.vue] NuxtApp 初始化完成");
-console.log("🔍 [ContentCard.vue] $gsap 存在:", !!$gsap);
-
 // ===== Refs =====
-console.log("🔍 [ContentCard.vue] 開始定義 Refs");
-
 const cardElement = ref<HTMLElement>();
 const videoElement = ref<HTMLVideoElement>();
 
-console.log("🔍 [ContentCard.vue] Refs 定義完成");
-
 // ===== 響應式狀態 =====
-console.log("🔍 [ContentCard.vue] 開始定義響應式狀態");
-
 const isPlaying = ref(false);
 const isHovered = ref(false);
 
-console.log("🔍 [ContentCard.vue] 響應式狀態定義完成");
-
 // ===== 計算屬性 =====
-console.log("🔍 [ContentCard.vue] 開始定義計算屬性");
+// 從 publicId 中提取簡單的 ID
+const getSimpleId = (id: string | number) => {
+  if (typeof id === 'string' && id.includes('/')) {
+    // 如果是 publicId 格式，取最後一部分
+    return id.split('/').pop();
+  }
+  return id;
+};
 
 // 詳細頁面 URL
 const detailPageUrl = computed(() => {
-  if (props.type === "video") return `/videos/${props.item.id}`;
-  if (props.type === "photo") return `/media/${props.item.id}`;
+  if (props.type === "video") return `/media/${getSimpleId(props.item.id)}`;
+  if (props.type === "photo") return `/media/${getSimpleId(props.item.id)}`;
   if (props.type === "article") return `/articles/${props.item.id}`;
   return "#";
 });
 
 // 懸停效果類別
 const hoverClass = computed(() => {
-  console.log("🔍 [ContentCard.vue] hoverClass computed 執行");
   return isHovered.value ? "transform scale-105" : "";
 });
 
 // 圖片濾鏡效果
 const imageFilter = computed(() => {
-  console.log("🔍 [ContentCard.vue] imageFilter computed 執行");
   if (props.type !== "photo") return "";
 
   const filters = [
@@ -339,14 +320,9 @@ const imageFilter = computed(() => {
   return filters[index];
 });
 
-console.log("🔍 [ContentCard.vue] 計算屬性定義完成");
-
 // ===== 工具函數 =====
-console.log("🔍 [ContentCard.vue] 開始定義工具函數");
-
 // 格式化日期
 const formatDate = (dateString: string) => {
-  console.log("🔍 [ContentCard.vue] formatDate 被呼叫:", dateString);
   if (!dateString) return "";
 
   try {
@@ -364,7 +340,6 @@ const formatDate = (dateString: string) => {
 
 // 格式化時長
 const formatDuration = (seconds: number) => {
-  console.log("🔍 [ContentCard.vue] formatDuration 被呼叫:", seconds);
   if (!seconds) return "";
 
   const minutes = Math.floor(seconds / 60);
@@ -374,7 +349,6 @@ const formatDuration = (seconds: number) => {
 
 // 移除 HTML 標籤
 const stripHtml = (html: string) => {
-  console.log("🔍 [ContentCard.vue] stripHtml 被呼叫");
   if (!html) return "";
 
   try {
@@ -385,83 +359,47 @@ const stripHtml = (html: string) => {
   }
 };
 
-console.log("🔍 [ContentCard.vue] 工具函數定義完成");
-
 // ===== 事件處理方法 =====
-console.log("🔍 [ContentCard.vue] 開始定義事件處理方法");
-
-// 滑鼠進入
+// 滑鼠進入事件
 const handleMouseEnter = () => {
-  console.log("🔍 [ContentCard.vue] handleMouseEnter 被呼叫");
   isHovered.value = true;
-
-  // 卡片懸停動畫
-  if (cardElement.value && process.client) {
-    console.log("🔍 [ContentCard.vue] 開始卡片懸停動畫");
-    if (cardElement.value) {
-      cardElement.value.style.transition = 'transform 0.3s ease-out';
-      cardElement.value.style.transform = 'translateY(-5px)';
-    }
-  }
-};
-
-// 滑鼠離開
-const handleMouseLeave = () => {
-  console.log("🔍 [ContentCard.vue] handleMouseLeave 被呼叫");
-  isHovered.value = false;
-
-  // 卡片離開動畫
-  if (cardElement.value && process.client) {
-    console.log("🔍 [ContentCard.vue] 開始卡片離開動畫");
-    if (cardElement.value) {
-      cardElement.value.style.transition = 'transform 0.3s ease-out';
-      cardElement.value.style.transform = 'translateY(0)';
-    }
-  }
-};
-
-// 播放影片
-const playVideo = () => {
-  console.log("🔍 [ContentCard.vue] playVideo 被呼叫");
-  if (props.type !== "video" || !videoElement.value) {
-    console.log("⚠️ [ContentCard.vue] 不是影片或影片元素不存在");
-    return;
-  }
-
-  try {
-    videoElement.value.play();
+  
+  if (props.type === "video" && videoElement.value) {
+    videoElement.value.play().catch(() => {
+      // 忽略自動播放失敗
+    });
     isPlaying.value = true;
-    console.log("🔍 [ContentCard.vue] 影片開始播放");
-  } catch (error) {
-    console.error("❌ [ContentCard.vue] 影片播放失敗:", error);
   }
 };
 
-// 暫停影片
-const pauseVideo = () => {
-  console.log("🔍 [ContentCard.vue] pauseVideo 被呼叫");
-  if (props.type !== "video" || !videoElement.value) {
-    console.log("⚠️ [ContentCard.vue] 不是影片或影片元素不存在");
-    return;
-  }
-
-  try {
+// 滑鼠離開事件
+const handleMouseLeave = () => {
+  isHovered.value = false;
+  
+  if (props.type === "video" && videoElement.value) {
     videoElement.value.pause();
+    videoElement.value.currentTime = 0;
     isPlaying.value = false;
-    console.log("🔍 [ContentCard.vue] 影片已暫停");
-  } catch (error) {
-    console.error("❌ [ContentCard.vue] 影片暫停失敗:", error);
   }
 };
 
-console.log("🔍 [ContentCard.vue] 事件處理方法定義完成");
+// 影片載入完成
+const handleVideoLoaded = () => {
+  if (videoElement.value) {
+    videoElement.value.currentTime = 0;
+  }
+};
 
-function logItem(item) {
-  console.log("[ContentCard] item:", item);
-  return "";
-}
-
-console.log("🔍 [ContentCard.vue] Script setup 執行完成");
+// 調試項目信息
+const logItem = (item: any) => {
+  console.log(`[ContentCard] 渲染項目:`, {
+    type: props.type,
+    id: item?.id,
+    title: item?.title,
+    url: item?.url,
+    detailPageUrl: detailPageUrl.value
+  });
+};
 </script>
 
 <style scoped>

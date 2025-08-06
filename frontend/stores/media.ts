@@ -2,12 +2,10 @@
 import { defineStore } from "pinia";
 import { useFileValidation } from "~/composables/useFileValidation";
 import { useUpload } from "~/composables/useUpload";
-import { useAuth } from "~/composables/useAuth";
 
 export const useMediaStore = defineStore("media", () => {
   const api = useApi();
   const { uploadToCloudinary, deleteFromCloudinary } = useUpload();
-  const { getToken } = useAuth();
   const { validateImageFile, validateVideoFile } = useFileValidation();
 
   // Photos
@@ -23,6 +21,37 @@ export const useMediaStore = defineStore("media", () => {
   const uploadPhotoError = ref<string | null>(null);
   const deletePhotoError = ref<string | null>(null);
   const uploadProgress = ref(0);
+
+  // Videos
+  const videos = ref<Video[]>([]);
+  const fetchVideosLoading = ref(false);
+  const uploadVideoLoading = ref(false);
+  const deleteVideoLoading = ref(false);
+  const fetchVideosError = ref<string | null>(null);
+  const uploadVideoError = ref<string | null>(null);
+  const deleteVideoError = ref<string | null>(null);
+
+  // 快取機制
+  const photosLastFetched = ref<number>(0);
+  const videosLastFetched = ref<number>(0);
+  const CACHE_DURATION = 5 * 60 * 1000; // 5分鐘快取
+
+  // 清除快取功能
+  const clearPhotosCache = () => {
+    photosLastFetched.value = 0;
+    console.log('[clearPhotosCache] 照片快取已清除');
+  };
+
+  const clearVideosCache = () => {
+    videosLastFetched.value = 0;
+    console.log('[clearVideosCache] 影片快取已清除');
+  };
+
+  const clearAllCache = () => {
+    clearPhotosCache();
+    clearVideosCache();
+    console.log('[clearAllCache] 所有快取已清除');
+  };
 
   const fetchPhotos = async (page = 1) => {
     if (page === 1) fetchPhotosLoading.value = true;
@@ -114,9 +143,24 @@ export const useMediaStore = defineStore("media", () => {
     deletePhotoLoading.value = true;
     deletePhotoError.value = null;
     try {
-      await deleteFromCloudinary(publicId);
-      await api.deletePhoto(id);
-      photos.value = photos.value.filter((p) => p.id !== id);
+      // 如果 id 看起來像 publicId（包含斜線），則只刪除 Cloudinary 資源
+      if (typeof id === 'string' && id.includes('/')) {
+        console.log('[deletePhoto] 檢測到 publicId 格式的 id，只刪除 Cloudinary 資源');
+        await deleteFromCloudinary(id);
+        // 從本地列表中移除
+        photos.value = photos.value.filter((p) => p.id !== id);
+        // 清除快取，強制重新載入
+        clearPhotosCache();
+      } else {
+        // 正常的資料庫記錄刪除流程
+        if (publicId) {
+          await deleteFromCloudinary(publicId);
+        }
+        await api.deletePhoto(id);
+        photos.value = photos.value.filter((p) => p.id !== id);
+        // 清除快取，強制重新載入
+        clearPhotosCache();
+      }
     } catch (e: any) {
       const errorMessage = e.message || e.data?.message || "刪除照片失敗";
       deletePhotoError.value = errorMessage;
@@ -125,15 +169,6 @@ export const useMediaStore = defineStore("media", () => {
       deletePhotoLoading.value = false;
     }
   };
-
-  // Videos
-  const videos = ref<Video[]>([]);
-  const fetchVideosLoading = ref(false);
-  const uploadVideoLoading = ref(false);
-  const deleteVideoLoading = ref(false);
-  const fetchVideosError = ref<string | null>(null);
-  const uploadVideoError = ref<string | null>(null);
-  const deleteVideoError = ref<string | null>(null);
 
   const fetchVideos = async () => {
     fetchVideosLoading.value = true;
@@ -208,9 +243,24 @@ export const useMediaStore = defineStore("media", () => {
     deleteVideoLoading.value = true;
     deleteVideoError.value = null;
     try {
-      await deleteFromCloudinary(publicId);
-      await api.deleteVideo(id);
-      videos.value = videos.value.filter((v) => v.id !== id);
+      // 如果 id 看起來像 publicId（包含斜線），則只刪除 Cloudinary 資源
+      if (typeof id === 'string' && id.includes('/')) {
+        console.log('[deleteVideo] 檢測到 publicId 格式的 id，只刪除 Cloudinary 資源');
+        await deleteFromCloudinary(id);
+        // 從本地列表中移除
+        videos.value = videos.value.filter((v) => v.id !== id);
+        // 清除快取，強制重新載入
+        clearVideosCache();
+      } else {
+        // 正常的資料庫記錄刪除流程
+        if (publicId) {
+          await deleteFromCloudinary(publicId);
+        }
+        await api.deleteVideo(id);
+        videos.value = videos.value.filter((v) => v.id !== id);
+        // 清除快取，強制重新載入
+        clearVideosCache();
+      }
     } catch (e: any) {
       const errorMessage = e.message || e.data?.message || "刪除影片失敗";
       deleteVideoError.value = errorMessage;
@@ -220,13 +270,111 @@ export const useMediaStore = defineStore("media", () => {
     }
   };
 
-  const fetchCloudinaryPhotos = async (folder = "wuridao/photos") => {
+  const fetchCloudinaryPhotos = async (folder = "wuridao/photos", forceReload = false) => {
+    // 檢查快取是否有效，如果強制重新載入則忽略快取
+    const now = Date.now();
+    const cacheValid = !forceReload && now - photosLastFetched.value < CACHE_DURATION;
+    
+    if (cacheValid && photos.value.length > 0) {
+      console.log('[fetchCloudinaryPhotos] 使用快取數據，跳過重複請求');
+      return photos.value;
+    }
+    
+    // 如果正在載入中，則跳過重複請求
+    if (fetchPhotosLoading.value) {
+      console.log('[fetchCloudinaryPhotos] 正在載入中，跳過重複請求');
+      return photos.value;
+    }
+
+    fetchPhotosLoading.value = true;
     try {
-      const response = await api.getCloudinaryResources("image", folder);
-      return response.resources;
+      console.log('[fetchCloudinaryPhotos] 開始從 Cloudinary 載入照片...');
+      const response = await api.getPublicCloudinaryResources("image");
+      
+      // 將 Cloudinary 資源轉換為與資料庫格式相容的格式
+      const cloudinaryPhotos = response.resources.map((resource: any) => ({
+        id: resource.public_id, // 使用 public_id 作為 ID
+        url: resource.secure_url,
+        publicId: resource.public_id,
+        description: resource.context?.alt || resource.context?.caption || '',
+        createdAt: resource.created_at,
+        type: 'photo'
+      }));
+
+      // 改進的去重邏輯：使用 Map 來確保唯一性
+      const photoMap = new Map();
+      cloudinaryPhotos.forEach((photo) => {
+        if (!photoMap.has(photo.publicId)) {
+          photoMap.set(photo.publicId, photo);
+        }
+      });
+
+      const uniquePhotos = Array.from(photoMap.values());
+
+      console.log(`[fetchCloudinaryPhotos] 載入 ${cloudinaryPhotos.length} 張照片，去重後 ${uniquePhotos.length} 張`);
+      
+      photos.value = uniquePhotos;
+      photosLastFetched.value = now;
+      return uniquePhotos;
     } catch (e: any) {
       console.error("載入 Cloudinary 照片失敗:", e);
       return [];
+    } finally {
+      fetchPhotosLoading.value = false;
+    }
+  };
+
+  const fetchCloudinaryVideos = async (folder = "wuridao/videos", forceReload = false) => {
+    // 檢查快取是否有效，如果強制重新載入則忽略快取
+    const now = Date.now();
+    const cacheValid = !forceReload && now - videosLastFetched.value < CACHE_DURATION;
+    
+    if (cacheValid && videos.value.length > 0) {
+      console.log('[fetchCloudinaryVideos] 使用快取數據，跳過重複請求');
+      return videos.value;
+    }
+    
+    // 如果正在載入中，則跳過重複請求
+    if (fetchVideosLoading.value) {
+      console.log('[fetchCloudinaryVideos] 正在載入中，跳過重複請求');
+      return videos.value;
+    }
+
+    fetchVideosLoading.value = true;
+    try {
+      console.log('[fetchCloudinaryVideos] 開始從 Cloudinary 載入影片...');
+      const response = await api.getPublicCloudinaryResources("video");
+      
+      // 將 Cloudinary 資源轉換為與資料庫格式相容的格式
+      const cloudinaryVideos = response.resources.map((resource: any) => ({
+        id: resource.public_id, // 使用 public_id 作為 ID
+        url: resource.secure_url,
+        publicId: resource.public_id,
+        description: resource.context?.alt || resource.context?.caption || '',
+        createdAt: resource.created_at,
+        type: 'video'
+      }));
+
+      // 改進的去重邏輯：使用 Map 來確保唯一性
+      const videoMap = new Map();
+      cloudinaryVideos.forEach((video) => {
+        if (!videoMap.has(video.publicId)) {
+          videoMap.set(video.publicId, video);
+        }
+      });
+
+      const uniqueVideos = Array.from(videoMap.values());
+
+      console.log(`[fetchCloudinaryVideos] 載入 ${cloudinaryVideos.length} 個影片，去重後 ${uniqueVideos.length} 個`);
+      
+      videos.value = uniqueVideos;
+      videosLastFetched.value = now;
+      return uniqueVideos;
+    } catch (e: any) {
+      console.error("載入 Cloudinary 影片失敗:", e);
+      return [];
+    } finally {
+      fetchVideosLoading.value = false;
     }
   };
 
@@ -253,10 +401,14 @@ export const useMediaStore = defineStore("media", () => {
     uploadVideo,
     deleteVideo,
     fetchCloudinaryPhotos,
+    fetchCloudinaryVideos,
     totalPhotos,
     currentPage,
     limit,
     isLoadingMore,
     loadMorePhotos,
+    clearPhotosCache,
+    clearVideosCache,
+    clearAllCache,
   };
 });

@@ -57,14 +57,13 @@
 </template>
 
 <script setup lang="ts">
-import ErrorMessage from "~/components/common/ErrorMessage.vue";
-import LoadingSpinner from "~/components/common/LoadingSpinner.vue";
-
-// No layout for login page
 definePageMeta({
   layout: false,
   middleware: "auth",
 });
+
+import ErrorMessage from "~/components/common/ErrorMessage.vue";
+import LoadingSpinner from "~/components/common/LoadingSpinner.vue";
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -75,12 +74,15 @@ const credentials = reactive({
 });
 
 const handleLogin = async () => {
-  console.log('Login button clicked');
   try {
-    await authStore.loginUser(credentials);
-    router.push("/admin");
+    const result = await authStore.login(credentials);
+    
+    if (result && result.access_token) {
+      await navigateTo("/admin");
+    }
   } catch (error) {
-    // 不要對 authStore.error.value 賦值，錯誤已由 store 處理
+    console.error('[LOGIN PAGE] ❌ Login failed:', error);
+    // 錯誤已由 store 處理
   }
 };
 </script>

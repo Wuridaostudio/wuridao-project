@@ -126,7 +126,7 @@ export class AuthService {
   // ✅ 初始化管理員帳號
   private async initializeAdmin() {
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+    const adminPassword = process.env.ADMIN_PASSWORD;
 
     const existingAdmin = await this.userRepository.findOne({
       where: { username: adminUsername },

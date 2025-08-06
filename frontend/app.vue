@@ -3,14 +3,17 @@
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
-    <client-only>
+    <ClientOnly>
       <ToastNotification />
-    </client-only>
+    </ClientOnly>
   </div>
 </template>
 
 <script setup lang="ts">
-import ToastNotification from "~/components/common/ToastNotification.vue";
+// 確保組件在客戶端正確載入
+const ToastNotification = defineAsyncComponent(() => 
+  import('~/components/common/ToastNotification.vue')
+);
 
 // SEO Meta 全站設定
 useHead({
@@ -20,21 +23,6 @@ useHead({
   bodyAttrs: {
     class: "font-sans antialiased",
   },
-  script: [
-    // Google Analytics (如果需要)
-    // {
-    //   src: 'https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX',
-    //   async: true
-    // },
-    // {
-    //   innerHTML: `
-    //     window.dataLayer = window.dataLayer || [];
-    //     function gtag(){dataLayer.push(arguments);}
-    //     gtag('js', new Date());
-    //     gtag('config', 'G-XXXXXXXXXX');
-    //   `
-    // }
-  ],
 });
 
 // 全站 SEO 設定

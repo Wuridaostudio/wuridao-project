@@ -12,5 +12,6 @@ import { Tag } from '../tags/entities/tag.entity';
   imports: [TypeOrmModule.forFeature([Photo, Category, Tag]), CloudinaryModule],
   controllers: [PhotosController],
   providers: [PhotosService],
+  exports: [PhotosService], // 導出 PhotosService 供其他模組使用
 })
 export class PhotosModule {}

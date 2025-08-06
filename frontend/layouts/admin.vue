@@ -1,11 +1,55 @@
 <!-- layouts/admin.vue -->
 <template>
   <div class="admin-layout">
-    <AdminSidebar />
+    <aside class="admin-sidebar">
+      <nav class="p-4">
+        <ul class="space-y-2">
+          <li>
+            <NuxtLink to="/admin" class="sidebar-link"> 儀表板 </NuxtLink>
+          </li>
+          <li>
+            <NuxtLink to="/admin/editarticles" class="sidebar-link">
+              文章管理
+            </NuxtLink>
+          </li>
+          <li>
+            <NuxtLink to="/admin/editphotos" class="sidebar-link">
+              照片管理
+            </NuxtLink>
+          </li>
+          <li>
+            <NuxtLink to="/admin/editvideos" class="sidebar-link">
+              影片管理
+            </NuxtLink>
+          </li>
+          <li>
+            <NuxtLink to="/admin/editcategories" class="sidebar-link">
+              分類管理
+            </NuxtLink>
+          </li>
+          <li>
+            <NuxtLink to="/admin/edittags" class="sidebar-link">
+              標籤管理
+            </NuxtLink>
+          </li>
+          <li>
+            <NuxtLink to="/admin/seo" class="sidebar-link">
+              SEO/AEO/GEO 優化
+            </NuxtLink>
+          </li>
+          <li>
+            <NuxtLink to="/admin/change-password" class="sidebar-link">
+              修改密碼
+            </NuxtLink>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+    
     <div class="admin-main-container">
       <header class="admin-header">
         <div class="flex items-center">
-          <!-- You can add a logo or title here if you want -->
+          <h1 class="text-xl font-bold text-gray-800">WURIDAO 管理後台</h1>
         </div>
         <button @click="handleLogout" class="btn-secondary">登出</button>
       </header>
@@ -17,15 +61,11 @@
 </template>
 
 <script setup lang="ts">
-import AdminSidebar from "~/components/admin/AdminSidebar.vue";
-
 const authStore = useAuthStore();
 
 const handleLogout = async () => {
-  await authStore.logoutUser();
-  // Redirect to login page after logout
-  const router = useRouter();
-  router.push("/admin/login");
+  console.log('[AdminLayout] 執行登出');
+  await authStore.logout();
 };
 </script>
 

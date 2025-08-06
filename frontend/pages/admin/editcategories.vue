@@ -88,8 +88,7 @@
                 required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-black"
                 placeholder="輸入分類名稱"
-                @focus="console.log('input focus')"
-                @input="console.log('input event', $event.target.value)"
+                
               />
             </div>
 
@@ -184,7 +183,6 @@ const getCategoryTypeLabel = (type: string) => {
 };
 
 const createCategory = async () => {
-  console.log("[EditCategories] 新增分類開始", newCategory);
   if (!newCategory.name.trim() || !newCategory.type) return;
   saving.value = true;
   try {
@@ -192,18 +190,15 @@ const createCategory = async () => {
       name: newCategory.name.trim(),
       type: newCategory.type as "article" | "photo" | "video",
     });
-    console.log("[EditCategories] 新增分類成功");
     cancelCreate();
   } catch (error) {
     console.error("[EditCategories] 新增分類失敗", error);
   } finally {
     saving.value = false;
-    console.log("[EditCategories] saving 狀態重設");
   }
 };
 
 const cancelCreate = () => {
-  console.log("cancelCreate called");
   showCreateModal.value = false;
   newCategory.name = "";
   newCategory.type = "";
@@ -213,7 +208,6 @@ const deleteCategory = async (category: Category) => {
   if (confirm(`確定要刪除分類「${category.name}」嗎？`)) {
     try {
       await categoriesStore.deleteCategory(category.id);
-      console.log("[EditCategories] 刪除分類成功", category.id);
       // 添加成功提示
       const { success } = useToast();
       success(`分類「${category.name}」已刪除`);
@@ -227,8 +221,6 @@ const deleteCategory = async (category: Category) => {
 };
 
 onMounted(async () => {
-  console.log("editcategories.vue mounted");
   await categoriesStore.fetchCategories();
-  console.log("Categories fetched:", categoriesStore.categories);
 });
 </script>

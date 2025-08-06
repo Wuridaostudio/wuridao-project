@@ -137,7 +137,7 @@ const deleteTag = async (tag: Tag) => {
   if (confirm(`確定要刪除標籤「${tag.name}」嗎？`)) {
     try {
       await tagsStore.deleteTag(tag.id);
-      console.log("[EditTags] 刪除標籤成功", tag.id);
+
     } catch (err) {
       console.error("[EditTags] 刪除標籤失敗", err);
     }

@@ -7,7 +7,7 @@ export class LoginDto {
     description: '用戶名或電子郵件',
     minLength: 3,
     maxLength: 50,
-    example: 'admin@wuridao.com'
+    example: 'user@example.com'
   })
   @IsString({ message: '用戶名必須是字串' })
   @IsNotEmpty({ message: '用戶名不能為空' })

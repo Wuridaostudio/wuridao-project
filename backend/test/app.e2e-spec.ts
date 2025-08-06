@@ -11,7 +11,7 @@ describe('AppController (e2e)', () => {
     // 確保測試環境變數已設定
     if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD) {
       process.env.ADMIN_USERNAME = process.env.TEST_ADMIN_USERNAME || 'admin';
-      process.env.ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'admin123';
+      process.env.ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'test-password';
     }
     
     // 設定測試資料庫連線
@@ -87,7 +87,7 @@ describe('AppController (e2e)', () => {
         .post('/api/auth/login')
         .send({
           username: process.env.ADMIN_USERNAME || 'admin',
-          password: process.env.ADMIN_PASSWORD || process.env.TEST_ADMIN_PASSWORD || 'admin123',
+          password: process.env.ADMIN_PASSWORD || process.env.TEST_ADMIN_PASSWORD || 'test-password',
         })
         .expect(201);
 

@@ -155,14 +155,15 @@
           <div>
             <h3 class="font-semibold mb-4">快速連結</h3>
             <ul class="space-y-2">
-              <li v-for="link in footerLinks" :key="link.path">
+              <li v-for="link in safeFooterLinks" :key="link.path">
                 <NuxtLink
-                  v-if="link && link.path && link.label"
+                  v-if="link && link.path && link.label && typeof link.path === 'string'"
                   :to="link.path"
                   class="text-gray-400 hover:text-white transition-colors"
                 >
                   {{ link.label }}
                 </NuxtLink>
+                <span v-else class="text-gray-400">{{ link?.label || '連結' }}</span>
               </li>
             </ul>
           </div>
@@ -249,12 +250,30 @@
 </template>
 
 <script setup lang="ts">
+// 導入 icon 組件
+import FacebookIcon from "@/components/icons/FacebookIcon.vue";
+import InstagramIcon from "@/components/icons/InstagramIcon.vue";
+import YouTubeIcon from "@/components/icons/YouTubeIcon.vue";
+
 // 導航連結 - 定義在最前面確保 SSR 可用
 const navLinks: Array<{ path: string; label: string }> = [
   { path: "/", label: "首頁" },
   { path: "/articles/news", label: "最新消息" },
   { path: "/about", label: "關於我們" },
 ];
+
+// 確保數組始終可用且安全
+const safeNavLinks = computed(() => {
+  if (!navLinks || !Array.isArray(navLinks)) {
+    console.warn("navLinks is not properly defined, using fallback");
+    return [
+      { path: "/", label: "首頁" },
+      { path: "/articles/news", label: "最新消息" },
+      { path: "/about", label: "關於我們" },
+    ];
+  }
+  return navLinks.filter(link => link && link.path && link.label);
+});
 
 // 頁腳連結 - 定義在最前面確保 SSR 可用
 const footerLinks: Array<{ path: string; label: string }> = [
@@ -263,17 +282,19 @@ const footerLinks: Array<{ path: string; label: string }> = [
   { path: "/about", label: "關於我們" },
 ];
 
-// 確保數組始終可用
-if (!navLinks || !Array.isArray(navLinks)) {
-  console.error("navLinks is not properly defined");
-}
-if (!footerLinks || !Array.isArray(footerLinks)) {
-  console.error("footerLinks is not properly defined");
-}
+// 確保數組始終可用且安全
+const safeFooterLinks = computed(() => {
+  if (!footerLinks || !Array.isArray(footerLinks)) {
+    console.warn("footerLinks is not properly defined, using fallback");
+    return [
+      { path: "/", label: "首頁" },
+      { path: "/articles/news", label: "最新消息" },
+      { path: "/about", label: "關於我們" },
+    ];
+  }
+  return footerLinks.filter(link => link && link.path && link.label);
+});
 
-import FacebookIcon from "@/components/icons/FacebookIcon.vue";
-import InstagramIcon from "@/components/icons/InstagramIcon.vue";
-import YouTubeIcon from "@/components/icons/YouTubeIcon.vue";
 // 移除 import BackendStatus from "@/components/common/BackendStatus.vue";
 import { useRouter, useRoute } from "vue-router";
 import { ref, onMounted, onUnmounted, watch } from "vue";

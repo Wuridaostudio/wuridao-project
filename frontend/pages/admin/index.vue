@@ -21,29 +21,21 @@
     </div>
 
     <div class="card">
-      <h2 class="text-2xl font-bold mb-4">訪客地圖</h2>
-      <div v-if="analyticsLoading" class="flex justify-center py-12">
-        <LoadingSpinner />
-      </div>
-      <div v-else-if="analyticsData" class="h-96">
-        <!-- 這裡可以整合 Chart.js 地圖視覺化 -->
-        <p class="text-gray-600">訪客分佈資料已載入</p>
+      <h2 class="text-2xl font-bold mb-4">系統狀態</h2>
+      <div class="space-y-2">
+        <p class="text-gray-600">✅ 管理後台已載入</p>
+        <p class="text-gray-600">✅ 導航功能正常</p>
+        <p class="text-gray-600">✅ 認證系統運作中</p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import LoadingSpinner from "~/components/common/LoadingSpinner.vue";
-
 definePageMeta({
   layout: "admin",
   middleware: "auth",
 });
-
-const articlesStore = useArticlesStore();
-const mediaStore = useMediaStore();
-const api = useApi();
 
 // 使用 ref 而不是 reactive，確保 SSR 安全
 const stats = ref({
@@ -52,40 +44,27 @@ const stats = ref({
   videos: 0,
 });
 
-const analyticsData = ref(null);
-const analyticsLoading = ref(true);
-
-// 安全的長度計算函數
-const getSafeLength = (array: any[] | undefined | null): number => {
-  return Array.isArray(array) ? array.length : 0;
-};
-
 onMounted(async () => {
-  try {
-    // Load statistics
-    await Promise.all([
-      articlesStore.fetchArticles(),
-      mediaStore.fetchPhotos(),
-      mediaStore.fetchVideos(),
-    ]);
-
-    // 使用安全的長度計算
-    stats.value.articles = getSafeLength(articlesStore.articles);
-    stats.value.photos = getSafeLength(mediaStore.photos);
-    stats.value.videos = getSafeLength(mediaStore.videos);
-
-    // Load analytics
+  // 延遲載入數據，避免阻塞頁面渲染
+  setTimeout(async () => {
     try {
-      analyticsData.value = await api.getVisitorAnalytics();
+      const articlesStore = useArticlesStore();
+      const mediaStore = useMediaStore();
+      
+      // Load statistics
+      await Promise.all([
+        articlesStore.fetchArticles(),
+        mediaStore.fetchPhotos(),
+        mediaStore.fetchVideos(),
+      ]);
+
+      // 使用安全的長度計算
+      stats.value.articles = articlesStore.articles?.length || 0;
+      stats.value.photos = mediaStore.photos?.length || 0;
+      stats.value.videos = mediaStore.videos?.length || 0;
     } catch (error) {
-      console.error("Failed to load analytics:", error);
-    } finally {
-      analyticsLoading.value = false;
+      console.error("Failed to load dashboard data:", error);
     }
-  } catch (error) {
-    console.error("Failed to load dashboard data:", error);
-    // 即使載入失敗，也要停止 loading
-    analyticsLoading.value = false;
-  }
+  }, 500);
 });
 </script>

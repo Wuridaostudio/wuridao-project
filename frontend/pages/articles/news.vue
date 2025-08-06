@@ -1,24 +1,52 @@
 <template>
   <div class="min-h-screen bg-black relative">
     <!-- 動態背景 Waves -->
-    <Waves
-      lineColor="#3cf"
-      backgroundColor="transparent"
-      class="z-0"
-      style="height: 40vh"
-    />
+    <ClientOnly>
+      <Waves
+        lineColor="#3cf"
+        backgroundColor="transparent"
+        class="z-0"
+        style="height: 40vh"
+      />
+    </ClientOnly>
+    
     <!-- 內容區，padding-top: 40vh，剛好接在 Waves 下方 -->
     <section class="container mx-auto px-4 py-12 pt-[40vh] relative z-10">
-      <MasonryGrid
-        :items="allItems"
-        :loading="loading"
-        @load-more="loadMoreItems"
-      />
+      <ClientOnly>
+        <MasonryGrid
+          :items="allItems"
+          :loading="loading"
+          @load-more="loadMoreItems"
+        />
+      </ClientOnly>
     </section>
 
     <!-- 浮動操作按鈕 -->
     <div class="fixed bottom-8 left-8 z-30">
       <div class="flex flex-col gap-3">
+        <!-- 重新載入按鈕 -->
+        <button
+          @click="forceReloadMedia"
+          class="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-110 group"
+          aria-label="重新載入媒體"
+        >
+          <svg
+            class="w-6 h-6 group-hover:text-white transition-colors"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+        </button>
+        
+
+        
         <!-- 搜尋按鈕 -->
         <button
           @click="showSearch = true"
@@ -206,7 +234,7 @@
                 @click="toggleTag(tag.id)"
                 :class="[
                   'px-3 py-1 rounded-full text-sm transition-colors',
-                  selectedTags.includes(tag.id)
+                  selectedTags.value.includes(tag.id)
                     ? 'bg-blue-500 text-white'
                     : 'bg-gray-800 text-gray-300 hover:bg-gray-700',
                 ]"
@@ -243,26 +271,24 @@
 </template>
 
 <script setup lang="ts">
-// ===== DEBUG: 開始載入 news.vue =====
-console.log("🔍 [news.vue] Script setup 開始執行");
-
 import { ref, computed, onMounted } from "vue";
 import { useNuxtApp, useHead } from "#app";
 import { useArticlesStore } from "~/stores/articles";
 import { useMediaStore } from "~/stores/media";
 import { useCategoriesStore } from "~/stores/categories";
-import MasonryGrid from "~/components/public/MasonryGrid.vue";
-import Waves from "~/components/public/Waves.vue";
 
-console.log("🔍 [news.vue] 所有 imports 完成");
+// 確保組件在客戶端正確載入
+const MasonryGrid = defineAsyncComponent(() => 
+  import("~/components/public/MasonryGrid.vue")
+);
+const Waves = defineAsyncComponent(() => 
+  import("~/components/public/Waves.vue")
+);
 
 const { $gsap } = useNuxtApp();
 const articlesStore = useArticlesStore();
 const mediaStore = useMediaStore();
 const categoriesStore = useCategoriesStore();
-
-console.log("🔍 [news.vue] NuxtApp 和 stores 初始化完成");
-console.log("🔍 [news.vue] $gsap 存在:", !!$gsap);
 
 // SEO Meta
 useHead({
@@ -278,10 +304,8 @@ useHead({
   ],
 });
 
-console.log("🔍 [news.vue] SEO meta 設定完成");
 
 // ===== 響應式資料定義 =====
-console.log("🔍 [news.vue] 開始定義響應式資料");
 
 // 頁面狀態
 const loading = ref(true);
@@ -304,18 +328,9 @@ const bgPattern = ref();
 const pageTitle = ref();
 const pageSubtitle = ref();
 
-console.log("🔍 [news.vue] 響應式資料定義完成");
-
 // ===== 計算屬性 =====
-console.log("🔍 [news.vue] 開始定義計算屬性");
-
 // 合併所有內容項目
 const allItems = computed(() => {
-  console.log("🔍 [news.vue] allItems computed 執行");
-  console.log("🔍 [news.vue] articles:", articlesStore.articles?.length || 0);
-  console.log("🔍 [news.vue] photos:", mediaStore.photos?.length || 0);
-  console.log("🔍 [news.vue] videos:", mediaStore.videos?.length || 0);
-
   const items = [];
 
   // 添加文章
@@ -328,27 +343,44 @@ const allItems = computed(() => {
     );
   }
 
-  // 添加照片
+  // 添加照片 - 使用 Set 去重
   if (mediaStore.photos) {
+    const photoSet = new Set();
+    const uniquePhotos = mediaStore.photos.filter(photo => {
+      if (photoSet.has(photo.id)) {
+        return false;
+      }
+      photoSet.add(photo.id);
+      return true;
+    });
+    
     items.push(
-      ...mediaStore.photos.map((photo) => ({
+      ...uniquePhotos.map((photo) => ({
         ...photo,
         type: "photo",
       })),
     );
   }
 
-  // 添加影片
+  // 添加影片 - 使用 Set 去重
   if (mediaStore.videos) {
+    const videoSet = new Set();
+    const uniqueVideos = mediaStore.videos.filter(video => {
+      if (videoSet.has(video.id)) {
+        return false;
+      }
+      videoSet.add(video.id);
+      return true;
+    });
+    
     items.push(
-      ...mediaStore.videos.map((video) => ({
+      ...uniqueVideos.map((video) => ({
         ...video,
         type: "video",
       })),
     );
   }
 
-  console.log("🔍 [news.vue] 合併後總項目數:", items.length);
   return items;
 });
 
@@ -362,21 +394,15 @@ const tags = computed(() => {
   return Array.from(allTags);
 });
 
-console.log("🔍 [news.vue] 計算屬性定義完成");
-
 // ===== 方法定義 =====
-console.log("🔍 [news.vue] 開始定義方法");
-
 // 載入更多內容
 const loadMoreItems = async () => {
-  console.log("🔍 [news.vue] loadMoreItems 被呼叫");
   try {
     await Promise.all([
       articlesStore.fetchArticles(),
       mediaStore.fetchPhotos(),
       mediaStore.fetchVideos(),
     ]);
-    console.log("🔍 [news.vue] 載入更多內容完成");
   } catch (error) {
     console.error("❌ [news.vue] 載入更多內容失敗:", error);
   }
@@ -384,22 +410,16 @@ const loadMoreItems = async () => {
 
 // 搜尋處理
 const handleSearch = () => {
-  console.log(
-    "🔍 [news.vue] handleSearch 被呼叫，搜尋關鍵字:",
-    searchQuery.value,
-  );
   // TODO: 實作搜尋邏輯
 };
 
 // 清除搜尋
 const clearSearch = () => {
-  console.log("🔍 [news.vue] clearSearch 被呼叫");
   searchQuery.value = "";
 };
 
 // 切換標籤選擇
 const toggleTag = (tagId: number) => {
-  console.log("🔍 [news.vue] toggleTag 被呼叫，tagId:", tagId);
   const index = selectedTags.value.indexOf(tagId);
   if (index > -1) {
     selectedTags.value.splice(index, 1);
@@ -408,54 +428,87 @@ const toggleTag = (tagId: number) => {
   }
 };
 
+// 切換分類選擇
+const toggleCategory = (categoryId: number) => {
+  const index = selectedCategories.value.indexOf(categoryId);
+  if (index > -1) {
+    selectedCategories.value.splice(index, 1);
+  } else {
+    selectedCategories.value.push(categoryId);
+  }
+};
+
+// 清除所有篩選
+const clearFilters = () => {
+  selectedTags.value = [];
+  selectedCategories.value = [];
+  searchQuery.value = "";
+};
+
+
+
+
+
 // 套用篩選
 const applyFilters = () => {
-  console.log("🔍 [news.vue] applyFilters 被呼叫");
-  console.log("🔍 [news.vue] 篩選條件:", {
-    dateRange: dateRange.value,
-    selectedCategories: selectedCategories.value,
-    selectedTags: selectedTags.value,
-    sortBy: sortBy.value,
-  });
   // TODO: 實作篩選邏輯
 };
 
 // 重置篩選
 const resetFilters = () => {
-  console.log("🔍 [news.vue] resetFilters 被呼叫");
   dateRange.value = "all";
   selectedCategories.value = [];
   selectedTags.value = [];
   sortBy.value = "newest";
 };
 
-console.log("🔍 [news.vue] 方法定義完成");
+// 添加強制重新載入功能
+const forceReloadMedia = async () => {
+  loading.value = true;
+  
+  try {
+    // 清除快取
+    mediaStore.clearAllCache();
+    
+    // 重新載入媒體數據，使用強制重新載入參數
+    await Promise.all([
+      mediaStore.fetchCloudinaryPhotos("wuridao/photos", true), // 強制重新載入
+      mediaStore.fetchCloudinaryVideos("wuridao/videos", true), // 強制重新載入
+    ]);
+    
+  } catch (error) {
+    console.error("❌ [news.vue] 重新載入媒體數據失敗:", error);
+  } finally {
+    loading.value = false;
+  }
+};
 
 // ===== 生命週期 =====
-console.log("🔍 [news.vue] 開始設定生命週期");
 
 onMounted(async () => {
-  console.log("🔍 [news.vue] onMounted 開始執行");
-
   try {
     // 載入初始資料
-    console.log("🔍 [news.vue] 開始載入初始資料");
-    await Promise.all([
-      articlesStore.fetchArticles(),
-      mediaStore.fetchPhotos(),
-      mediaStore.fetchVideos(),
-      categoriesStore.fetchCategories(),
-    ]);
-    console.log("🔍 [news.vue] 初始資料載入完成");
+    const mediaAlreadyLoaded = (mediaStore.photos?.length || 0) > 0 || (mediaStore.videos?.length || 0) > 0;
+    
+    if (mediaAlreadyLoaded) {
+      await Promise.all([
+        articlesStore.fetchArticles(),
+        categoriesStore.fetchCategories(),
+      ]);
+    } else {
+      await Promise.all([
+        articlesStore.fetchArticles(),
+        mediaStore.fetchCloudinaryPhotos(),
+        mediaStore.fetchCloudinaryVideos(),
+        categoriesStore.fetchCategories(),
+      ]);
+    }
 
     // 關閉載入狀態
     loading.value = false;
-    console.log("🔍 [news.vue] loading 設為 false");
 
     // 初始化動畫
     if (process.client) {
-      console.log("🔍 [news.vue] 開始初始化 CSS 動畫");
-
       // Hero section 動畫
       const animateElement = (element, delay = 0) => {
         if (element && element.value) {
@@ -470,21 +523,12 @@ onMounted(async () => {
 
       animateElement(pageTitle, 0);
       animateElement(pageSubtitle, 500);
-
-      console.log("🔍 [news.vue] Hero section 動畫初始化完成");
-    } else {
-      console.log("⚠️ [news.vue] 不在 client 端，跳過動畫初始化");
     }
-
-    console.log("🔍 [news.vue] onMounted 執行完成");
   } catch (error) {
     console.error("❌ [news.vue] onMounted 執行失敗:", error);
     loading.value = false;
   }
 });
-
-console.log("🔍 [news.vue] 生命週期設定完成");
-console.log("🔍 [news.vue] Script setup 執行完成");
 </script>
 
 <style scoped>

@@ -21,6 +21,7 @@ import { TagsModule } from './tags/tags.module';
 import { UnsplashModule } from './unsplash/unsplash.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { MediaModule } from './media/media.module';
 import { SitemapModule } from './sitemap/sitemap.module';
 import { SeoModule } from './seo/seo.module';
 import { DatabaseModule } from './database/database.module';
@@ -111,6 +112,7 @@ import { CreateTagsSeed } from './database/seeds/create-tags.seed';
     UnsplashModule,
     AnalyticsModule,
     CloudinaryModule,
+    MediaModule,
     SitemapModule,
     SeoModule,
   ],

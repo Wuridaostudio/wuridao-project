@@ -66,20 +66,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 
-// ===== DEBUG: 開始載入 index.vue =====
-console.log("🔍 [index.vue] Script setup 開始執行");
-
 import HeroSection from "@/components/public/HeroSection.vue";
 import Orb from "@/components/public/Orb.vue";
 import ThreeDCard from "@/components/common/ThreeDCard.vue";
 
-console.log("🔍 [index.vue] 所有 imports 完成");
-
 const { $gsap, $ScrollTrigger } = useNuxtApp();
-
-console.log("🔍 [index.vue] NuxtApp 初始化完成");
-console.log("🔍 [index.vue] $gsap 存在:", !!$gsap);
-console.log("🔍 [index.vue] $ScrollTrigger 存在:", !!$ScrollTrigger);
 
 // SEO Meta
 useHead({
@@ -98,10 +89,8 @@ useHead({
   ],
 });
 
-console.log("🔍 [index.vue] SEO meta 設定完成");
 
 // ===== 動畫 refs =====
-console.log("🔍 [index.vue] 開始定義動畫 refs");
 
 const featuresSection = ref();
 const featuresTitle = ref();
@@ -113,18 +102,12 @@ const ctaTitle = ref();
 const ctaSubtitle = ref();
 const ctaButton = ref();
 
-console.log("🔍 [index.vue] 動畫 refs 定義完成");
-
 // ===== 生命週期 =====
-console.log("🔍 [index.vue] 開始設定生命週期");
 
 try {
   onMounted(() => {
-    console.log("🔍 [index.vue] onMounted 開始執行");
-
     // 檢查 GSAP 和 ScrollTrigger 可用性
     if (!process.client) {
-      console.log("⚠️ [index.vue] 不在 client 端，跳過動畫初始化");
       return;
     }
 
@@ -138,25 +121,21 @@ try {
       return;
     }
 
-    console.log("🔍 [index.vue] GSAP 和 ScrollTrigger 都可用，開始初始化動畫");
-
-    // Add a small delay to ensure DOM is fully rendered
-    setTimeout(() => {
-      // Features section animation
-      console.log("🔍 [index.vue] 開始設置 Features section 動畫");
-
-      if (
-        !featuresSection.value ||
-        !featuresTitle.value ||
-        !featureCard1.value ||
-        !featureCard2.value ||
-        !featureCard3.value
-      ) {
-        if (process.dev) {
-          console.warn("⚠️ [index.vue] Features section 元素不存在，跳過動畫初始化");
+          // Add a small delay to ensure DOM is fully rendered
+      setTimeout(() => {
+        // Features section animation
+        if (
+          !featuresSection.value ||
+          !featuresTitle.value ||
+          !featureCard1.value ||
+          !featureCard2.value ||
+          !featureCard3.value
+        ) {
+          if (process.dev) {
+            console.warn("⚠️ [index.vue] Features section 元素不存在，跳過動畫初始化");
+          }
+          return;
         }
-        return;
-      }
 
     // Use CSS-based animations instead of GSAP
     const animateElement = (element, delay = 0) => {
@@ -194,10 +173,8 @@ try {
     // Skip component animations for now to avoid warnings
     // The ThreeDCard components have their own internal animations
 
-    console.log("🔍 [index.vue] Features section 動畫設置完成");
 
     // CTA section animation
-    console.log("🔍 [index.vue] 開始設置 CTA section 動畫");
 
     if (
       !ctaSection.value ||
@@ -221,16 +198,11 @@ try {
     
     // Skip button animation for now to avoid warnings
 
-    console.log("🔍 [index.vue] CTA section 動畫設置完成");
-    console.log("🔍 [index.vue] 所有動畫初始化完成");
     }, 100); // Close the setTimeout with 100ms delay
   });
 } catch (e) {
   console.error("❌ [index.vue] onMounted 執行失敗:", e);
 }
-
-console.log("🔍 [index.vue] 生命週期設定完成");
-console.log("🔍 [index.vue] Script setup 執行完成");
 </script>
 
 <style scoped>

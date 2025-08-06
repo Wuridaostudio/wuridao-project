@@ -1,5 +1,5 @@
 <template>
-  <router-link :to="`/media/${photo.id}`" class="block group">
+  <router-link :to="`/media/${getSimpleId(photo.id)}`" class="block group">
     <div class="relative">
       <img
         :src="photo.url"
@@ -26,4 +26,13 @@
 import type { Photo } from "~/types";
 
 defineProps<{ photo: Photo }>();
+
+// 從 publicId 中提取簡單的 ID
+const getSimpleId = (id: string | number) => {
+  if (typeof id === 'string' && id.includes('/')) {
+    // 如果是 publicId 格式，取最後一部分
+    return id.split('/').pop();
+  }
+  return id;
+};
 </script>

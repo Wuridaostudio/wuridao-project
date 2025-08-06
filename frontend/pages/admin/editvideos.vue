@@ -228,9 +228,12 @@ const deleteVideo = async (video: Video) => {
 
 onMounted(async () => {
   await Promise.all([
-    mediaStore.fetchVideos(),
     categoriesStore.fetchCategories("video"),
     tagsStore.fetchTags(),
   ]);
+
+  // 只使用 Cloudinary 資源，避免重複
+  const cloudinaryVideos = await mediaStore.fetchCloudinaryVideos();
+  
 });
 </script>

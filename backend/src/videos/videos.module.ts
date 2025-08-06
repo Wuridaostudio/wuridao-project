@@ -12,5 +12,6 @@ import { Tag } from '../tags/entities/tag.entity';
   imports: [TypeOrmModule.forFeature([Video, Category, Tag]), CloudinaryModule],
   controllers: [VideosController],
   providers: [VideosService],
+  exports: [VideosService], // 導出 VideosService 供其他模組使用
 })
 export class VideosModule {}

@@ -246,12 +246,12 @@ const deletePhoto = async (photo: Photo) => {
 
 onMounted(async () => {
   await Promise.all([
-    mediaStore.fetchPhotos(),
     categoriesStore.fetchCategories("photo"),
     tagsStore.fetchTags(),
   ]);
 
+  // 只使用 Cloudinary 資源，避免重複
   const cloudinaryPhotos = await mediaStore.fetchCloudinaryPhotos();
-  console.log("Cloudinary photos:", cloudinaryPhotos);
+  
 });
 </script>

@@ -46,6 +46,10 @@
   </aside>
 </template>
 
+<script setup lang="ts">
+// 簡化的組件，移除複雜的調試信息
+</script>
+
 <style scoped>
 .admin-sidebar {
   width: 220px;

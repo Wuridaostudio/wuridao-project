@@ -4,7 +4,6 @@ import axios from "axios";
 export const useUpload = () => {
   const config = useRuntimeConfig();
   const api = useApi();
-  const { getToken } = useAuth();
   const isOnline = ref(process.client ? navigator.onLine : true);
   const uploadSpeed = ref(0);
 
@@ -123,9 +122,10 @@ export const useUpload = () => {
       uploadType: type,
       folder: folder,
     });
+    const { token } = useAuthToken();
     console.log(
       "[useUpload] token before getCloudinarySignature:",
-      getToken(),
+      token.value,
     );
 
     const uploadStartTime = Date.now();

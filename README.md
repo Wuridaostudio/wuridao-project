@@ -34,52 +34,9 @@
 - ✅ 環境變數管理
 
 ### 環境變數配置
-請確保以下環境變數已正確設定：
+請參考 `.env.example` 檔案來設定您的環境變數。
 
-#### 後端 (.env)
-```bash
-# 資料庫
-DATABASE_URL=postgresql://username:password@localhost:5432/database
-USE_SSL=false
-
-# JWT
-JWT_SECRET=your-super-secret-jwt-key
-JWT_EXPIRES_IN=7d
-
-# 管理員帳號
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=your-secure-password
-
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
-
-# Unsplash
-UNSPLASH_ACCESS_KEY=your-unsplash-access-key
-
-# 前端 URL
-FRONTEND_URL=https://your-domain.com
-```
-
-#### 前端 (.env)
-```bash
-# API 基礎 URL
-NUXT_PUBLIC_API_BASE_URL=https://your-api-domain.com/api
-
-# 網站 URL
-NUXT_PUBLIC_SITE_URL=https://your-domain.com
-
-# Cloudinary (公開)
-NUXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name
-
-# Unsplash (公開)
-NUXT_PUBLIC_UNSPLASH_ACCESS_KEY=your-unsplash-access-key
-
-# 網站資訊
-NUXT_PUBLIC_SITE_NAME=WURIDAO 智慧家
-NUXT_PUBLIC_SITE_DESCRIPTION=一起探索智慧家庭未來
-```
+**重要提醒**: 請確保所有敏感資訊（如資料庫連線字串、API 金鑰等）都正確設定在環境變數中，且不要將 `.env` 檔案上傳到版本控制系統。
 
 ## 🚀 部署指南
 
@@ -87,7 +44,7 @@ NUXT_PUBLIC_SITE_DESCRIPTION=一起探索智慧家庭未來
 
 1. **克隆專案**
 ```bash
-git clone https://github.com/your-username/wuridao-project.git
+git clone https://github.com/Wuridaostudio/wuridao-project.git
 cd wuridao-project
 ```
 
@@ -95,7 +52,8 @@ cd wuridao-project
 ```bash
 cd backend
 npm install
-# 設定 .env 檔案
+# 複製 .env.example 為 .env 並設定環境變數
+cp .env.example .env
 npm run start:dev
 ```
 
@@ -103,7 +61,8 @@ npm run start:dev
 ```bash
 cd frontend
 npm install
-# 設定 .env 檔案
+# 複製 .env.example 為 .env 並設定環境變數
+cp .env.example .env
 npm run dev
 ```
 
@@ -172,7 +131,7 @@ npm run migration:run
 npm run migration:revert
 ```
 
-## 🛡️ 安全注意事項
+## ��️ 安全注意事項
 
 ### 重要提醒
 1. **永遠不要將 .env 檔案上傳到版本控制**
@@ -193,7 +152,7 @@ npm run migration:revert
 
 如有問題或建議，請聯絡：
 - Email: wuridaostudio@gmail.com
-- GitHub Issues: [專案 Issues](https://github.com/your-username/wuridao-project/issues)
+- GitHub Issues: [專案 Issues](https://github.com/Wuridaostudio/wuridao-project/issues)
 
 ## 📄 授權
 

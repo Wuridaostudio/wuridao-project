@@ -1,62 +1,27 @@
-# 多服務器部署指南
+# WURIDAO 智慧家 - 部署指南
 
-## 架構概述
+## 📋 部署前準備
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   前端服務器     │    │   後端服務器     │    │   資料庫服務器   │
-│   (Nuxt 3)      │◄──►│   (NestJS)      │◄──►│  (PostgreSQL)   │
-│                 │    │                 │    │                 │
-│ - 靜態檔案      │    │ - API 服務      │    │ - 資料存儲      │
-│ - SSR 渲染      │    │ - 認證服務      │    │ - 事務處理      │
-│ - CDN 加速      │    │ - 檔案上傳      │    │ - 備份恢復      │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
+### 1. 環境需求
+- Node.js 18+ 
+- PostgreSQL 12+
+- Git
+- 雲端平台帳號 (AWS, Google Cloud, Azure, DigitalOcean 等)
 
-## 1. 環境變數配置
+### 2. 環境變數設定
 
-### 後端環境變數 (.env)
+#### 後端環境變數
+請參考 `backend/.env.example` 檔案來設定您的環境變數。
 
-```bash
-# 基本配置
-NODE_ENV=production
-PORT=3000
+**重要提醒**: 
+- 請確保所有敏感資訊（如資料庫連線字串、API 金鑰等）都正確設定
+- 不要將 `.env` 檔案上傳到版本控制系統
+- 使用強密碼和安全的 JWT 密鑰
 
-# 資料庫配置
-DATABASE_URL=postgresql://username:password@your-db-server.com:5432/wuridao_db
-USE_SSL=true
+#### 前端環境變數
+請參考 `frontend/.env.example` 檔案來設定您的環境變數。
 
-# 前端配置 (CORS)
-FRONTEND_URL=https://your-frontend-domain.com
-
-# JWT 認證
-JWT_SECRET=your-super-secret-jwt-key-here
-JWT_EXPIRES_IN=7d
-
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
-
-# 其他服務
-UNSPLASH_ACCESS_KEY=your-unsplash-access-key
-SENTRY_DSN=your-sentry-dsn
-```
-
-### 前端環境變數 (.env)
-
-```bash
-# API 配置
-NUXT_PUBLIC_API_BASE_URL=https://your-backend-domain.com/api
-NUXT_PUBLIC_SITE_URL=https://your-frontend-domain.com
-
-# Cloudinary
-NUXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your-cloud-name
-
-# 其他
-NUXT_PUBLIC_SITE_NAME=WURIDAO 智慧家
-NUXT_PUBLIC_SITE_DESCRIPTION=一起探索智慧家庭未來
-```
+**注意**: 前端環境變數中標記為 `NUXT_PUBLIC_` 的變數會在客戶端可見，請不要包含敏感資訊。
 
 ## 2. 服務器配置
 
@@ -156,16 +121,17 @@ app.enableCors({
 - HashiCorp Vault
 ```
 
-### 資料庫安全
+### 資料庫安全配置
 
 ```sql
--- 創建專用用戶
-CREATE USER wuridao_user WITH PASSWORD 'strong_password';
+-- 創建專用用戶（請使用強密碼）
+CREATE USER wuridao_user WITH PASSWORD 'your-strong-password';
 
--- 限制權限
-GRANT CONNECT ON DATABASE wuridao_db TO wuridao_user;
-GRANT USAGE ON SCHEMA public TO wuridao_user;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO wuridao_user;
+-- 創建資料庫
+CREATE DATABASE wuridao_db OWNER wuridao_user;
+
+-- 授予權限
+GRANT ALL PRIVILEGES ON DATABASE wuridao_db TO wuridao_user;
 ```
 
 ### API 安全
@@ -235,8 +201,11 @@ pg_dump $DATABASE_URL > backup_$(date +%Y%m%d_%H%M%S).sql
 ### 檔案備份
 
 ```bash
-# 備份上傳的檔案
+# 備份上傳檔案
 aws s3 sync /uploads s3://your-backup-bucket/uploads
+
+# 備份資料庫
+pg_dump $DATABASE_URL > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 ## 7. 部署檢查清單

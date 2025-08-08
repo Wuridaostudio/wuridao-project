@@ -15,3 +15,4 @@ describe('useLoading', () => {
     expect(loadingMessage.value).toBe('')
   })
 })
+

@@ -33,3 +33,4 @@ describe('useAuthToken', () => {
     expect(isAuthenticated.value).toBe(false)
   })
 })
+

@@ -13,6 +13,13 @@ import YouTubeIcon from '@/components/icons/YouTubeIcon.vue'
 // 導航連結 - 定義在最前面確保 SSR 可用
 const navLinks: Array<{ path: string, label: string }> = [
   { path: '/', label: '首頁' },
+  { path: '/articles/news', label: '最新消息' },
+  { path: '/about', label: '關於我們' },
+]
+
+// 移動端導航連結（包含規劃服務）
+const mobileNavLinks: Array<{ path: string, label: string }> = [
+  { path: '/', label: '首頁' },
   { path: '/plan', label: '規劃服務' },
   { path: '/articles/news', label: '最新消息' },
   { path: '/about', label: '關於我們' },
@@ -29,6 +36,20 @@ const safeNavLinks = computed(() => {
     ]
   }
   return navLinks.filter(link => link && link.path && link.label)
+})
+
+// 移動端導航連結安全檢查
+const safeMobileNavLinks = computed(() => {
+  if (!mobileNavLinks || !Array.isArray(mobileNavLinks)) {
+    console.warn('mobileNavLinks is not properly defined, using fallback')
+    return [
+      { path: '/', label: '首頁' },
+      { path: '/plan', label: '規劃服務' },
+      { path: '/articles/news', label: '最新消息' },
+      { path: '/about', label: '關於我們' },
+    ]
+  }
+  return mobileNavLinks.filter(link => link && link.path && link.label)
 })
 
 // 頁腳連結 - 定義在最前面確保 SSR 可用
@@ -225,17 +246,22 @@ onUnmounted(() => {
         </NuxtLink>
 
         <!-- Desktop Navigation -->
-        <div class="hidden lg:flex items-center gap-8 xl:gap-16 text-sm lg:text-base">
+        <nav class="hidden lg:flex items-center gap-8 xl:gap-16 text-sm lg:text-base" aria-label="桌面導航選單">
           <a
-            v-for="link in navLinks"
+            v-for="(link, index) in navLinks"
             :key="link.path"
             href="#"
             class="nav-link"
+            :aria-label="`前往${link.label}頁面`"
+            :aria-current="route.path === link.path ? 'page' : undefined"
+            :tabindex="0"
             @click.prevent="() => handleNavClick(link.path, link.label)"
+            @keydown.enter.prevent="() => handleNavClick(link.path, link.label)"
+            @keydown.space.prevent="() => handleNavClick(link.path, link.label)"
           >
             {{ link.label }}
           </a>
-        </div>
+        </nav>
 
         <!-- Mobile Menu Button -->
         <button
@@ -282,28 +308,16 @@ onUnmounted(() => {
           <!-- 背景遮罩 -->
           <div class="absolute inset-0 bg-black/20 pointer-events-none" />
           <div class="container mx-auto px-6 py-6 relative z-10">
-            <!-- 關閉按鈕 -->
-            <div class="flex justify-end mb-4">
-              <button
-                class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800/50 active:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-black touch-manipulation select-none"
-                aria-label="關閉選單"
-                @click="mobileMenuOpen = false"
-                @keydown.enter.prevent="mobileMenuOpen = false"
-                @keydown.space.prevent="mobileMenuOpen = false"
-              >
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div class="flex flex-col gap-6">
+            <nav class="flex flex-col gap-6" aria-label="手機導航選單項目">
               <a
-                v-for="link in navLinks"
+                v-for="(link, index) in safeMobileNavLinks"
                 :key="link.path"
                 href="#"
-                class="nav-link-mobile text-lg font-medium py-4 px-4 rounded-lg hover:bg-gray-800/50 active:bg-gray-700/50 transition-all duration-200 touch-manipulation select-none"
+                class="nav-link-mobile text-lg font-medium py-4 px-4 rounded-lg hover:bg-gray-800/50 active:bg-gray-700/50 transition-all duration-200 touch-manipulation select-none focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-black"
                 role="menuitem"
                 :aria-label="`前往${link.label}頁面`"
+                :aria-current="route.path === link.path ? 'page' : undefined"
+                :tabindex="mobileMenuOpen ? 0 : -1"
                 @click.prevent="
                   () => {
                     handleNavClick(link.path, link.label);
@@ -322,10 +336,11 @@ onUnmounted(() => {
                     mobileMenuOpen = false;
                   }
                 "
+                @keydown.escape="mobileMenuOpen = false"
               >
                 {{ link.label }}
               </a>
-            </div>
+            </nav>
           </div>
         </div>
       </Transition>
@@ -335,8 +350,6 @@ onUnmounted(() => {
     <main class="pt-16 md:pt-20">
       <slot />
     </main>
-
-    <!-- 移除 <BackendStatus /> -->
 
     <!-- Footer -->
     <footer class="bg-gray-900 border-t border-gray-800 mt-20">
@@ -359,19 +372,20 @@ onUnmounted(() => {
             <p class="text-gray-400 mb-4 max-w-md">
               革新您的智能生活體驗。我們提供最先進的智慧家居解決方案，讓您的生活更加便利、安全、節能。
             </p>
-            <div class="flex gap-4">
+            <nav class="flex gap-4" aria-label="社群媒體連結">
               <a
                 v-for="social in socialLinks"
                 :key="social.name"
                 :href="social.url"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-gray-400 hover:text-white transition-colors"
-                :aria-label="social.name"
+                class="text-gray-400 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-black rounded"
+                :aria-label="`在${social.name}上關注我們`"
+                :tabindex="0"
               >
                 <component :is="social.icon" class="w-6 h-6" />
               </a>
-            </div>
+            </nav>
           </div>
 
           <!-- 快速連結 -->
@@ -438,6 +452,24 @@ onUnmounted(() => {
                 wuridaostudio@gmail.com
               </li>
             </ul>
+            
+            <!-- LINE 好友 QR Code -->
+            <div class="mt-6">
+              <h4 class="font-medium text-white mb-3">
+                加入 LINE 好友
+              </h4>
+              <div class="bg-white p-3 rounded-lg inline-block">
+                <img 
+                  src="https://qr-official.line.me/gs/M_417qbotf_BW.png?oat_content=qr"
+                  alt="LINE 好友 QR Code"
+                  class="w-24 h-24"
+                  loading="lazy"
+                />
+              </div>
+              <p class="text-xs text-gray-400 mt-2">
+                掃描 QR Code 加入我們的 LINE 官方帳號
+              </p>
+            </div>
           </div>
         </div>
 
@@ -454,15 +486,19 @@ onUnmounted(() => {
     <Transition name="fade">
       <button
         v-if="showScrollTop"
-        class="fixed bottom-8 right-8 bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-110 z-30"
-        aria-label="回到頂部"
+        class="fixed bottom-8 right-8 bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-110 z-30 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-black"
+        aria-label="回到頁面頂部"
+        :tabindex="showScrollTop ? 0 : -1"
         @click="scrollToTop"
+        @keydown.enter.prevent="scrollToTop"
+        @keydown.space.prevent="scrollToTop"
       >
         <svg
           class="w-6 h-6"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
+          aria-hidden="true"
         >
           <path
             stroke-linecap="round"

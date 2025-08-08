@@ -80,7 +80,8 @@ function updateCardTransforms() {
     const scaleProgress = calculateProgress(scrollTop, triggerStart, triggerEnd)
     const targetScale = props.baseScale + (i * props.itemScale)
     const scale = 1 - scaleProgress * (1 - targetScale)
-    const rotation = props.rotationAmount ? i * props.rotationAmount * scaleProgress : 0
+    // 修改旋轉方向：將正值改為負值，讓左上角往上、右上角往下
+    const rotation = props.rotationAmount ? -i * props.rotationAmount * scaleProgress : 0
 
     let blur = 0
     if (props.blurAmount) {
@@ -210,7 +211,7 @@ onUnmounted(() => {
       willChange: 'transform',
     }"
   >
-    <div class="scroll-stack-inner pt-[20vh] px-20 pb-[20vh] min-h-screen">
+    <div class="scroll-stack-inner pt-[20vh] px-4 sm:px-8 md:px-12 lg:px-20 pb-[20vh] min-h-screen">
       <slot />
       <!-- Spacer so the last pin can release cleanly -->
       <div class="scroll-stack-end w-full h-px" />

@@ -42,3 +42,4 @@ describe('Categories Store', () => {
     expect(store.tags.length).toBeGreaterThanOrEqual(1)
   })
 })
+

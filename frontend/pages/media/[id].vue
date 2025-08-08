@@ -5,7 +5,6 @@ import { useRoute, useRouter } from 'vue-router'
 import LoadingSpinner from '~/components/common/LoadingSpinner.vue'
 
 import { useMediaStore } from '~/stores/media'
-import { useApi } from '~/composables/useApi'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,7 +13,6 @@ const media = ref<any>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const mediaStore = useMediaStore()
-const api = useApi()
 const allPhotos = computed(() => mediaStore.photos)
 const allVideos = computed(() => mediaStore.videos)
 const currentIndex = computed(() => {
@@ -63,19 +61,6 @@ async function fetchMedia() {
   error.value = null
 
   try {
-    // 優先：從後端單筆查詢，取得含分類與標籤的完整資料
-    try {
-      const serverMedia = await api.getMedia(String(id))
-      if (serverMedia) {
-        // 後端回傳照片/影片含 category/tags/description
-        media.value = serverMedia
-        return
-      }
-    }
-    catch (e) {
-      // 忽略 404，改用 Cloudinary 列表回退
-    }
-
     // 強制清除所有快取並重新載入數據
     console.log('[fetchMedia] 強制清除快取並重新載入媒體數據...')
     mediaStore.clearAllCache()
@@ -116,31 +101,11 @@ async function fetchMedia() {
     })
 
     if (photo) {
-      // 若僅有 Cloudinary 資訊，嘗試從 DB 端補齊分類/標籤/描述
-      try {
-        const dbPhoto = await api.getMedia(String(id))
-        if (dbPhoto) {
-          media.value = { ...dbPhoto, type: 'photo' }
-        } else {
-          media.value = { ...photo, type: 'photo' }
-        }
-      } catch {
-        media.value = { ...photo, type: 'photo' }
-      }
+      media.value = { ...photo, type: 'photo' }
       console.log('[fetchMedia] 找到照片:', photo)
     }
     else if (video) {
-      // 若僅有 Cloudinary 資訊，嘗試從 DB 端補齊分類/標籤/描述
-      try {
-        const dbVideo = await api.getMedia(String(id))
-        if (dbVideo) {
-          media.value = { ...dbVideo, type: 'video' }
-        } else {
-          media.value = { ...video, type: 'video' }
-        }
-      } catch {
-        media.value = { ...video, type: 'video' }
-      }
+      media.value = { ...video, type: 'video' }
       console.log('[fetchMedia] 找到影片:', video)
     }
     else {
@@ -168,26 +133,6 @@ async function fetchMedia() {
     loading.value = false
   }
 }
-
-// 顯示用標題：優先 title，其次 description，其次分類名稱/首個標籤，最後才用檔名
-const displayTitle = computed(() => {
-  const m = media.value
-  if (!m) return ''
-  const fromFile = typeof m.publicId === 'string' ? (m.publicId.split('/').pop() || '') : ''
-  const fromCategory = m.category?.name || ''
-  const fromTag = Array.isArray(m.tags) && m.tags.length > 0 ? (m.tags[0]?.name || '') : ''
-  return m.title || m.description || fromCategory || fromTag || fromFile || '未命名'
-})
-
-// 僅在描述與顯示標題不同時顯示描述，避免重複
-const showDescription = computed(() => {
-  const m = media.value
-  if (!m) return false
-  const desc = (m.description || '').trim()
-  if (m.type === 'video') return !!desc // 影片：一定顯示描述（有值即可）
-  const title = (displayTitle.value || '').trim()
-  return !!desc && desc !== title // 照片：避免與標題重複
-})
 
 onMounted(async () => {
   console.log('[media/[id].vue] 頁面載入，ID:', id)
@@ -290,13 +235,8 @@ watch(() => route.params.id, fetchMedia)
           @error="error = '影片載入失敗'"
         />
 
-        <!-- 標題（優先 title/描述/檔名） -->
-        <div class="mt-6 text-white text-xl font-bold text-center">
-          {{ displayTitle }}
-        </div>
-        <!-- 描述 -->
-        <div class="mt-1 text-gray-300 text-sm text-center" v-if="showDescription">
-          {{ media.description }}
+        <div class="mt-6 text-white text-lg font-bold text-center">
+          {{ media?.description || "（無描述）" }}
         </div>
         <div
           v-if="media?.tags?.length"

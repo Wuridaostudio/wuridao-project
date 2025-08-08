@@ -361,14 +361,16 @@ onMounted(async () => {
       quadMat.uniforms.noiseFactor.value = props.noiseFactor
       quadMat.uniforms.noiseScale.value = props.noiseScale
       labelMat.uniforms.color.value.set(...persistColor)
-      renderer.autoClearColor = false
-      renderer.setRenderTarget(rt0)
-      renderer.clearColor()
-      renderer.render(fluidScene, cam)
-      renderer.render(scene, cam)
-      renderer.setRenderTarget(null)
-      renderer.render(fluidScene, cam)
-      renderer.render(scene, cam);
+      if (renderer) {
+        renderer.autoClearColor = false
+        renderer.setRenderTarget(rt0)
+        renderer.clearColor()
+        renderer.render(fluidScene, cam)
+        renderer.render(scene, cam)
+        renderer.setRenderTarget(null)
+        renderer.render(fluidScene, cam)
+        renderer.render(scene, cam)
+      }
       [rt0, rt1] = [rt1, rt0]
       lastTime = now
     }

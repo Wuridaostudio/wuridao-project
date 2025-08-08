@@ -18,21 +18,27 @@ const api = useApi()
 const allPhotos = computed(() => mediaStore.photos)
 const allVideos = computed(() => mediaStore.videos)
 const currentIndex = computed(() => {
-  if (media.value?.type === 'photo') {
-    return allPhotos.value.findIndex((p) => {
+  if (!media.value) return -1
+  
+  if (media.value.type === 'photo') {
+    const index = allPhotos.value.findIndex((p) => {
       const photoId = typeof p.id === 'string' && p.id.includes('/')
         ? p.id.split('/').pop()
         : p.id
       return String(photoId) === String(id)
     })
+    console.log('[currentIndex] 照片索引計算:', { id, index, totalPhotos: allPhotos.value?.length })
+    return index
   }
-  else if (media.value?.type === 'video') {
-    return allVideos.value.findIndex((v) => {
+  else if (media.value.type === 'video') {
+    const index = allVideos.value.findIndex((v) => {
       const videoId = typeof v.id === 'string' && v.id.includes('/')
         ? v.id.split('/').pop()
         : v.id
       return String(videoId) === String(id)
     })
+    console.log('[currentIndex] 影片索引計算:', { id, index, totalVideos: allVideos.value?.length })
+    return index
   }
   return -1
 })
@@ -56,6 +62,10 @@ function goTo(index: number) {
 
 function closeModal() {
   router.back()
+}
+
+function forceReload() {
+  fetchMedia()
 }
 
 async function fetchMedia() {
@@ -137,10 +147,26 @@ async function fetchMedia() {
     if (photo) {
       media.value = { ...photo, type: 'photo' }
       console.log('[fetchMedia] 找到照片:', photo)
+      // 重新計算索引
+      const photoIndex = allPhotos.value.findIndex((p) => {
+        const photoId = typeof p.id === 'string' && p.id.includes('/')
+          ? p.id.split('/').pop()
+          : p.id
+        return String(photoId) === String(id)
+      })
+      console.log('[fetchMedia] 照片索引:', photoIndex)
     }
     else if (video) {
       media.value = { ...video, type: 'video' }
       console.log('[fetchMedia] 找到影片:', video)
+      // 重新計算索引
+      const videoIndex = allVideos.value.findIndex((v) => {
+        const videoId = typeof v.id === 'string' && v.id.includes('/')
+          ? v.id.split('/').pop()
+          : v.id
+        return String(videoId) === String(id)
+      })
+      console.log('[fetchMedia] 影片索引:', videoIndex)
     }
     else {
       error.value = '找不到媒體 - 該內容可能已被刪除或移動'
@@ -171,8 +197,11 @@ async function fetchMedia() {
 onMounted(async () => {
   console.log('[media/[id].vue] 頁面載入，ID:', id)
 
-  // 清除快取並強制重新載入
-  mediaStore.clearAllCache()
+  // 先載入媒體列表，再獲取特定媒體
+  await Promise.all([
+    mediaStore.fetchCloudinaryPhotos('wuridao/photos', true),
+    mediaStore.fetchCloudinaryVideos('wuridao/videos', true)
+  ])
 
   fetchMedia()
   // 新增：鍵盤事件監聽
@@ -225,14 +254,20 @@ watch(() => route.params.id, fetchMedia)
       </div>
       <div class="flex gap-4 justify-center">
         <button
-          class="bg-white/20 text-white px-4 py-2 rounded hover:bg-white/30 transition"
+          class="bg-white/20 text-white px-4 py-2 rounded hover:bg-white/30 transition focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black/40"
+          aria-label="返回上一頁"
           @click="closeModal"
+          @keydown.enter="closeModal"
+          @keydown.space.prevent="closeModal"
         >
           返回
         </button>
         <button
-          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-black/40"
+          aria-label="重新載入媒體"
           @click="forceReload"
+          @keydown.enter="forceReload"
+          @keydown.space.prevent="forceReload"
         >
           重新載入
         </button>
@@ -241,23 +276,35 @@ watch(() => route.params.id, fetchMedia)
     <div v-else class="relative w-full h-full flex items-center justify-center">
       <!-- 左右切換按鈕 -->
       <button
-        v-if="currentIndex < (media?.type === 'photo' ? (allPhotos?.length || 0) : (allVideos?.length || 0)) - 1"
-        class="absolute right-4 top-1/2 -translate-y-1/2 text-white text-4xl bg-black/40 rounded-full w-12 h-12 flex items-center justify-center hover:bg-black/70 transition"
+        v-if="currentIndex >= 0 && currentIndex < (media?.type === 'photo' ? (allPhotos?.length || 0) : (allVideos?.length || 0)) - 1"
+        class="absolute right-4 top-1/2 -translate-y-1/2 text-white text-4xl bg-black/40 rounded-full w-12 h-12 flex items-center justify-center hover:bg-black/70 transition focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black/40"
+        :aria-label="`下一張${media?.type === 'photo' ? '照片' : '影片'}`"
+        :title="`下一張${media?.type === 'photo' ? '照片' : '影片'} (右箭頭鍵)`"
         @click="goTo(currentIndex + 1)"
+        @keydown.enter="goTo(currentIndex + 1)"
+        @keydown.space.prevent="goTo(currentIndex + 1)"
       >
         <span>&gt;</span>
       </button>
       <button
         v-if="currentIndex > 0"
-        class="absolute left-4 top-1/2 -translate-y-1/2 text-white text-4xl bg-black/40 rounded-full w-12 h-12 flex items-center justify-center hover:bg-black/70 transition"
+        class="absolute left-4 top-1/2 -translate-y-1/2 text-white text-4xl bg-black/40 rounded-full w-12 h-12 flex items-center justify-center hover:bg-black/70 transition focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black/40"
+        :aria-label="`上一張${media?.type === 'photo' ? '照片' : '影片'}`"
+        :title="`上一張${media?.type === 'photo' ? '照片' : '影片'} (左箭頭鍵)`"
         @click="goTo(currentIndex - 1)"
+        @keydown.enter="goTo(currentIndex - 1)"
+        @keydown.space.prevent="goTo(currentIndex - 1)"
       >
         <span>&lt;</span>
       </button>
       <!-- 關閉按鈕 -->
       <button
-        class="absolute top-6 right-8 text-white text-3xl bg-black/40 rounded-full w-10 h-10 flex items-center justify-center hover:bg-black/70 transition"
+        class="absolute top-6 right-8 text-white text-3xl bg-black/40 rounded-full w-10 h-10 flex items-center justify-center hover:bg-black/70 transition focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black/40"
+        aria-label="關閉媒體檢視器"
+        title="關閉媒體檢視器 (ESC鍵)"
         @click="closeModal"
+        @keydown.enter="closeModal"
+        @keydown.space.prevent="closeModal"
       >
         <span>&times;</span>
       </button>
@@ -315,6 +362,13 @@ watch(() => route.params.id, fetchMedia)
           更新：{{
             media?.updatedAt ? new Date(media.updatedAt).toLocaleString() : ""
           }}
+        </div>
+        
+        <!-- 鍵盤快捷鍵提示 -->
+        <div class="mt-4 text-xs text-gray-400 text-center">
+          <span class="bg-white/10 px-2 py-1 rounded">← → 切換媒體</span>
+          <span class="mx-2">•</span>
+          <span class="bg-white/10 px-2 py-1 rounded">ESC 關閉</span>
         </div>
       </div>
     </div>

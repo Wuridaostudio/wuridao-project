@@ -25,6 +25,9 @@ import { MediaModule } from './media/media.module';
 import { SitemapModule } from './sitemap/sitemap.module';
 import { SeoModule } from './seo/seo.module';
 import { DatabaseModule } from './database/database.module';
+import { HealthModule } from './health/health.module';
+import { StatisticsModule } from './statistics/statistics.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 // 實體
@@ -118,6 +121,9 @@ import { CreateTagsSeed } from './database/seeds/create-tags.seed';
     MediaModule,
     SitemapModule,
     SeoModule,
+    HealthModule,
+    StatisticsModule,
+    MonitoringModule,
   ],
   controllers: [AppController],
   providers: [

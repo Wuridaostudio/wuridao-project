@@ -53,13 +53,39 @@ export default defineNuxtConfig({
   // 模組
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
 
-  // ✅ 新增路由規則 - 為管理後台停用 SSR
-  // 這是解決伺服器端渲染錯誤的最終且最穩定的方法。
+  // ✅ 改善路由規則 - 更好的程式碼分割
   routeRules: {
-    '/admin/**': { ssr: false },
-    // 為媒體頁面啟用 SSR，但避免重複載入
-    '/media/**': { ssr: true, prerender: false },
-    '/articles/**': { ssr: true, prerender: false },
+    // 管理後台 - 完全客戶端渲染
+    '/admin/**': { 
+      ssr: false,
+      prerender: false,
+    },
+    
+    // 靜態頁面 - 預渲染
+    '/': { 
+      prerender: true,
+      ssr: true,
+    },
+    '/about': { 
+      prerender: true,
+      ssr: true,
+    },
+    '/plan': { 
+      prerender: true,
+      ssr: true,
+    },
+    
+    // 動態內容 - 伺服器端渲染
+    '/articles/**': { 
+      ssr: true, 
+      prerender: false,
+      swr: 3600, // 1小時快取
+    },
+    '/media/**': { 
+      ssr: true, 
+      prerender: false,
+      swr: 1800, // 30分鐘快取
+    },
   },
 
   // 執行時配置 - 支援開發和生產環境
@@ -105,14 +131,30 @@ export default defineNuxtConfig({
     },
   },
 
-  // Vite 配置
+  // Vite 配置 - 改善程式碼分割和效能
   vite: {
     optimizeDeps: {
       include: ['gsap', 'gsap/ScrollTrigger'],
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // 將第三方庫分離到不同的 chunk
+            vendor: ['vue', 'vue-router'],
+            gsap: ['gsap'],
+            three: ['three'],
+            // 將管理後台相關的程式碼分離
+            admin: ['@tiptap/vue-3', '@tiptap/starter-kit'],
+          },
+        },
+      },
+      // 改善程式碼分割
+      chunkSizeWarningLimit: 1000,
+    },
   },
 
-  // Nitro 配置 - 動態代理
+  // Nitro 配置 - 動態代理和效能優化
   nitro: {
     devProxy: process.env.NODE_ENV === 'development'
       ? {
@@ -123,6 +165,16 @@ export default defineNuxtConfig({
           },
         }
       : {},
+    // 改善伺服器端效能
+    compressPublicAssets: true,
+    minify: true,
+    // 快取配置
+    storage: {
+      redis: {
+        driver: 'redis',
+        /* redis driver options */
+      },
+    },
   },
 
   // TypeScript
@@ -143,6 +195,8 @@ export default defineNuxtConfig({
     renderJsonPayloads: false,
     asyncContext: true,
     crossOriginPrefetch: false,
+    // 改善程式碼分割
+    inlineSSRStyles: false,
   },
 
   // SSR 配置

@@ -13,23 +13,30 @@ import { Tag } from '../tags/entities/tag.entity';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
+import { ArticleUploadService } from './services/article-upload.service';
+import { ArticleSeoService } from './services/article-seo.service';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class ArticlesService {
+  private readonly logger = new Logger(ArticlesService.name);
+
   constructor(
     @InjectRepository(Article)
     private articleRepository: Repository<Article>,
     @InjectRepository(Tag)
     private tagRepository: Repository<Tag>,
     private cloudinaryService: CloudinaryService,
+    private articleUploadService: ArticleUploadService,
+    private articleSeoService: ArticleSeoService,
   ) {}
 
   async create(
     createArticleDto: CreateArticleDto,
     coverImage?: Express.Multer.File,
   ) {
-    console.log('🚀 [ArticlesService] ===== 文章創建服務開始 =====');
-    console.log('📋 [ArticlesService] 接收到的數據:', {
+    this.logger.log('🚀 [ArticlesService] ===== 文章創建服務開始 =====');
+    this.logger.log('📋 [ArticlesService] 接收到的數據:', {
       title: createArticleDto.title,
       contentLength: createArticleDto.content?.length || 0,
       coverImageUrl: createArticleDto.coverImageUrl,
@@ -43,263 +50,87 @@ export class ArticlesService {
     let coverImageUploadResult: any = null;
     let contentUploadResult: any = null;
 
-    // 處理封面圖片上傳
-    if (coverImage) {
-      console.log('📁 [ArticlesService] 開始上傳封面圖片...');
-      console.log('📁 [ArticlesService] 檔案信息:', {
-        name: coverImage.originalname,
-        size: coverImage.size,
-        mimetype: coverImage.mimetype,
-      });
-
-      // 根據規則 #1：先上傳封面圖片
-      coverImageUploadResult = await this.cloudinaryService.uploadImage(
-        coverImage,
-        'articles',
-      );
-      console.log(
-        '✅ [ArticlesService] 封面圖片上傳成功:',
-        coverImageUploadResult.secure_url,
-      );
-    } else if (
-      createArticleDto.coverImageUrl &&
-      createArticleDto.coverImagePublicId
-    ) {
-      console.log('🔍 [ArticlesService] 檢查現有封面圖片...');
-      console.log('🔍 [ArticlesService] 檢查信息:', {
-        coverImageUrl: createArticleDto.coverImageUrl,
-        coverImagePublicId: createArticleDto.coverImagePublicId,
-      });
-
-      // 檢查 cloudinary 是否存在
-      const exists = await this.cloudinaryService.checkResourceExists(
-        createArticleDto.coverImagePublicId,
-        'image',
-      );
-      console.log('🔍 [ArticlesService] Cloudinary 資源存在檢查結果:', exists);
-
-      if (!exists) {
-        console.error('❌ [ArticlesService] Cloudinary 資源不存在');
-        throw new BadRequestException('Cloudinary resource not found');
-      }
-
-      // 檢查資料庫唯一性
-      const duplicate = await this.articleRepository.findOne({
-        where: { coverImagePublicId: createArticleDto.coverImagePublicId },
-      });
-      console.log('🔍 [ArticlesService] 資料庫重複檢查結果:', !!duplicate);
-
-      if (duplicate) {
-        console.error('❌ [ArticlesService] coverImagePublicId 已存在');
-        throw new ConflictException('coverImagePublicId already exists');
-      }
-
-      coverImageUploadResult = {
-        public_id: createArticleDto.coverImagePublicId,
-        secure_url: createArticleDto.coverImageUrl,
-      };
-      console.log(
-        '✅ [ArticlesService] 使用現有封面圖片:',
-        coverImageUploadResult,
-      );
-    } else {
-      console.log('ℹ️ [ArticlesService] 沒有封面圖片需要處理');
-    }
-
-    // 處理文章內容上傳到 Cloudinary 作為 RAW 檔案
-    if (createArticleDto.content) {
-      console.log('📝 [ArticlesService] 開始處理文章內容...');
-      console.log(
-        '📝 [ArticlesService] 內容長度:',
-        createArticleDto.content.length,
-      );
-
-      // 將文章內容轉換為 Buffer
-      const contentBuffer = Buffer.from(createArticleDto.content, 'utf-8');
-
-      console.log('📤 [ArticlesService] 上傳內容到 Cloudinary...');
-      contentUploadResult = await this.cloudinaryService.uploadBuffer(
-        contentBuffer,
-        `article_content_${Date.now()}.txt`,
-        'text/plain',
-        'articles/content',
-        'raw',
-      );
-      console.log(
-        '✅ [ArticlesService] 內容上傳成功:',
-        contentUploadResult.secure_url,
-      );
-    } else {
-      console.log('ℹ️ [ArticlesService] 沒有內容需要上傳');
-    }
-
     try {
-      console.log('🗂️ [ArticlesService] 開始處理標籤...');
-      // 處理標籤
-      let tags = [];
-      if (createArticleDto.tagIds && createArticleDto.tagIds.length > 0) {
-        console.log(
-          '🏷️ [ArticlesService] 查找標籤 IDs:',
-          createArticleDto.tagIds,
+      // 處理封面圖片上傳
+      if (coverImage) {
+        coverImageUploadResult = await this.articleUploadService.uploadCoverImage(coverImage);
+      } else if (createArticleDto.coverImageUrl && createArticleDto.coverImagePublicId) {
+        coverImageUploadResult = await this.articleUploadService.checkExistingCoverImage(
+          createArticleDto.coverImageUrl,
+          createArticleDto.coverImagePublicId,
         );
-        tags = await this.tagRepository.findBy({
-          id: In(createArticleDto.tagIds),
+        
+        if (!coverImageUploadResult) {
+          throw new BadRequestException('Cloudinary resource not found');
+        }
+
+        // 檢查資料庫唯一性
+        const duplicate = await this.articleRepository.findOne({
+          where: { coverImagePublicId: createArticleDto.coverImagePublicId },
         });
-        console.log('✅ [ArticlesService] 找到標籤數量:', tags.length);
-      } else {
-        console.log('ℹ️ [ArticlesService] 沒有標籤需要處理');
+
+        if (duplicate) {
+          throw new ConflictException('coverImagePublicId already exists');
+        }
       }
 
-      console.log('🔍 [ArticlesService] 處理 SEO 欄位...');
-      // 處理 SEO 欄位
-      const seoData = {
-        seoTitle: createArticleDto.seoTitle,
-        seoDescription: createArticleDto.seoDescription,
-        seoKeywords: createArticleDto.seoKeywords,
-      };
-      console.log('📊 [ArticlesService] SEO 數據:', seoData);
+      // 處理內容上傳
+      if (createArticleDto.content) {
+        contentUploadResult = await this.articleUploadService.uploadContent(createArticleDto.content);
+      }
 
-      console.log('🔍 [ArticlesService] 處理 AEO 欄位...');
-      // 處理 AEO 欄位
-      const aeoData = {
-        aeoFaq: createArticleDto.aeoFaq || [],
-        aeoFeaturedSnippet: createArticleDto.aeoFeaturedSnippet || '',
-      };
-      console.log('📊 [ArticlesService] AEO 數據:', aeoData);
+      // 處理標籤
+      const tags = await this.processTags(createArticleDto.tagIds);
 
-      console.log('🔍 [ArticlesService] 處理 GEO 欄位...');
-      // 處理 GEO 欄位
-      const geoData = {
-        geoLatitude: createArticleDto.geoLatitude,
-        geoLongitude: createArticleDto.geoLongitude,
-        geoAddress: createArticleDto.geoAddress,
-        geoCity: createArticleDto.geoCity,
-        geoPostalCode: createArticleDto.geoPostalCode,
-      };
-      console.log('📊 [ArticlesService] GEO 數據:', geoData);
+      // 處理 SEO 數據
+      const seoData = this.articleSeoService.processSeoData(createArticleDto);
+      const aeoData = this.articleSeoService.processAeoData(createArticleDto);
+      const geoData = this.articleSeoService.processGeoData(createArticleDto);
 
-      console.log('💾 [ArticlesService] 準備儲存到資料庫...');
-      console.log('📋 [ArticlesService] 文章數據:', {
+      // 儲存到資料庫
+      const article = this.articleRepository.create({
         title: createArticleDto.title,
-        contentLength: createArticleDto.content?.length || 0,
-        contentUrl: contentUploadResult?.secure_url,
+        content: createArticleDto.content,
+        coverImageUrl: coverImageUploadResult?.secure_url || createArticleDto.coverImageUrl,
+        coverImagePublicId: coverImageUploadResult?.public_id || createArticleDto.coverImagePublicId,
         contentPublicId: contentUploadResult?.public_id,
         isDraft: createArticleDto.isDraft,
         categoryId: createArticleDto.categoryId,
-        coverImageUrl:
-          coverImageUploadResult?.secure_url || createArticleDto.coverImageUrl,
-        coverImagePublicId: coverImageUploadResult?.public_id,
-        tagsCount: tags.length,
-      });
-
-      // 根據規則 #1：儲存資料庫（內容存 Cloudinary URL）
-      const article = this.articleRepository.create({
-        title: createArticleDto.title,
-        content: contentUploadResult?.secure_url || createArticleDto.content, // 存 Cloudinary URL
-        contentPublicId: contentUploadResult?.public_id, // 存 Cloudinary public_id
-        isDraft: createArticleDto.isDraft,
-        categoryId: createArticleDto.categoryId,
+        tags,
         ...seoData,
         ...aeoData,
         ...geoData,
-        coverImageUrl:
-          coverImageUploadResult?.secure_url || createArticleDto.coverImageUrl,
-        coverImagePublicId: coverImageUploadResult?.public_id,
-        tags,
       });
 
-      console.log(
-        '[ArticleService][create] Final coverImageUrl:',
-        coverImageUploadResult?.secure_url,
-      );
-      console.log(
-        '[ArticleService][create] Final contentUrl:',
-        contentUploadResult?.secure_url,
-      );
-      console.log('💾 [ArticlesService] 開始儲存到資料庫...');
-      console.log(
-        '[ArticleService][create] Final contentPublicId:',
-        contentUploadResult?.public_id,
-      );
+      const savedArticle = await this.articleRepository.save(article);
+      
+      this.logger.log('✅ [ArticlesService] 文章創建成功:', savedArticle.id);
+      return savedArticle;
 
-      const result = await this.articleRepository.save(article);
-      console.log('✅ [ArticlesService] 資料庫儲存成功！');
-      console.log('[ArticleService][create] DB 實際寫入:', {
-        id: result.id,
-        title: result.title,
-        isDraft: result.isDraft,
-        coverImageUrl: result.coverImageUrl,
-        coverImagePublicId: result.coverImagePublicId,
-        content: result.content,
-        contentPublicId: result.contentPublicId,
-        createdAt: result.createdAt,
-        updatedAt: result.updatedAt,
-      });
-
-      // 立即查詢確認文章是否真的被保存
-      console.log('🔍 [ArticlesService] 立即查詢確認文章是否保存...');
-      const savedArticle = await this.articleRepository.findOne({
-        where: { id: result.id },
-        relations: ['category', 'tags'],
-      });
-
-      if (savedArticle) {
-        console.log('✅ [ArticlesService] 文章確認存在於資料庫:', {
-          id: savedArticle.id,
-          title: savedArticle.title,
-          isDraft: savedArticle.isDraft,
-          createdAt: savedArticle.createdAt,
-        });
-      } else {
-        console.error('❌ [ArticlesService] 文章未找到於資料庫中！');
-      }
-
-      console.log('🏁 [ArticlesService] ===== 文章創建服務成功結束 =====');
-      return result;
-    } catch (dbError) {
-      console.error('❌ [ArticlesService] 資料庫儲存失敗:', dbError);
-      console.error('❌ [ArticlesService] 錯誤詳情:', {
-        message: dbError.message,
-        name: dbError.name,
-        stack: dbError.stack?.substring(0, 500),
-      });
-
-      // 根據規則 #1：如果資料庫儲存失敗，清理上傳的檔案
-      console.log('🧹 [ArticlesService] 開始清理已上傳的檔案...');
+    } catch (error) {
+      // 清理失敗的上傳
       if (coverImageUploadResult?.public_id) {
-        console.log(
-          '🗑️ [ArticlesService] 清理封面圖片:',
-          coverImageUploadResult.public_id,
-        );
-        await this.cloudinaryService.safelyDeleteResource(
-          coverImageUploadResult.public_id,
-          'image',
-        );
+        await this.articleUploadService.cleanupFailedUpload(coverImageUploadResult.public_id, 'image');
       }
       if (contentUploadResult?.public_id) {
-        console.log(
-          '🗑️ [ArticlesService] 清理內容檔案:',
-          contentUploadResult.public_id,
-        );
-        await this.cloudinaryService.safelyDeleteResource(
-          contentUploadResult.public_id,
-          'raw',
-        );
+        await this.articleUploadService.cleanupFailedUpload(contentUploadResult.public_id, 'raw');
       }
 
-      // 處理樂觀鎖衝突
-      if (dbError instanceof OptimisticLockVersionMismatchError) {
-        console.error('❌ [ArticlesService] 樂觀鎖衝突');
-        throw new ConflictException(
-          'The record was modified by another user. Please refresh and try again.',
-        );
-      }
-
-      console.error('❌ [ArticlesService] 拋出內部服務器錯誤');
-      throw new InternalServerErrorException('Failed to save article record.', {
-        cause: dbError,
-      });
+      this.logger.error('❌ [ArticlesService] 文章創建失敗:', error);
+      throw error;
     }
+  }
+
+  private async processTags(tagIds?: number[]): Promise<Tag[]> {
+    if (!tagIds || tagIds.length === 0) {
+      this.logger.log('ℹ️ [ArticlesService] 沒有標籤需要處理');
+      return [];
+    }
+
+    this.logger.log('🏷️ [ArticlesService] 查找標籤 IDs:', tagIds);
+    const tags = await this.tagRepository.findBy({ id: In(tagIds) });
+    this.logger.log('✅ [ArticlesService] 找到標籤數量:', tags.length);
+    return tags;
   }
 
   async findAll(
@@ -307,8 +138,8 @@ export class ArticlesService {
     page = 1,
     limit = 15,
   ): Promise<{ data: Article[]; total: number }> {
-    console.log('🔍 [ArticlesService][findAll] 開始查詢文章列表');
-    console.log('📋 [ArticlesService][findAll] 查詢參數:', {
+    this.logger.log('🔍 [ArticlesService][findAll] 開始查詢文章列表');
+    this.logger.log('📋 [ArticlesService][findAll] 查詢參數:', {
       isDraft,
       page,
       limit,
@@ -323,11 +154,11 @@ export class ArticlesService {
     } else if (isDraft === '' || isDraft === undefined) {
       isDraftBoolean = undefined; // 不應用篩選
     } else {
-      console.log('⚠️ [ArticlesService][findAll] 未知的 isDraft 值:', isDraft);
+      this.logger.warn('⚠️ [ArticlesService][findAll] 未知的 isDraft 值:', isDraft);
       isDraftBoolean = undefined;
     }
 
-    console.log(
+    this.logger.log(
       '🔍 [ArticlesService][findAll] 處理後的 isDraft:',
       isDraftBoolean,
     );
@@ -343,24 +174,24 @@ export class ArticlesService {
 
     if (isDraftBoolean !== undefined) {
       query.where('article.isDraft = :isDraft', { isDraft: isDraftBoolean });
-      console.log(
+      this.logger.log(
         '🔍 [ArticlesService][findAll] 應用 isDraft 篩選:',
         isDraftBoolean,
       );
     } else {
-      console.log('🔍 [ArticlesService][findAll] 未應用 isDraft 篩選');
+      this.logger.log('🔍 [ArticlesService][findAll] 未應用 isDraft 篩選');
     }
 
     // 輸出 SQL 查詢語句
     const sql = query.getSql();
-    console.log('🔍 [ArticlesService][findAll] SQL 查詢:', sql);
-    console.log(
+    this.logger.log('🔍 [ArticlesService][findAll] SQL 查詢:', sql);
+    this.logger.log(
       '🔍 [ArticlesService][findAll] SQL 參數:',
       query.getParameters ? query.getParameters() : '無法獲取參數',
     );
 
     const [data, total] = await query.getManyAndCount();
-    console.log('📊 [ArticlesService][findAll] 查詢結果統計:', {
+    this.logger.log('📊 [ArticlesService][findAll] 查詢結果統計:', {
       total: total,
       returned: data.length,
       isDraft: isDraft,
@@ -370,7 +201,7 @@ export class ArticlesService {
     });
 
     // 新增：處理 Cloudinary 內容
-    console.log('🔍 [ArticlesService][findAll] 開始處理 Cloudinary 內容...');
+    this.logger.log('🔍 [ArticlesService][findAll] 開始處理 Cloudinary 內容...');
     const normalizeDuplicatedFolder = (url: string): string => {
       // 將 public_id 內重複的 "articles/content" 折疊成一次
       // 例：articles/content/articles/content/foo.txt -> articles/content/foo.txt
@@ -386,7 +217,7 @@ export class ArticlesService {
         article.content.startsWith('https://res.cloudinary.com')
       ) {
         try {
-          console.log(
+          this.logger.log(
             `📥 [ArticlesService][findAll] 從 Cloudinary 獲取文章內容: ${article.id}`,
           );
           const originalUrl = article.content;
@@ -394,34 +225,34 @@ export class ArticlesService {
           if (response.ok) {
             const actualContent = await response.text();
             article.content = actualContent;
-            console.log(
+            this.logger.log(
               `✅ [ArticlesService][findAll] 文章 ${article.id} 內容已從 Cloudinary 獲取 (${actualContent.length} 字符)`,
             );
           } else {
-            console.error(
+            this.logger.error(
               `❌ [ArticlesService][findAll] 文章 ${article.id} 從 Cloudinary 獲取內容失敗: ${response.status}`,
             );
             const normalizedUrl = normalizeDuplicatedFolder(originalUrl);
             if (normalizedUrl !== originalUrl) {
-              console.log(
+              this.logger.log(
                 `🔁 [ArticlesService][findAll] 嘗試修正重複資料夾後的 URL 重新抓取: ${normalizedUrl}`,
               );
               response = await fetch(normalizedUrl);
               if (response.ok) {
                 const actualContent = await response.text();
                 article.content = actualContent;
-                console.log(
+                this.logger.log(
                   `✅ [ArticlesService][findAll] 文章 ${article.id} 經修正 URL 後成功獲取內容 (${actualContent.length} 字符)`,
                 );
               } else {
-                console.error(
+                this.logger.error(
                   `❌ [ArticlesService][findAll] 文章 ${article.id} 經修正 URL 仍失敗: ${response.status}`,
                 );
               }
             }
           }
         } catch (error) {
-          console.error(
+          this.logger.error(
             `❌ [ArticlesService][findAll] 文章 ${article.id} 獲取 Cloudinary 內容時發生錯誤:`,
             error,
           );
@@ -430,11 +261,11 @@ export class ArticlesService {
     }
 
     // 額外查詢：檢查資料庫中所有文章（不考慮篩選）
-    console.log('🔍 [ArticlesService][findAll] 檢查資料庫中所有文章...');
+    this.logger.log('🔍 [ArticlesService][findAll] 檢查資料庫中所有文章...');
     const allArticles = await this.articleRepository.find({
       relations: ['category', 'tags'],
     });
-    console.log(
+    this.logger.log(
       '📊 [ArticlesService][findAll] 資料庫中所有文章:',
       allArticles.map((a) => ({
         id: a.id,
@@ -444,21 +275,21 @@ export class ArticlesService {
       })),
     );
 
-    console.log('📋 [ArticlesService][findAll] 文章列表詳情:');
+    this.logger.log('📋 [ArticlesService][findAll] 文章列表詳情:');
     data.forEach((article, index) => {
-      console.log(
+      this.logger.log(
         `  ${index + 1}. ID: ${article.id}, 標題: ${article.title}, isDraft: ${article.isDraft}, 創建時間: ${article.createdAt}, 內容長度: ${article.content?.length || 0}`,
       );
     });
 
     // 新增：檢查是否有文章被意外篩選掉
     if (isDraft !== undefined && data.length === 0 && allArticles.length > 0) {
-      console.log(
+      this.logger.warn(
         '⚠️ [ArticlesService][findAll] 警告：查詢結果為空，但資料庫中有文章',
       );
-      console.log('🔍 [ArticlesService][findAll] 檢查可能的原因：');
+      this.logger.log('🔍 [ArticlesService][findAll] 檢查可能的原因：');
       allArticles.forEach((article) => {
-        console.log(
+        this.logger.log(
           `  - 文章 ID ${article.id}: isDraft=${article.isDraft}, 標題="${article.title}"`,
         );
       });
@@ -526,25 +357,25 @@ export class ArticlesService {
         let response = await fetch(originalUrl);
         if (response.ok) {
           article.content = await response.text();
-          console.log(
+          this.logger.log(
             '[ArticleService][findOne] Content fetched from Cloudinary:',
             article.content.substring(0, 100) + '...',
           );
         } else {
-          console.error(
+          this.logger.error(
             '[ArticleService][findOne] Failed to fetch content from Cloudinary:',
             originalUrl,
           );
           const normalizedUrl = normalizeDuplicatedFolder(originalUrl);
           if (normalizedUrl !== originalUrl) {
-            console.log(
+            this.logger.log(
               '[ArticleService][findOne] Retrying with normalized URL:',
               normalizedUrl,
             );
             response = await fetch(normalizedUrl);
             if (response.ok) {
               article.content = await response.text();
-              console.log(
+              this.logger.log(
                 '[ArticleService][findOne] Content fetched after URL normalization:',
                 article.content.substring(0, 100) + '...',
               );
@@ -552,7 +383,7 @@ export class ArticlesService {
           }
         }
       } catch (error) {
-        console.error(
+        this.logger.error(
           '[ArticleService][findOne] Error fetching content from Cloudinary:',
           error,
         );
@@ -560,7 +391,7 @@ export class ArticlesService {
     }
 
     if (article) {
-      console.log('[ArticleService][findOne] 查詢:', {
+      this.logger.log('[ArticleService][findOne] 查詢:', {
         id: article.id,
         coverImageUrl: article.coverImageUrl,
         contentLength: article.content?.length || 0,
@@ -594,7 +425,7 @@ export class ArticlesService {
       );
       updateArticleDto.coverImageUrl = newCoverImageUploadResult.secure_url;
       article.coverImagePublicId = newCoverImageUploadResult.public_id;
-      console.log(
+      this.logger.log(
         '[ArticleService][update] 上傳新封面:',
         newCoverImageUploadResult.secure_url,
       );
@@ -615,7 +446,7 @@ export class ArticlesService {
         'articles/content',
         'raw',
       );
-      console.log(
+      this.logger.log(
         '[ArticleService][update] Content uploaded to Cloudinary:',
         newContentUploadResult.secure_url,
       );
@@ -669,7 +500,7 @@ export class ArticlesService {
     try {
       // 根據規則 #1：儲存資料庫
       const updatedArticle = await this.articleRepository.save(article);
-      console.log('[ArticleService][update] DB 實際寫入:', {
+      this.logger.log('[ArticleService][update] DB 實際寫入:', {
         id: updatedArticle.id,
         coverImageUrl: updatedArticle.coverImageUrl,
         content: updatedArticle.content,
@@ -735,18 +566,18 @@ export class ArticlesService {
             article.coverImagePublicId,
             'image',
           );
-          console.log(
+          this.logger.log(
             '[ArticleService][remove] Cover image deleted:',
             article.coverImagePublicId,
           );
         } else {
-          console.log(
+          this.logger.log(
             '[ArticleService][remove] Cover image not found:',
             article.coverImagePublicId,
           );
         }
       } catch (error) {
-        console.error(
+        this.logger.error(
           '[ArticleService][remove] Error deleting cover image:',
           article.coverImagePublicId,
           error,
@@ -767,18 +598,18 @@ export class ArticlesService {
             article.contentPublicId,
             'raw',
           );
-          console.log(
+          this.logger.log(
             '[ArticleService][remove] Content deleted:',
             article.contentPublicId,
           );
         } else {
-          console.log(
+          this.logger.log(
             '[ArticleService][remove] Content not found:',
             article.contentPublicId,
           );
         }
       } catch (error) {
-        console.error(
+        this.logger.error(
           '[ArticleService][remove] Error deleting content:',
           article.contentPublicId,
           error,

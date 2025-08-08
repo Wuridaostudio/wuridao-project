@@ -7,7 +7,9 @@ config({ path: '.env.test' });
 // 設定測試環境變數
 process.env.NODE_ENV = 'test';
 // 使用環境變數或預設測試值
-process.env.DATABASE_URL = process.env.TEST_DATABASE_URL || 'postgresql://test:test@localhost:5432/test_db';
+process.env.DATABASE_URL =
+  process.env.TEST_DATABASE_URL ||
+  'postgresql://test:test@localhost:5432/test_db';
 process.env.JWT_SECRET = process.env.TEST_JWT_SECRET || 'test-secret-key';
 process.env.ADMIN_USERNAME = process.env.TEST_ADMIN_USERNAME || 'admin';
 process.env.ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'test-password';
@@ -23,4 +25,4 @@ beforeAll(async () => {
 
 afterAll(async () => {
   console.log('🧹 E2E Test Environment Cleanup');
-}); 
+});

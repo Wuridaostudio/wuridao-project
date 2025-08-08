@@ -34,7 +34,7 @@ async function bootstrap() {
 
   // 加入 JSON body parser 中間件，設定 UTF-8 編碼
   app.use(express.json({ limit: '10mb' }));
-  
+
   // 設定回應的 charset
   app.use((req, res, next) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -85,9 +85,7 @@ async function bootstrap() {
 
   // CORS 配置
   app.enableCors({
-    origin: [
-      process.env.FRONTEND_URL || 'https://wuridaostudio.com',
-    ],
+    origin: [process.env.FRONTEND_URL || 'https://wuridaostudio.com'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -105,10 +103,15 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
       exceptionFactory: (errors) => {
         const messages = getAllConstraints(errors);
+        console.log('❌ [ValidationPipe] DTO 驗證失敗:', {
+          errors: errors,
+          messages: messages,
+        });
         return new BadRequestException({
           statusCode: 400,
-          message: messages,
+          message: messages.join(', '), // 將陣列轉換為字串
           error: 'Bad Request',
+          details: messages, // 保留詳細信息
         });
       },
     }),

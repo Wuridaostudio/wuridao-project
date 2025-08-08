@@ -10,4 +10,4 @@ import { SeoSettings } from './seo.entity';
   providers: [SeoService],
   exports: [SeoService],
 })
-export class SeoModule {} 
+export class SeoModule {}

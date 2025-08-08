@@ -1,4 +1,14 @@
-import { IsOptional, IsString, IsNumber, IsArray, IsUrl, MaxLength, Min, Max, ValidateNested } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsArray,
+  IsUrl,
+  MaxLength,
+  Min,
+  Max,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class FaqItemDto {
@@ -76,4 +86,4 @@ export class UpdateSeoSettingsDto {
   @IsOptional()
   @IsUrl()
   youtubeUrl?: string;
-} 
+}

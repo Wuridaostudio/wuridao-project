@@ -1,4 +1,25 @@
 <!-- components/common/ErrorBoundary.vue -->
+<script setup lang="ts">
+import { onErrorCaptured, ref } from 'vue'
+
+const hasError = ref(false)
+const errorInfo = ref<Error | null>(null)
+
+function retry() {
+  hasError.value = false
+  errorInfo.value = null
+}
+
+onErrorCaptured((error: Error) => {
+  console.error('Component error:', error)
+  hasError.value = true
+  errorInfo.value = error
+
+  // 防止錯誤冒泡
+  return false
+})
+</script>
+
 <template>
   <div :class="$attrs.class">
     <div
@@ -20,33 +41,18 @@
           />
         </svg>
 
-        <h2 class="text-2xl font-bold mb-4">組件載入錯誤</h2>
-        <p class="text-gray-400 mb-6">很抱歉，這個組件遇到了一些問題。</p>
+        <h2 class="text-2xl font-bold mb-4">
+          組件載入錯誤
+        </h2>
+        <p class="text-gray-400 mb-6">
+          很抱歉，這個組件遇到了一些問題。
+        </p>
 
-        <button @click="retry" class="btn-primary">重試</button>
+        <button class="btn-primary" @click="retry">
+          重試
+        </button>
       </div>
     </div>
     <slot v-else />
   </div>
 </template>
-
-<script setup lang="ts">
-import { onErrorCaptured } from "vue";
-
-const hasError = ref(false);
-const errorInfo = ref<Error | null>(null);
-
-const retry = () => {
-  hasError.value = false;
-  errorInfo.value = null;
-};
-
-onErrorCaptured((error: Error) => {
-  console.error("Component error:", error);
-  hasError.value = true;
-  errorInfo.value = error;
-
-  // 防止錯誤冒泡
-  return false;
-});
-</script>

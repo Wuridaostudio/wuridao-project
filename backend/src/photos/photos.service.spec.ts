@@ -6,7 +6,11 @@ import { Photo } from './entities/photo.entity';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { CreatePhotoDto } from './dto/create-photo.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
-import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Tag } from '../tags/entities/tag.entity';
 
 describe('PhotosService', () => {
@@ -70,18 +74,33 @@ describe('PhotosService', () => {
         path: '/tmp/test.jpg',
       };
       const mockUploadResult = { public_id: 'pid', secure_url: 'url' };
-      const mockPhoto = { id: 1, ...createPhotoDto, publicId: 'pid', url: 'url' };
+      const mockPhoto = {
+        id: 1,
+        ...createPhotoDto,
+        publicId: 'pid',
+        url: 'url',
+      };
       mockCloudinaryService.uploadImage.mockResolvedValue(mockUploadResult);
       mockPhotoRepository.create.mockReturnValue(mockPhoto);
       mockPhotoRepository.save.mockResolvedValue(mockPhoto);
       const result = await service.create(createPhotoDto, mockFile);
-      expect(cloudinaryService.uploadImage).toHaveBeenCalledWith(mockFile, 'photos');
-      expect(photoRepository.create).toHaveBeenCalledWith({ ...createPhotoDto, publicId: 'pid', url: 'url', tags: [] });
+      expect(cloudinaryService.uploadImage).toHaveBeenCalledWith(
+        mockFile,
+        'photos',
+      );
+      expect(photoRepository.create).toHaveBeenCalledWith({
+        ...createPhotoDto,
+        publicId: 'pid',
+        url: 'url',
+        tags: [],
+      });
       expect(photoRepository.save).toHaveBeenCalledWith(mockPhoto);
       expect(result).toEqual(mockPhoto);
     });
     it('should throw BadRequestException if neither file nor url/publicId is provided', async () => {
-      await expect(service.create({ description: 'desc' } as any)).rejects.toThrow(BadRequestException);
+      await expect(
+        service.create({ description: 'desc' } as any),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -121,11 +140,14 @@ describe('PhotosService', () => {
       mockCloudinaryService.safelyDeleteResource.mockResolvedValue(undefined);
       await service.remove(1);
       expect(photoRepository.remove).toHaveBeenCalledWith(mockPhoto);
-      expect(cloudinaryService.safelyDeleteResource).toHaveBeenCalledWith('pid', 'image');
+      expect(cloudinaryService.safelyDeleteResource).toHaveBeenCalledWith(
+        'pid',
+        'image',
+      );
     });
     it('should throw NotFoundException if not found', async () => {
       mockPhotoRepository.findOne.mockResolvedValue(null);
       await expect(service.remove(999)).rejects.toThrow(NotFoundException);
     });
   });
-}); 
+});

@@ -1,3 +1,18 @@
+<script setup lang="ts">
+import type { Video } from '~/types'
+
+defineProps<{ video: Video }>()
+
+// 從 publicId 中提取簡單的 ID
+function getSimpleId(id: string | number) {
+  if (typeof id === 'string' && id.includes('/')) {
+    // 如果是 publicId 格式，取最後一部分
+    return id.split('/').pop()
+  }
+  return id
+}
+</script>
+
 <template>
   <router-link :to="`/media/${getSimpleId(video.id)}`" class="block group">
     <div class="relative">
@@ -23,18 +38,3 @@
     </div>
   </router-link>
 </template>
-
-<script setup lang="ts">
-import type { Video } from "~/types";
-
-defineProps<{ video: Video }>();
-
-// 從 publicId 中提取簡單的 ID
-const getSimpleId = (id: string | number) => {
-  if (typeof id === 'string' && id.includes('/')) {
-    // 如果是 publicId 格式，取最後一部分
-    return id.split('/').pop();
-  }
-  return id;
-};
-</script>

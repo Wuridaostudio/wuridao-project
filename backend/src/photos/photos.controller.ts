@@ -42,7 +42,9 @@ export class PhotosController {
   ) {
     // 安全日誌：記錄照片上傳操作
     this.logger.log(`[SECURITY] Photo upload by user ID: ${req.user?.userId}`);
-    this.logger.log(`[DEBUG] CreatePhotoDto: ${JSON.stringify(createPhotoDto)}`);
+    this.logger.log(
+      `[DEBUG] CreatePhotoDto: ${JSON.stringify(createPhotoDto)}`,
+    );
     return this.photosService.create(createPhotoDto, photoFile);
   }
 
@@ -72,7 +74,9 @@ export class PhotosController {
     @UploadedFile() photoFile?: Express.Multer.File,
   ) {
     // 安全日誌：記錄照片更新操作
-    this.logger.log(`[SECURITY] Photo update (ID: ${id}) by authenticated user`);
+    this.logger.log(
+      `[SECURITY] Photo update (ID: ${id}) by authenticated user`,
+    );
     return this.photosService.update(+id, updatePhotoDto, photoFile);
   }
 
@@ -82,7 +86,9 @@ export class PhotosController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     // 安全日誌：記錄照片刪除操作
-    this.logger.log(`[SECURITY] Photo deletion (ID: ${id}) by authenticated user`);
+    this.logger.log(
+      `[SECURITY] Photo deletion (ID: ${id}) by authenticated user`,
+    );
     return this.photosService.remove(+id);
   }
 }

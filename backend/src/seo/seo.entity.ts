@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('seo_settings')
 export class SeoSettings {
@@ -53,4 +59,4 @@ export class SeoSettings {
 
   @UpdateDateColumn()
   updatedAt: Date;
-} 
+}

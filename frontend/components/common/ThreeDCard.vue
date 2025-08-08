@@ -1,37 +1,36 @@
 <template>
   <div class="container noselect">
     <div class="canvas">
-      <div class="tracker tr-1"></div>
-      <div class="tracker tr-2"></div>
-      <div class="tracker tr-3"></div>
-      <div class="tracker tr-4"></div>
-      <div class="tracker tr-5"></div>
-      <div class="tracker tr-6"></div>
-      <div class="tracker tr-7"></div>
-      <div class="tracker tr-8"></div>
-      <div class="tracker tr-9"></div>
+      <div class="tracker tr-1" />
+      <div class="tracker tr-2" />
+      <div class="tracker tr-3" />
+      <div class="tracker tr-4" />
+      <div class="tracker tr-5" />
+      <div class="tracker tr-6" />
+      <div class="tracker tr-7" />
+      <div class="tracker tr-8" />
+      <div class="tracker tr-9" />
       <div id="card">
         <div class="card-content">
-          <div class="card-glare"></div>
+          <div class="card-glare" />
           <div class="cyber-lines">
-            <span></span><span></span><span></span><span></span>
+            <span /><span /><span /><span />
           </div>
           <div class="slot-content">
             <slot />
           </div>
           <div class="glowing-elements">
-            <div class="glow-1"></div>
-            <div class="glow-2"></div>
-            <div class="glow-3"></div>
+            <div class="glow-1" />
+            <div class="glow-2" />
+            <div class="glow-3" />
           </div>
           <div class="card-particles">
-            <span></span><span></span><span></span> <span></span><span></span
-            ><span></span>
+            <span /><span /><span /> <span /><span /><span />
           </div>
           <div class="corner-elements">
-            <span></span><span></span><span></span><span></span>
+            <span /><span /><span /><span />
           </div>
-          <div class="scan-line"></div>
+          <div class="scan-line" />
         </div>
       </div>
     </div>
@@ -41,14 +40,14 @@
 <style scoped>
 .container {
   position: relative;
-  width: 494px;
-  height: 254px;
+  width: 100%;
+  min-height: 254px;
+  max-width: 100%;
   transition: 200ms;
 }
 
 .container:active {
-  width: 468px;
-  height: 245px;
+  transform: scale(0.98);
 }
 
 #card {
@@ -66,6 +65,7 @@
   box-shadow:
     0 0 20px rgba(0, 0, 0, 0.3),
     inset 0 0 20px rgba(0, 0, 0, 0.2);
+  min-height: 200px;
 }
 
 .card-content {

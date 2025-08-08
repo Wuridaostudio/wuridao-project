@@ -1,3 +1,63 @@
+<script setup>
+import { onMounted, ref } from 'vue'
+
+const images = [
+  'https://res.cloudinary.com/dg17dovan/image/upload/v1750927580/wuridao%E6%99%BA%E6%85%A7%E9%9C%80%E6%B1%82%E8%A1%A8_hmjgco.png',
+  'https://res.cloudinary.com/dg17dovan/image/upload/v1750984379/20250626_1718_%E6%9D%B1%E6%96%B9%E9%9D%A2%E5%AD%94%E7%94%B7%E5%AD%90_remix_01jynrc0xef8wv8bdbpd03sq28_1_kmmyez.png',
+]
+const link = 'https://76a8vw1q07o.typeform.com/to/nERCiK95'
+const currentIndex = ref(0)
+const isTransitioning = ref(false)
+const rippleCanvas = ref(null)
+let intervalId = null
+
+function playRipple(nextIndex) {
+  const canvas = rippleCanvas.value
+  if (!canvas)
+    return
+  const ctx = canvas.getContext('2d')
+  const w = (canvas.width = canvas.offsetWidth)
+  const h = (canvas.height = canvas.offsetHeight)
+  let radius = 0
+  const maxRadius = Math.sqrt(w * w + h * h)
+  ctx.clearRect(0, 0, w, h)
+  function draw() {
+    ctx.clearRect(0, 0, w, h)
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(w / 2, h / 2, radius, 0, 2 * Math.PI)
+    ctx.closePath()
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'
+    ctx.fill()
+    ctx.restore()
+    radius += maxRadius / 16
+    if (radius < maxRadius) {
+      requestAnimationFrame(draw)
+    }
+    else {
+      isTransitioning.value = false
+      currentIndex.value = nextIndex
+      ctx.clearRect(0, 0, w, h)
+    }
+  }
+  draw()
+}
+
+function startLoop() {
+  intervalId = setInterval(() => {
+    isTransitioning.value = true
+    const next = (currentIndex.value + 1) % images.length
+    playRipple(next)
+  }, 4000)
+}
+
+onMounted(() => {
+  setTimeout(() => {
+    startLoop()
+  }, 1800)
+})
+</script>
+
 <template>
   <div
     class="w-full h-[80vh] flex flex-col md:flex-row items-stretch overflow-hidden bg-white relative"
@@ -28,75 +88,16 @@
           'opacity-100': currentIndex === idx && !isTransitioning,
           'opacity-0': currentIndex !== idx || isTransitioning,
         }"
-      />
+      >
       <!-- 水波紋 canvas -->
       <canvas
-        ref="rippleCanvas"
         v-show="isTransitioning"
+        ref="rippleCanvas"
         class="absolute inset-0 w-full h-full pointer-events-none"
-      ></canvas>
+      />
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref, onMounted } from "vue";
-import { gsap } from "gsap";
-
-const images = [
-  "https://res.cloudinary.com/dg17dovan/image/upload/v1750927580/wuridao%E6%99%BA%E6%85%A7%E9%9C%80%E6%B1%82%E8%A1%A8_hmjgco.png",
-  "https://res.cloudinary.com/dg17dovan/image/upload/v1750984379/20250626_1718_%E6%9D%B1%E6%96%B9%E9%9D%A2%E5%AD%94%E7%94%B7%E5%AD%90_remix_01jynrc0xef8wv8bdbpd03sq28_1_kmmyez.png",
-];
-const link = "https://76a8vw1q07o.typeform.com/to/nERCiK95";
-const currentIndex = ref(0);
-const isTransitioning = ref(false);
-const rippleCanvas = ref(null);
-let intervalId = null;
-
-function playRipple(nextIndex) {
-  const canvas = rippleCanvas.value;
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  const w = (canvas.width = canvas.offsetWidth);
-  const h = (canvas.height = canvas.offsetHeight);
-  let radius = 0;
-  const maxRadius = Math.sqrt(w * w + h * h);
-  ctx.clearRect(0, 0, w, h);
-  function draw() {
-    ctx.clearRect(0, 0, w, h);
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(w / 2, h / 2, radius, 0, 2 * Math.PI);
-    ctx.closePath();
-    ctx.fillStyle = "rgba(0,0,0,0.35)";
-    ctx.fill();
-    ctx.restore();
-    radius += maxRadius / 16;
-    if (radius < maxRadius) {
-      requestAnimationFrame(draw);
-    } else {
-      isTransitioning.value = false;
-      currentIndex.value = nextIndex;
-      ctx.clearRect(0, 0, w, h);
-    }
-  }
-  draw();
-}
-
-function startLoop() {
-  intervalId = setInterval(() => {
-    isTransitioning.value = true;
-    const next = (currentIndex.value + 1) % images.length;
-    playRipple(next);
-  }, 4000);
-}
-
-onMounted(() => {
-  setTimeout(() => {
-    startLoop();
-  }, 1800);
-});
-</script>
 
 <style scoped>
 a {

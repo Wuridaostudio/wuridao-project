@@ -27,7 +27,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       if (status === 400) {
         // 若是物件或陣列，格式化印出
         if (typeof detail === 'object') {
-          this.logger.error('[Validation Error]', JSON.stringify(detail, null, 2));
+          this.logger.error(
+            '[Validation Error]',
+            JSON.stringify(detail, null, 2),
+          );
         } else {
           this.logger.error('[Validation Error]', detail);
         }
@@ -40,9 +43,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
       path: request.url,
       method: request.method,
       // 讓 message 支援陣列或物件
-      message: (typeof exception.getResponse() === 'object' && (exception.getResponse() as any).message)
-        ? (exception.getResponse() as any).message
-        : exception.message || 'Internal server error',
+      message:
+        typeof exception.getResponse() === 'object' &&
+        (exception.getResponse() as any).message
+          ? (exception.getResponse() as any).message
+          : exception.message || 'Internal server error',
       ...(process.env.NODE_ENV === 'development' && {
         stack: exception.stack,
       }),

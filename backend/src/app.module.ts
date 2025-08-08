@@ -46,10 +46,13 @@ import { CreateTagsSeed } from './database/seeds/create-tags.seed';
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-        transport: process.env.NODE_ENV !== 'production' ? {
-          target: 'pino-pretty',
-          options: { colorize: true }
-        } : undefined,
+        transport:
+          process.env.NODE_ENV !== 'production'
+            ? {
+                target: 'pino-pretty',
+                options: { colorize: true },
+              }
+            : undefined,
       },
     }),
     ConfigModule.forRoot({ isGlobal: true }),

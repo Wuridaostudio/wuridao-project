@@ -1,7 +1,7 @@
 {
   "name": "wuridao-frontend",
-  "private": true,
   "type": "module",
+  "private": true,
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev --port 3001",
@@ -26,6 +26,7 @@
     "@tiptap/extension-underline": "^2.23.0",
     "@tiptap/starter-kit": "^2.22.3",
     "@tiptap/vue-3": "^2.22.3",
+    "axios": "^1.6.8",
     "gl-matrix": "^3.4.3",
     "gsap": "^3.12.5",
     "markdown-it": "^14.1.0",
@@ -35,19 +36,23 @@
     "pinia": "^3.0.3",
     "three": "^0.177.0",
     "vue": "^3.4.21",
-    "vue-router": "^4.3.0",
-    "axios": "^1.6.8"
+    "vue-router": "^4.3.0"
   },
   "devDependencies": {
+    "@antfu/eslint-config": "^5.2.0",
     "@nuxt/devtools": "latest",
+    "@nuxt/test-utils-edge": "^3.8.0-28284309.b3d3d7f4",
     "@nuxt/types": "^2.18.1",
+    "@nuxtjs/eslint-config-typescript": "^12.1.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@pinia/nuxt": "^0.11.1",
+    "@pinia/testing": "^1.0.2",
     "@types/node": "^20.11.30",
     "@types/vue": "^1.0.31",
     "@vitejs/plugin-vue": "^6.0.0",
     "@vue/test-utils": "^2.4.6",
     "autoprefixer": "^10.4.19",
+    "eslint": "^9.32.0",
     "jsdom": "^26.1.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
@@ -56,7 +61,7 @@
     "vue-tsc": "^2.2.12"
   },
   "overrides": {
-    "vue": "^3.4.21",
-    "cookie": "^0.7.0"
+    "cookie": "^0.7.0",
+    "vue": "^3.4.21"
   }
 }

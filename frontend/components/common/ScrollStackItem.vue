@@ -1,3 +1,11 @@
+<script setup lang="ts">
+interface Props {
+  itemClassName?: string
+}
+
+defineProps<Props>()
+</script>
+
 <template>
   <div
     class="scroll-stack-card relative w-full h-80 my-8 p-12 rounded-[40px] shadow-[0_0_30px_rgba(0,0,0,0.1)] box-border origin-top will-change-transform"
@@ -10,14 +18,6 @@
     <slot />
   </div>
 </template>
-
-<script setup lang="ts">
-interface Props {
-  itemClassName?: string
-}
-
-defineProps<Props>()
-</script>
 
 <style scoped>
 .scroll-stack-card {
@@ -35,14 +35,14 @@ defineProps<Props>()
 }
 
 .scroll-stack-card:hover {
-  background: linear-gradient(135deg, rgba(20, 20, 20, 0.9), rgba(40, 40, 40, 0.8)), 
+  background: linear-gradient(135deg, rgba(20, 20, 20, 0.9), rgba(40, 40, 40, 0.8)),
               linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.15));
   border-color: rgba(59, 130, 246, 0.8);
   border-width: 3px;
-  box-shadow: 
+  box-shadow:
     0 0 60px rgba(0, 0, 0, 0.3),
     0 0 40px rgba(59, 130, 246, 0.5),
     inset 0 0 40px rgba(59, 130, 246, 0.2);
   transform: translateY(-3px);
 }
-</style> 
+</style>

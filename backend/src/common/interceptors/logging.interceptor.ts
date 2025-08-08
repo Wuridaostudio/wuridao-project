@@ -37,15 +37,25 @@ export class LoggingInterceptor implements NestInterceptor {
             file.originalname,
           );
           if (hasSpecialChars) {
-            this.logger.warn(`   ⚠️  File name contains special characters: ${file.originalname}`);
+            this.logger.warn(
+              `   ⚠️  File name contains special characters: ${file.originalname}`,
+            );
           }
         }
       });
     }
 
     // 安全日誌：記錄管理操作（需要認證的請求）
-    if (user && (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE')) {
-      this.logger.log(`[SECURITY] Admin operation: ${method} ${url} by user ID: ${user.userId}`);
+    if (
+      user &&
+      (method === 'POST' ||
+        method === 'PUT' ||
+        method === 'PATCH' ||
+        method === 'DELETE')
+    ) {
+      this.logger.log(
+        `[SECURITY] Admin operation: ${method} ${url} by user ID: ${user.userId}`,
+      );
     }
 
     return next.handle().pipe(

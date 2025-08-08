@@ -1,5 +1,13 @@
 // src/auth/auth.controller.ts
-import { Controller, Post, Body, UseGuards, Request, Get } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Get,
+  Res,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
@@ -13,8 +21,26 @@ export class AuthController {
 
   @ApiOperation({ summary: '管理員登入' })
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) response: any,
+  ) {
+    const result = await this.authService.login(loginDto);
+
+    // 設定 Cookie（暫時移除 httpOnly 進行測試）
+    response.cookie('auth-token', result.access_token, {
+      httpOnly: false, // 暫時設為 false 進行測試
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 天
+      path: '/',
+      domain:
+        process.env.NODE_ENV === 'production'
+          ? '.wuridaostudio.com'
+          : 'localhost',
+    });
+
+    return result;
   }
 
   @ApiOperation({ summary: '刷新 Token' })

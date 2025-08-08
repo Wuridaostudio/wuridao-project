@@ -27,9 +27,7 @@ export class VideosController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(
-    @Body() createVideoDto: CreateVideoDto,
-  ) {
+  create(@Body() createVideoDto: CreateVideoDto) {
     return this.videosService.create(createVideoDto);
   }
 

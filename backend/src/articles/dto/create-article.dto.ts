@@ -18,142 +18,148 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 
-// FAQ 子 DTO
+// FAQ 子 DTO - 簡化版本
 export class FaqItemDto {
-  @ApiProperty({ description: 'FAQ 問題' })
-  @IsString()
-  @IsOptional()
-  @MinLength(5, { message: '問題至少需要 5 個字元' })
-  @MaxLength(200, { message: '問題不能超過 200 個字元' })
   question?: string;
-
-  @ApiProperty({ description: 'FAQ 答案' })
-  @IsString()
-  @IsOptional()
-  @MinLength(10, { message: '答案至少需要 10 個字元' })
-  @MaxLength(1000, { message: '答案不能超過 1000 個字元' })
   answer?: string;
 }
 
 export class CreateArticleDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: '文章標題',
     minLength: 3,
     maxLength: 100,
-    example: '智慧家科技趨勢分析'
+    example: '智慧家科技趨勢分析',
   })
   @IsString()
   @IsNotEmpty({ message: '標題不能為空' })
   @MinLength(3, { message: '標題至少需要3個字' })
   title: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: '文章內容',
     minLength: 10,
-    example: '這是一篇關於智慧家科技的詳細分析文章...'
+    example: '這是一篇關於智慧家科技的詳細分析文章...',
   })
   @IsString()
   @IsNotEmpty({ message: '內容不能為空' })
   @MinLength(10, { message: '內容至少需要10個字' })
   content: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: '是否為草稿',
     required: false,
-    default: false
+    default: false,
   })
   @IsOptional()
   @IsBoolean()
   @Transform(({ value }) => value === 'true' || value === true)
   isDraft?: boolean;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: '分類ID',
     required: false,
-    minimum: 1
+    minimum: 1,
   })
   @IsOptional()
   @IsInt({ message: '分類ID必須是整數' })
   @Transform(({ value }) => parseInt(value))
   categoryId?: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: '標籤ID列表',
     required: false,
     type: [Number],
-    example: [1, 2, 3]
+    example: [1, 2, 3],
   })
   @IsOptional()
   @IsArray({ message: '標籤必須是陣列' })
   @IsNumber({}, { each: true, message: '標籤ID必須是數字' })
-  @Transform(({ value }) => Array.isArray(value) ? value.map(v => parseInt(v)) : [])
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed.map((v) => parseInt(v)) : [];
+      } catch {
+        return [];
+      }
+    }
+    return Array.isArray(value) ? value.map((v) => parseInt(v)) : [];
+  })
   tagIds?: number[];
 
   // SEO 欄位
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'SEO 標題',
     required: false,
     maxLength: 60,
-    example: '智慧家科技趨勢分析 - 2024年最新發展'
+    example: '智慧家科技趨勢分析 - 2024年最新發展',
   })
   @IsOptional()
   @IsString()
   @MinLength(10, { message: 'SEO標題至少需要10個字' })
   seoTitle?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'SEO 描述',
     required: false,
     maxLength: 160,
-    example: '深入分析智慧家科技的最新趨勢，包含AI、IoT等技術發展...'
+    example: '深入分析智慧家科技的最新趨勢，包含AI、IoT等技術發展...',
   })
   @IsOptional()
   @IsString()
   @MinLength(10, { message: 'SEO描述至少需要10個字' })
   seoDescription?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'SEO 關鍵字',
     required: false,
-    example: '智慧家,科技,AI,IoT'
+    example: '智慧家,科技,AI,IoT',
   })
   @IsOptional()
   @IsString()
   seoKeywords?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'OG 圖片 URL',
     required: false,
-    format: 'uri'
+    format: 'uri',
   })
   @IsOptional()
   @IsUrl({}, { message: 'OG圖片必須是有效的URL' })
   seoOgImage?: string;
 
   // AEO 欄位
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'FAQ 問答列表',
     required: false,
-    type: [FaqItemDto]
+    type: [FaqItemDto],
   })
   @IsOptional()
-  @IsArray({ message: 'FAQ必須是陣列' })
-  @ValidateNested({ each: true })
-  @Type(() => FaqItemDto)
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return [];
+      }
+    }
+    return value;
+  })
   aeoFaq?: FaqItemDto[];
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Featured Snippet',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
   aeoFeaturedSnippet?: string;
 
   // GEO 欄位
-  @ApiProperty({ 
+  @ApiProperty({
     description: '緯度',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsNumber({}, { message: '緯度必須是數字' })
@@ -161,9 +167,9 @@ export class CreateArticleDto {
   @Transform(({ value }) => parseFloat(value))
   geoLatitude?: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: '經度',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsNumber({}, { message: '經度必須是數字' })
@@ -171,36 +177,50 @@ export class CreateArticleDto {
   @Transform(({ value }) => parseFloat(value))
   geoLongitude?: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: '地址',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
   geoAddress?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: '城市',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
   geoCity?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: '郵遞區號',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
   geoPostalCode?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: '封面圖片 URL',
     required: false,
-    format: 'uri'
+    format: 'uri',
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string' && value.trim() === '') {
+      return undefined;
+    }
+    return value;
+  })
   @IsUrl({}, { message: '封面圖片必須是有效的 URL' })
   coverImageUrl?: string;
+
+  @ApiProperty({
+    description: '封面圖片 Cloudinary Public ID',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  coverImagePublicId?: string;
 }

@@ -17,6 +17,10 @@ export class CloudinaryService {
     const cloudName = this.configService.get('CLOUDINARY_CLOUD_NAME');
     const apiKey = this.configService.get('CLOUDINARY_API_KEY');
     const apiSecret = this.configService.get('CLOUDINARY_API_SECRET');
+    // 新增 log 只顯示長度避免洩漏
+    this.logger.log(
+      `[Cloudinary Config] cloudName: ${cloudName}, apiKey: ${apiKey ? '***' + apiKey.length : '未設定'}, apiSecret: ${apiSecret ? '***' + apiSecret.length : '未設定'}`,
+    );
     // 移除敏感資訊日誌
     if (!cloudName || !apiKey || !apiSecret) {
       throw new Error('Cloudinary 環境變數未正確設定，請檢查 .env');
@@ -61,6 +65,29 @@ export class CloudinaryService {
     return this.uploadFile(file, folder, 'video');
   }
 
+  async uploadRawFile(
+    file: Express.Multer.File,
+    folder = 'wuridao/raw',
+  ): Promise<UploadApiResponse> {
+    return this.uploadFile(file, folder, 'raw');
+  }
+
+  // 新增：支援直接上傳 Buffer（供純文字 RAW 內容使用）
+  async uploadBuffer(
+    buffer: Buffer,
+    originalname: string,
+    mimetype: string,
+    folder = 'wuridao/raw',
+    resourceType: 'image' | 'video' | 'raw' = 'raw',
+  ): Promise<UploadApiResponse> {
+    const file = {
+      buffer,
+      originalname,
+      mimetype,
+    } as Express.Multer.File;
+    return this.uploadFile(file, folder, resourceType);
+  }
+
   private sanitizeFileName(originalName: string): string {
     // 移除檔案副檔名
     const nameWithoutExt = originalName.replace(/\.[^/.]+$/, '');
@@ -75,32 +102,58 @@ export class CloudinaryService {
   private async uploadFile(
     file: Express.Multer.File,
     folder: string,
-    resourceType: 'image' | 'video',
+    resourceType: 'image' | 'video' | 'raw',
   ): Promise<UploadApiResponse> {
     // 處理檔案名稱編碼
     const sanitizedFileName = this.sanitizeFileName(file.originalname);
     const timestamp = Date.now();
-    const publicId = `${folder}/${sanitizedFileName}_${timestamp}`;
+    // 注意：public_id 不再含 folder，避免出現 folder/folder/filename 的重複路徑
+    const publicId = `${sanitizedFileName}_${timestamp}`;
 
     try {
-      const result = await cloudinary.uploader.upload(file.path, {
+      if (!file) {
+        throw new BadRequestException('Missing required parameter - file');
+      }
+
+      const options: any = {
         resource_type: resourceType,
         folder,
         public_id: publicId,
-        transformation: [
-          { quality: 'auto' },
-          ...(resourceType === 'image'
-            ? [{ fetch_format: 'auto' }]
-            : [{ format: 'mp4' }]),
-        ],
-      });
-      this.logger.debug('[CLOUDINARY SDK RESULT]', { result });
+      };
+
+      // 僅對 image / video 設定轉換；raw 檔案不做轉換
+      if (resourceType === 'image') {
+        options.transformation = [{ quality: 'auto' }, { fetch_format: 'auto' }];
+      } else if (resourceType === 'video') {
+        options.transformation = [{ quality: 'auto' }, { format: 'mp4' }];
+      }
+
+      let result: UploadApiResponse;
+
+      if ((file as any).path) {
+        // 走檔案路徑上傳
+        result = await cloudinary.uploader.upload((file as any).path, options);
+      } else if ((file as any).buffer) {
+        // 走記憶體緩衝上傳
+        result = await new Promise<UploadApiResponse>((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            options,
+            (error: UploadApiErrorResponse, res: UploadApiResponse) => {
+              if (error) return reject(new BadRequestException(`Cloudinary 上傳錯誤: ${error.message}`));
+              resolve(res);
+            },
+          );
+          uploadStream.end((file as any).buffer);
+        });
+      } else {
+        throw new BadRequestException('File must have either path or buffer property');
+      }
+
+      this.logger.debug('[CLOUDINARY SDK RESULT]', { result, folder, publicId });
       return result;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('[CLOUDINARY ERROR]', error);
-      throw new BadRequestException(
-        `Cloudinary 上傳錯誤: ${error.message}`,
-      );
+      throw new BadRequestException(`Cloudinary 上傳錯誤: ${error.message}`);
     }
   }
 
@@ -109,30 +162,38 @@ export class CloudinaryService {
     resourceType: 'image' | 'video' | 'raw' = 'image',
   ) {
     try {
-      this.logger.log('[CLOUDINARY DELETE] Starting deletion', { 
-        publicId, 
+      this.logger.log('[CLOUDINARY DELETE] Starting deletion', {
+        publicId,
         resourceType,
-        hasPublicId: !!publicId 
+        hasPublicId: !!publicId,
       });
-      
+
       const result = await cloudinary.uploader.destroy(publicId, {
         resource_type: resourceType,
       });
-      
+
       this.logger.log('[CLOUDINARY DELETE] Result received', result);
-      
+
       // 如果資源不存在，視為成功（可能已經被刪除）
       if (result.result === 'not found') {
-        this.logger.log('[CLOUDINARY DELETE] Resource not found, treating as success');
-        return { result: 'ok', message: 'Resource not found (already deleted)' };
+        this.logger.log(
+          '[CLOUDINARY DELETE] Resource not found, treating as success',
+        );
+        return {
+          result: 'ok',
+          message: 'Resource not found (already deleted)',
+        };
       }
-      
+
       if (!result || (result.result && result.result !== 'ok')) {
         this.logger.error('[CLOUDINARY DELETE] Failed with result', result);
         throw new BadRequestException('Cloudinary 刪除失敗');
       }
-      
-      this.logger.log('[CLOUDINARY DELETE] Successfully deleted', { publicId, result });
+
+      this.logger.log('[CLOUDINARY DELETE] Successfully deleted', {
+        publicId,
+        result,
+      });
       return result;
     } catch (error) {
       this.logger.error('[CLOUDINARY DELETE] Error occurred', {
@@ -140,21 +201,27 @@ export class CloudinaryService {
         resourceType,
         errorMessage: error.message,
         errorCode: error.http_code,
-        errorStack: error.stack
+        errorStack: error.stack,
       });
       throw error;
     }
   }
 
   // 根據架構規範 #4：清理失敗不可中斷主流程
-  async safelyDeleteResource(publicId: string, resourceType: 'image' | 'video' | 'raw' = 'image'): Promise<void> {
+  async safelyDeleteResource(
+    publicId: string,
+    resourceType: 'image' | 'video' | 'raw' = 'image',
+  ): Promise<void> {
     if (!publicId) return;
-    
+
     try {
       await this.deleteResource(publicId, resourceType);
     } catch (error) {
       // 根據規則 #4: 記錄錯誤，但不要拋出，以免中斷主流程
-      this.logger.error(`[CRITICAL CLEANUP FAILURE] Failed to delete Cloudinary resource ${publicId}. Please investigate.`, error);
+      this.logger.error(
+        `[CRITICAL CLEANUP FAILURE] Failed to delete Cloudinary resource ${publicId}. Please investigate.`,
+        error,
+      );
       // 在此處整合更高級的日誌或監控系統 (e.g., Sentry, DataDog)
     }
   }
@@ -175,44 +242,38 @@ export class CloudinaryService {
 
   // ✅ [新增] 專為公開網站設計的安全方法
   async getPublicResources(resourceType: 'image' | 'video' = 'image') {
-    // 🔒 安全核心：根據資源類型搜尋對應的資料夾
-    const publicFolder = resourceType === 'image' ? 'wuridao/photos' : 'wuridao/videos';
+    // 僅取用正式的公開資料夾
+    const folder = resourceType === 'image' ? 'wuridao/photos' : 'wuridao/videos';
 
-    this.logger.log(`[PUBLIC ACCESS] Fetching public resources from folder: ${publicFolder}`);
+    this.logger.log(
+      `[PUBLIC ACCESS] Fetching public resources from folder: ${folder}`,
+    );
 
     try {
-      // 這裡的選項是固定的，不接受前端傳來的參數
       const options = {
         type: 'upload',
         resource_type: resourceType,
-        prefix: publicFolder, // 🔒 只搜尋對應的資料夾
-        max_results: 50, // 可以設定一個合理的上限，防止一次請求過多資源
-      };
-      
+        prefix: folder,
+        max_results: 50,
+      } as any;
+
       this.logger.log(`[PUBLIC ACCESS] Cloudinary API options:`, options);
-      
       const result = await cloudinary.api.resources(options);
-      
-      this.logger.log(`[PUBLIC ACCESS] Successfully fetched ${result.resources?.length || 0} resources`);
-      
-      // 添加詳細的資源日誌
-      if (result.resources && result.resources.length > 0) {
-        this.logger.log(`[PUBLIC ACCESS] Resource details:`);
-        result.resources.forEach((resource: any, index: number) => {
-          this.logger.log(`  ${index + 1}. public_id: ${resource.public_id}, secure_url: ${resource.secure_url}`);
-        });
-      }
-      
+
+      this.logger.log(
+        `[PUBLIC ACCESS] Successfully fetched ${result.resources?.length || 0} resources`,
+      );
       return result;
     } catch (error) {
-      this.logger.error(`[PUBLIC ACCESS] Failed to get public resources: ${error.message}`);
+      this.logger.error(
+        `[PUBLIC ACCESS] Failed to get public resources: ${error.message}`,
+      );
       this.logger.error(`[PUBLIC ACCESS] Error details:`, {
         resourceType,
-        publicFolder,
+        folder,
         errorCode: error.http_code,
-        errorMessage: error.message
+        errorMessage: error.message,
       });
-      // 向上拋出錯誤，讓 Controller 處理
       throw new BadRequestException('資源存取暫時不可用');
     }
   }
@@ -227,9 +288,14 @@ export class CloudinaryService {
     }
   }
 
-  async checkResourceExists(publicId: string, resourceType: 'image' | 'video' | 'raw' = 'image') {
+  async checkResourceExists(
+    publicId: string,
+    resourceType: 'image' | 'video' | 'raw' = 'image',
+  ) {
     try {
-      const result = await cloudinary.api.resource(publicId, { resource_type: resourceType });
+      const result = await cloudinary.api.resource(publicId, {
+        resource_type: resourceType,
+      });
       return !!result;
     } catch (error) {
       if (error.http_code === 404) {
@@ -262,11 +328,11 @@ export class CloudinaryService {
     const cloudName = this.configService.get('CLOUDINARY_CLOUD_NAME');
     const apiKey = this.configService.get('CLOUDINARY_API_KEY');
     const apiSecret = this.configService.get('CLOUDINARY_API_SECRET');
-    
+
     if (!cloudName || !apiKey || !apiSecret) {
       throw new Error('Cloudinary 配置不完整');
     }
-    
+
     // 嘗試簡單的 API 調用來驗證配置
     try {
       await cloudinary.api.ping();
@@ -274,14 +340,17 @@ export class CloudinaryService {
         cloudName,
         apiKey: apiKey.substring(0, 8) + '...', // 只顯示前8位
         configured: true,
-        status: 'ok'
+        status: 'ok',
       };
     } catch (error) {
       throw new Error(`Cloudinary 連接失敗: ${error.message}`);
     }
   }
 
-  async safelyDeleteResources(publicIds: string[], resourceType: 'image' | 'video' | 'raw' = 'image') {
+  async safelyDeleteResources(
+    publicIds: string[],
+    resourceType: 'image' | 'video' | 'raw' = 'image',
+  ) {
     const results = [];
     for (const id of publicIds) {
       try {

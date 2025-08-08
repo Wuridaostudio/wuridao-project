@@ -1,4 +1,138 @@
 <!-- error.vue - Nuxt 全域錯誤頁面 -->
+<script setup lang="ts">
+const props = defineProps<{
+  error: {
+    url?: string
+    statusCode?: number
+    statusMessage?: string
+    message?: string
+    description?: string
+    data?: any
+    stack?: string
+  }
+}>()
+
+const { $gsap } = useNuxtApp()
+const isDev = process.env.NODE_ENV === 'development'
+
+// Refs
+const errorIcon = ref()
+const errorContent = ref()
+const bgParticles = ref()
+
+// 錯誤訊息對應
+const errorMessages = {
+  400: { title: '請求錯誤', message: '您的請求似乎有些問題，請檢查後重試。' },
+  401: { title: '未經授權', message: '您需要登入才能訪問此頁面。' },
+  403: { title: '拒絕訪問', message: '您沒有權限訪問此資源。' },
+  404: {
+    title: '找不到頁面',
+    message: '很抱歉，您要找的頁面不存在或已被移除。',
+  },
+  500: {
+    title: '伺服器錯誤',
+    message: '伺服器發生了一些問題，我們正在努力修復。',
+  },
+  502: { title: '閘道錯誤', message: '伺服器暫時無法處理您的請求。' },
+  503: { title: '服務暫時不可用', message: '系統正在維護中，請稍後再試。' },
+}
+
+// 計算屬性
+const errorCode = computed(() => props.error.statusCode || 500)
+const errorInfo = computed(
+  () => errorMessages[errorCode.value] || errorMessages[500],
+)
+const errorTitle = computed(
+  () => props.error.statusMessage || errorInfo.value.title,
+)
+const errorMessage = computed(
+  () => props.error.description || errorInfo.value.message,
+)
+
+// 方法
+function handleRefresh() {
+  window.location.reload()
+}
+
+// 錯誤報告（生產環境）
+async function reportError() {
+  if (!isDev && props.error) {
+    try {
+      // 發送錯誤到監控服務
+      await $fetch('/api/errors/report', {
+        method: 'POST',
+        body: {
+          url: props.error.url || window.location.href,
+          statusCode: errorCode.value,
+          message: props.error.message,
+          stack: props.error.stack,
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString(),
+        },
+      })
+    }
+    catch (e) {
+      console.error('Failed to report error:', e)
+    }
+  }
+}
+
+// 動畫
+onMounted(() => {
+  // 錯誤圖示動畫
+  if (errorIcon.value) {
+    errorIcon.value.style.transition = 'opacity 0.8s ease-out'
+    errorIcon.value.style.opacity = '1'
+  }
+
+  // 內容淡入
+  if (errorContent.value) {
+    setTimeout(() => {
+      if (errorContent.value) {
+        errorContent.value.style.transition = 'opacity 0.8s ease-out'
+        errorContent.value.style.opacity = '1'
+      }
+    }, 300)
+  }
+
+  // 背景粒子動畫
+  const createParticle = () => {
+    if (!bgParticles.value)
+      return
+
+    const particle = document.createElement('div')
+    particle.className = 'absolute w-1 h-1 bg-red-500 rounded-full opacity-30'
+    particle.style.left = `${Math.random() * 100}%`
+    particle.style.top = `${Math.random() * 100}%`
+    bgParticles.value.appendChild(particle)
+
+    // Use CSS animation instead of GSAP
+    particle.style.transition = 'opacity 3s ease-out'
+    setTimeout(() => {
+      if (particle && particle.parentNode) {
+        particle.style.opacity = '0'
+      }
+    }, 100)
+
+    setTimeout(() => {
+      if (particle && particle.parentNode) {
+        particle.remove()
+      }
+    }, 3000)
+  }
+
+  // 定期產生粒子
+  const particleInterval = setInterval(createParticle, 300)
+
+  onUnmounted(() => {
+    clearInterval(particleInterval)
+  })
+
+  // 報告錯誤
+  reportError()
+})
+</script>
+
 <template>
   <div
     class="min-h-screen bg-black text-white flex items-center justify-center px-4"
@@ -47,13 +181,12 @@
           </summary>
           <pre
             class="mt-4 p-4 bg-gray-900 rounded-lg overflow-x-auto text-xs text-gray-300"
-            >{{ error.stack }}</pre
-          >
+          >{{ error.stack }}</pre>
         </details>
 
         <!-- 操作按鈕 -->
         <div class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-          <button @click="handleRefresh" class="btn-primary">
+          <button class="btn-primary" @click="handleRefresh">
             <svg
               class="w-5 h-5 mr-2"
               fill="none"
@@ -107,140 +240,8 @@
     <div class="fixed inset-0 pointer-events-none">
       <div
         class="absolute inset-0 bg-gradient-to-br from-red-900/10 to-transparent"
-      ></div>
-      <div ref="bgParticles" class="absolute inset-0"></div>
+      />
+      <div ref="bgParticles" class="absolute inset-0" />
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-const props = defineProps<{
-  error: {
-    url?: string;
-    statusCode?: number;
-    statusMessage?: string;
-    message?: string;
-    description?: string;
-    data?: any;
-    stack?: string;
-  };
-}>();
-
-const { $gsap } = useNuxtApp();
-const isDev = process.env.NODE_ENV === "development";
-
-// Refs
-const errorIcon = ref();
-const errorContent = ref();
-const bgParticles = ref();
-
-// 錯誤訊息對應
-const errorMessages = {
-  400: { title: "請求錯誤", message: "您的請求似乎有些問題，請檢查後重試。" },
-  401: { title: "未經授權", message: "您需要登入才能訪問此頁面。" },
-  403: { title: "拒絕訪問", message: "您沒有權限訪問此資源。" },
-  404: {
-    title: "找不到頁面",
-    message: "很抱歉，您要找的頁面不存在或已被移除。",
-  },
-  500: {
-    title: "伺服器錯誤",
-    message: "伺服器發生了一些問題，我們正在努力修復。",
-  },
-  502: { title: "閘道錯誤", message: "伺服器暫時無法處理您的請求。" },
-  503: { title: "服務暫時不可用", message: "系統正在維護中，請稍後再試。" },
-};
-
-// 計算屬性
-const errorCode = computed(() => props.error.statusCode || 500);
-const errorInfo = computed(
-  () => errorMessages[errorCode.value] || errorMessages[500],
-);
-const errorTitle = computed(
-  () => props.error.statusMessage || errorInfo.value.title,
-);
-const errorMessage = computed(
-  () => props.error.description || errorInfo.value.message,
-);
-
-// 方法
-const handleRefresh = () => {
-  window.location.reload();
-};
-
-// 錯誤報告（生產環境）
-const reportError = async () => {
-  if (!isDev && props.error) {
-    try {
-      // 發送錯誤到監控服務
-      await $fetch("/api/errors/report", {
-        method: "POST",
-        body: {
-          url: props.error.url || window.location.href,
-          statusCode: errorCode.value,
-          message: props.error.message,
-          stack: props.error.stack,
-          userAgent: navigator.userAgent,
-          timestamp: new Date().toISOString(),
-        },
-      });
-    } catch (e) {
-      console.error("Failed to report error:", e);
-    }
-  }
-};
-
-// 動畫
-onMounted(() => {
-  // 錯誤圖示動畫
-  if (errorIcon.value) {
-    errorIcon.value.style.transition = 'opacity 0.8s ease-out';
-    errorIcon.value.style.opacity = '1';
-  }
-
-  // 內容淡入
-  if (errorContent.value) {
-    setTimeout(() => {
-      if (errorContent.value) {
-        errorContent.value.style.transition = 'opacity 0.8s ease-out';
-        errorContent.value.style.opacity = '1';
-      }
-    }, 300);
-  }
-
-  // 背景粒子動畫
-  const createParticle = () => {
-    if (!bgParticles.value) return;
-    
-    const particle = document.createElement("div");
-    particle.className = "absolute w-1 h-1 bg-red-500 rounded-full opacity-30";
-    particle.style.left = Math.random() * 100 + "%";
-    particle.style.top = Math.random() * 100 + "%";
-    bgParticles.value.appendChild(particle);
-
-    // Use CSS animation instead of GSAP
-    particle.style.transition = 'opacity 3s ease-out';
-    setTimeout(() => {
-      if (particle && particle.parentNode) {
-        particle.style.opacity = '0';
-      }
-    }, 100);
-
-    setTimeout(() => {
-      if (particle && particle.parentNode) {
-        particle.remove();
-      }
-    }, 3000);
-  };
-
-  // 定期產生粒子
-  const particleInterval = setInterval(createParticle, 300);
-
-  onUnmounted(() => {
-    clearInterval(particleInterval);
-  });
-
-  // 報告錯誤
-  reportError();
-});
-</script>

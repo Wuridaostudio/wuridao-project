@@ -3,6 +3,13 @@ import { Multer } from 'multer';
 
 declare global {
   namespace Express {
+    interface Request {
+      user?: {
+        userId: number;
+        username: string;
+      } | null;
+    }
+
     namespace Multer {
       interface File {
         fieldname: string;

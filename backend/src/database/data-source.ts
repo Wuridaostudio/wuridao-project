@@ -10,6 +10,7 @@ export const AppDataSource = new DataSource({
   entities: ['src/**/*.entity.ts', 'dist/**/*.entity.js'],
   migrations: ['src/database/migrations/*.ts', 'dist/database/migrations/*.js'],
   synchronize: false,
-  logging: process.env.NODE_ENV === 'development' ? ['query', 'error'] : ['error'],
-  maxQueryExecutionTime: 1000
-}); 
+  logging:
+    process.env.NODE_ENV === 'development' ? ['query', 'error'] : ['error'],
+  maxQueryExecutionTime: 1000,
+});

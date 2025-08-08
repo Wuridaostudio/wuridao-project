@@ -1,23 +1,5 @@
-<template>
-  <div
-    ref="scrollerRef"
-    class="scroll-stack-container relative w-full h-full"
-    :style="{
-      WebkitTransform: 'translateZ(0)',
-      transform: 'translateZ(0)',
-      willChange: 'transform'
-    }"
-  >
-    <div class="scroll-stack-inner pt-[20vh] px-20 pb-[20vh] min-h-screen">
-      <slot />
-      <!-- Spacer so the last pin can release cleanly -->
-      <div class="scroll-stack-end w-full h-px" />
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref } from 'vue'
 
 interface Props {
   itemDistance?: number
@@ -41,7 +23,7 @@ const props = withDefaults(defineProps<Props>(), {
   baseScale: 0.85,
   scaleDuration: 0.5,
   rotationAmount: 0,
-  blurAmount: 0
+  blurAmount: 0,
 })
 
 const emit = defineEmits<{
@@ -55,22 +37,25 @@ const cardsRef = ref<HTMLElement[]>([])
 const lastTransformsRef = ref(new Map())
 const isUpdatingRef = ref(false)
 
-const calculateProgress = (scrollTop: number, start: number, end: number) => {
-  if (scrollTop < start) return 0
-  if (scrollTop > end) return 1
+function calculateProgress(scrollTop: number, start: number, end: number) {
+  if (scrollTop < start)
+    return 0
+  if (scrollTop > end)
+    return 1
   return (scrollTop - start) / (end - start)
 }
 
-const parsePercentage = (value: string | number, containerHeight: number) => {
+function parsePercentage(value: string | number, containerHeight: number) {
   if (typeof value === 'string' && value.includes('%')) {
-    return (parseFloat(value) / 100) * containerHeight
+    return (Number.parseFloat(value) / 100) * containerHeight
   }
-  return parseFloat(value.toString())
+  return Number.parseFloat(value.toString())
 }
 
-const updateCardTransforms = () => {
+function updateCardTransforms() {
   const scroller = scrollerRef.value
-  if (!scroller || !cardsRef.value.length || isUpdatingRef.value) return
+  if (!scroller || !cardsRef.value.length || isUpdatingRef.value)
+    return
 
   isUpdatingRef.value = true
 
@@ -82,7 +67,8 @@ const updateCardTransforms = () => {
   const endElementTop = endElement ? endElement.getBoundingClientRect().top + scrollTop : 0
 
   cardsRef.value.forEach((card, i) => {
-    if (!card) return
+    if (!card)
+      return
 
     const cardRect = card.getBoundingClientRect()
     const cardTop = cardRect.top + scrollTop
@@ -107,7 +93,7 @@ const updateCardTransforms = () => {
           topCardIndex = j
         }
       }
-      
+
       if (i < topCardIndex) {
         const depthInStack = topCardIndex - i
         blur = Math.max(0, depthInStack * props.blurAmount)
@@ -116,10 +102,11 @@ const updateCardTransforms = () => {
 
     let translateY = 0
     const isPinned = scrollTop >= pinStart && scrollTop <= pinEnd
-    
+
     if (isPinned) {
       translateY = scrollTop - cardTop + stackPositionPx + (props.itemStackDistance * i)
-    } else if (scrollTop > pinEnd) {
+    }
+    else if (scrollTop > pinEnd) {
       translateY = pinEnd - cardTop + stackPositionPx + (props.itemStackDistance * i)
     }
 
@@ -127,15 +114,15 @@ const updateCardTransforms = () => {
       translateY: Math.round(translateY * 100) / 100,
       scale: Math.round(scale * 1000) / 1000,
       rotation: Math.round(rotation * 100) / 100,
-      blur: Math.round(blur * 100) / 100
+      blur: Math.round(blur * 100) / 100,
     }
 
     const lastTransform = lastTransformsRef.value.get(i)
-    const hasChanged = !lastTransform || 
-      Math.abs(lastTransform.translateY - newTransform.translateY) > 0.1 ||
-      Math.abs(lastTransform.scale - newTransform.scale) > 0.001 ||
-      Math.abs(lastTransform.rotation - newTransform.rotation) > 0.1 ||
-      Math.abs(lastTransform.blur - newTransform.blur) > 0.1
+    const hasChanged = !lastTransform
+      || Math.abs(lastTransform.translateY - newTransform.translateY) > 0.1
+      || Math.abs(lastTransform.scale - newTransform.scale) > 0.001
+      || Math.abs(lastTransform.rotation - newTransform.rotation) > 0.1
+      || Math.abs(lastTransform.blur - newTransform.blur) > 0.1
 
     if (hasChanged) {
       const transform = `translate3d(0, ${newTransform.translateY}px, 0) scale(${newTransform.scale}) rotate(${newTransform.rotation}deg)`
@@ -143,7 +130,7 @@ const updateCardTransforms = () => {
 
       card.style.transform = transform
       card.style.filter = filter
-      
+
       lastTransformsRef.value.set(i, newTransform)
     }
 
@@ -153,7 +140,8 @@ const updateCardTransforms = () => {
         stackCompletedRef.value = true
         emit('stackComplete')
         props.onStackComplete?.()
-      } else if (!isInView && stackCompletedRef.value) {
+      }
+      else if (!isInView && stackCompletedRef.value) {
         stackCompletedRef.value = false
       }
     }
@@ -162,17 +150,18 @@ const updateCardTransforms = () => {
   isUpdatingRef.value = false
 }
 
-const handleScroll = () => {
+function handleScroll() {
   updateCardTransforms()
 }
 
 onMounted(async () => {
   await nextTick()
-  
-  const scroller = scrollerRef.value
-  if (!scroller) return
 
-  const cards = Array.from(scroller.querySelectorAll(".scroll-stack-card")) as HTMLElement[]
+  const scroller = scrollerRef.value
+  if (!scroller)
+    return
+
+  const cards = Array.from(scroller.querySelectorAll('.scroll-stack-card')) as HTMLElement[]
   cardsRef.value = cards
   const transformsCache = lastTransformsRef.value
 
@@ -211,6 +200,24 @@ onUnmounted(() => {
 })
 </script>
 
+<template>
+  <div
+    ref="scrollerRef"
+    class="scroll-stack-container relative w-full h-full"
+    :style="{
+      WebkitTransform: 'translateZ(0)',
+      transform: 'translateZ(0)',
+      willChange: 'transform',
+    }"
+  >
+    <div class="scroll-stack-inner pt-[20vh] px-20 pb-[20vh] min-h-screen">
+      <slot />
+      <!-- Spacer so the last pin can release cleanly -->
+      <div class="scroll-stack-end w-full h-px" />
+    </div>
+  </div>
+</template>
+
 <style scoped>
 .scroll-stack-container {
   /* 自定義滾動條樣式 */
@@ -243,4 +250,4 @@ onUnmounted(() => {
 .scroll-stack-container:hover .scroll-stack-card {
   transition: all 0.3s ease;
 }
-</style> 
+</style>

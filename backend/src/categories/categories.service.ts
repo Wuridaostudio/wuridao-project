@@ -1,5 +1,9 @@
 // src/categories/categories.service.ts
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category, CategoryType } from './entities/category.entity';
@@ -22,7 +26,8 @@ export class CategoriesService {
   }
 
   async findAll(type?: CategoryType) {
-    const query = this.categoryRepository.createQueryBuilder('category')
+    const query = this.categoryRepository
+      .createQueryBuilder('category')
       .loadRelationCountAndMap('category.articleCount', 'category.articles')
       .loadRelationCountAndMap('category.photoCount', 'category.photos')
       .loadRelationCountAndMap('category.videoCount', 'category.videos');

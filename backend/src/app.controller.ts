@@ -111,9 +111,11 @@ export class AppController {
 
     // 檢查 Cloudinary 服務
     try {
-      if (process.env.CLOUDINARY_CLOUD_NAME &&
-          process.env.CLOUDINARY_API_KEY &&
-          process.env.CLOUDINARY_API_SECRET) {
+      if (
+        process.env.CLOUDINARY_CLOUD_NAME &&
+        process.env.CLOUDINARY_API_KEY &&
+        process.env.CLOUDINARY_API_SECRET
+      ) {
         // 嘗試簡單的 Cloudinary 操作
         await this.cloudinaryService.getCloudinaryConfig();
         health.services.cloudinary = 'ok';
@@ -184,22 +186,47 @@ export class AppController {
         FROM information_schema.tables
         WHERE table_schema = 'public'
       `);
-      health['databaseTables'] = tables.map(t => t.table_name);
+      health['databaseTables'] = tables.map((t) => t.table_name);
     } catch (error) {
       health['databaseTables'] = 'error';
     }
 
     // 檢查 API 端點可用性
     const endpointChecks = [
-      { name: 'auth', path: '/api/auth/login', method: 'POST', requiresAuth: false },
-      { name: 'articles', path: '/api/articles', method: 'GET', requiresAuth: false },
-      { name: 'categories', path: '/api/categories', method: 'GET', requiresAuth: false },
+      {
+        name: 'auth',
+        path: '/api/auth/login',
+        method: 'POST',
+        requiresAuth: false,
+      },
+      {
+        name: 'articles',
+        path: '/api/articles',
+        method: 'GET',
+        requiresAuth: false,
+      },
+      {
+        name: 'categories',
+        path: '/api/categories',
+        method: 'GET',
+        requiresAuth: false,
+      },
       { name: 'tags', path: '/api/tags', method: 'GET', requiresAuth: false },
-      { name: 'photos', path: '/api/photos', method: 'GET', requiresAuth: false },
-      { name: 'videos', path: '/api/videos', method: 'GET', requiresAuth: false },
+      {
+        name: 'photos',
+        path: '/api/photos',
+        method: 'GET',
+        requiresAuth: false,
+      },
+      {
+        name: 'videos',
+        path: '/api/videos',
+        method: 'GET',
+        requiresAuth: false,
+      },
     ];
 
-    health['endpointStatus'] = endpointChecks.map(endpoint => ({
+    health['endpointStatus'] = endpointChecks.map((endpoint) => ({
       name: endpoint.name,
       path: endpoint.path,
       method: endpoint.method,
@@ -212,28 +239,98 @@ export class AppController {
   @Get('api/health/endpoints')
   async getEndpointHealth() {
     const endpoints = [
-      { name: '認證', path: '/api/auth/login', method: 'POST', requiresAuth: false },
-      { name: '文章列表', path: '/api/articles', method: 'GET', requiresAuth: false },
-      { name: '文章詳情', path: '/api/articles/:id', method: 'GET', requiresAuth: false },
-      { name: '創建文章', path: '/api/articles', method: 'POST', requiresAuth: true },
-      { name: '更新文章', path: '/api/articles/:id', method: 'PATCH', requiresAuth: true },
-      { name: '刪除文章', path: '/api/articles/:id', method: 'DELETE', requiresAuth: true },
-      { name: '分類列表', path: '/api/categories', method: 'GET', requiresAuth: false },
-      { name: '標籤列表', path: '/api/tags', method: 'GET', requiresAuth: false },
-      { name: '照片列表', path: '/api/photos', method: 'GET', requiresAuth: false },
-      { name: '影片列表', path: '/api/videos', method: 'GET', requiresAuth: false },
-      { name: 'Cloudinary 上傳', path: '/api/cloudinary/upload', method: 'POST', requiresAuth: true },
-      { name: 'Unsplash 搜尋', path: '/api/unsplash/search', method: 'GET', requiresAuth: false },
-      { name: 'Sitemap', path: '/api/sitemap.xml', method: 'GET', requiresAuth: false },
-      { name: 'Robots.txt', path: '/api/robots.txt', method: 'GET', requiresAuth: false },
+      {
+        name: '認證',
+        path: '/api/auth/login',
+        method: 'POST',
+        requiresAuth: false,
+      },
+      {
+        name: '文章列表',
+        path: '/api/articles',
+        method: 'GET',
+        requiresAuth: false,
+      },
+      {
+        name: '文章詳情',
+        path: '/api/articles/:id',
+        method: 'GET',
+        requiresAuth: false,
+      },
+      {
+        name: '創建文章',
+        path: '/api/articles',
+        method: 'POST',
+        requiresAuth: true,
+      },
+      {
+        name: '更新文章',
+        path: '/api/articles/:id',
+        method: 'PATCH',
+        requiresAuth: true,
+      },
+      {
+        name: '刪除文章',
+        path: '/api/articles/:id',
+        method: 'DELETE',
+        requiresAuth: true,
+      },
+      {
+        name: '分類列表',
+        path: '/api/categories',
+        method: 'GET',
+        requiresAuth: false,
+      },
+      {
+        name: '標籤列表',
+        path: '/api/tags',
+        method: 'GET',
+        requiresAuth: false,
+      },
+      {
+        name: '照片列表',
+        path: '/api/photos',
+        method: 'GET',
+        requiresAuth: false,
+      },
+      {
+        name: '影片列表',
+        path: '/api/videos',
+        method: 'GET',
+        requiresAuth: false,
+      },
+      {
+        name: 'Cloudinary 上傳',
+        path: '/api/cloudinary/upload',
+        method: 'POST',
+        requiresAuth: true,
+      },
+      {
+        name: 'Unsplash 搜尋',
+        path: '/api/unsplash/search',
+        method: 'GET',
+        requiresAuth: false,
+      },
+      {
+        name: 'Sitemap',
+        path: '/api/sitemap.xml',
+        method: 'GET',
+        requiresAuth: false,
+      },
+      {
+        name: 'Robots.txt',
+        path: '/api/robots.txt',
+        method: 'GET',
+        requiresAuth: false,
+      },
     ];
 
     return {
       timestamp: new Date().toISOString(),
       totalEndpoints: endpoints.length,
-      publicEndpoints: endpoints.filter(e => !e.requiresAuth).length,
-      protectedEndpoints: endpoints.filter(e => e.requiresAuth).length,
-      endpoints: endpoints.map(endpoint => ({
+      publicEndpoints: endpoints.filter((e) => !e.requiresAuth).length,
+      protectedEndpoints: endpoints.filter((e) => e.requiresAuth).length,
+      endpoints: endpoints.map((endpoint) => ({
         ...endpoint,
         status: 'available',
         description: `${endpoint.method} ${endpoint.path}`,

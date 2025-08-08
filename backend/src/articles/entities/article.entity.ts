@@ -30,6 +30,9 @@ export class Article {
   @Column({ nullable: true })
   coverImagePublicId: string;
 
+  @Column({ nullable: true })
+  contentPublicId: string;
+
   @Column({ default: false })
   isDraft: boolean;
 

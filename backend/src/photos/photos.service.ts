@@ -1,5 +1,11 @@
 // src/photos/photos.service.ts
-import { Injectable, NotFoundException, ConflictException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  InternalServerErrorException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Photo } from './entities/photo.entity';
@@ -26,20 +32,54 @@ export class PhotosService {
 
     if (photoFile) {
       // 如果有文件，先上傳到 Cloudinary
-      uploadResult = await this.cloudinaryService.uploadImage(photoFile, 'photos');
+      uploadResult = await this.cloudinaryService.uploadImage(
+        photoFile,
+        'photos',
+      );
     } else if (createPhotoDto.url && createPhotoDto.publicId) {
       // 新增：檢查 cloudinary 是否存在
-      const exists = await this.cloudinaryService.checkResourceExists(createPhotoDto.publicId, 'image');
-      if (!exists) throw new BadRequestException('Cloudinary resource not found');
+      const exists = await this.cloudinaryService.checkResourceExists(
+        createPhotoDto.publicId,
+        'image',
+      );
+      if (!exists)
+        throw new BadRequestException('Cloudinary resource not found');
       // 新增：檢查資料庫唯一性
-      const duplicate = await this.photoRepository.findOne({ where: { publicId: createPhotoDto.publicId } });
+      const duplicate = await this.photoRepository.findOne({
+        where: { publicId: createPhotoDto.publicId },
+      });
       if (duplicate) throw new ConflictException('publicId already exists');
       uploadResult = {
         public_id: createPhotoDto.publicId,
         secure_url: createPhotoDto.url,
       };
+    } else if (createPhotoDto.url && !createPhotoDto.publicId) {
+      // 後備方案：若前端未傳 publicId，嘗試自 URL 解析出 publicId
+      // 期望格式：.../image/upload/v<version>/<folder...>/<filename>.<ext>
+      const match = createPhotoDto.url.match(/\/upload\/v\d+\/([^.?]+)(?:\.[^/?#]+)?$/);
+      const derivedPublicId = match?.[1];
+      if (!derivedPublicId) {
+        throw new BadRequestException(
+          'publicId is missing and could not be derived from URL.',
+        );
+      }
+      const exists = await this.cloudinaryService.checkResourceExists(
+        derivedPublicId,
+        'image',
+      );
+      if (!exists) throw new BadRequestException('Cloudinary resource not found');
+      const duplicate = await this.photoRepository.findOne({
+        where: { publicId: derivedPublicId },
+      });
+      if (duplicate) throw new ConflictException('publicId already exists');
+      uploadResult = {
+        public_id: derivedPublicId,
+        secure_url: createPhotoDto.url,
+      };
     } else {
-      throw new BadRequestException('Either file or URL with publicId is required.');
+      throw new BadRequestException(
+        'Either file or URL with publicId is required.',
+      );
     }
 
     try {
@@ -59,13 +99,21 @@ export class PhotosService {
     } catch (dbError) {
       // 統一清理
       if (uploadResult?.public_id) {
-        await this.cloudinaryService.safelyDeleteResource(uploadResult.public_id, 'image');
+        await this.cloudinaryService.safelyDeleteResource(
+          uploadResult.public_id,
+          'image',
+        );
       }
-      throw new InternalServerErrorException('Failed to save photo record.', { cause: dbError });
+      throw new InternalServerErrorException('Failed to save photo record.', {
+        cause: dbError,
+      });
     }
   }
 
-  async findAll(page = 1, limit = 20): Promise<{ data: Photo[]; total: number }> {
+  async findAll(
+    page = 1,
+    limit = 20,
+  ): Promise<{ data: Photo[]; total: number }> {
     const skip = (page - 1) * limit;
     const [data, total] = await this.photoRepository.findAndCount({
       relations: ['category', 'tags'],
@@ -87,6 +135,25 @@ export class PhotosService {
     }
 
     return photo;
+  }
+
+  // 依 publicId 精確查找（含關聯）
+  async findByPublicIdExact(publicId: string) {
+    return this.photoRepository.findOne({
+      where: { publicId },
+      relations: ['category', 'tags'],
+    });
+  }
+
+  // 依 publicId 尾段查找（例如路由只帶尾段 id 時）
+  async findByPublicIdSuffix(suffix: string) {
+    const like = `%/${suffix}`;
+    return this.photoRepository
+      .createQueryBuilder('photo')
+      .leftJoinAndSelect('photo.category', 'category')
+      .leftJoinAndSelect('photo.tags', 'tags')
+      .where('photo.publicId LIKE :like', { like })
+      .getOne();
   }
 
   async update(
@@ -120,25 +187,32 @@ export class PhotosService {
     try {
       // 根據規則 #1：儲存資料庫
       const updatedPhoto = await this.photoRepository.save(photo);
-      
+
       // 根據規則 #1：如果資料庫儲存成功，才清理舊檔案
       if (newUploadResult && oldPublicId) {
         await this.cloudinaryService.safelyDeleteResource(oldPublicId, 'image');
       }
-      
+
       return updatedPhoto;
     } catch (dbError) {
       // 根據規則 #1：如果資料庫儲存失敗，清理新上傳的檔案
       if (newUploadResult) {
-        await this.cloudinaryService.safelyDeleteResource(newUploadResult.public_id, 'image');
+        await this.cloudinaryService.safelyDeleteResource(
+          newUploadResult.public_id,
+          'image',
+        );
       }
-      
+
       // 處理樂觀鎖衝突
       if (dbError.name === 'OptimisticLockVersionMismatchError') {
-        throw new ConflictException('The record was modified by another user. Please refresh and try again.');
+        throw new ConflictException(
+          'The record was modified by another user. Please refresh and try again.',
+        );
       }
-      
-      throw new InternalServerErrorException('Failed to update photo record.', { cause: dbError });
+
+      throw new InternalServerErrorException('Failed to update photo record.', {
+        cause: dbError,
+      });
     }
   }
 
@@ -150,9 +224,12 @@ export class PhotosService {
 
     // 根據規則 #1：然後再清理外部資源
     if (photo.publicId) {
-      await this.cloudinaryService.safelyDeleteResource(photo.publicId, 'image');
+      await this.cloudinaryService.safelyDeleteResource(
+        photo.publicId,
+        'image',
+      );
     }
-    
+
     return { message: '照片已刪除' };
   }
 }

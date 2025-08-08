@@ -1,4 +1,8 @@
 // components/common/ToastNotification.vue
+<script setup lang="ts">
+const { toasts, removeToast } = useToast()
+</script>
+
 <template>
   <Teleport to="body">
     <div class="fixed top-4 right-4 z-50 space-y-2">
@@ -6,8 +10,7 @@
         <div
           v-for="toast in toasts"
           :key="toast.id"
-          :class="[
-            'p-4 rounded-lg shadow-lg max-w-sm',
+          class="p-4 rounded-lg shadow-lg max-w-sm" :class="[
             {
               'bg-green-500 text-white': toast.type === 'success',
               'bg-red-500 text-white': toast.type === 'error',
@@ -19,8 +22,8 @@
           <div class="flex items-center justify-between">
             <p>{{ toast.message }}</p>
             <button
-              @click="removeToast(toast.id)"
               class="ml-4 text-white hover:text-gray-200"
+              @click="removeToast(toast.id)"
             >
               ✕
             </button>
@@ -30,10 +33,6 @@
     </div>
   </Teleport>
 </template>
-
-<script setup lang="ts">
-const { toasts, removeToast } = useToast();
-</script>
 
 <style>
 .toast-enter-active,
@@ -51,5 +50,3 @@ const { toasts, removeToast } = useToast();
   opacity: 0;
 }
 </style>
-
-

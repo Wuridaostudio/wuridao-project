@@ -9,4 +9,4 @@ import { CloudinaryModule } from '../cloudinary/cloudinary.module';
   imports: [PhotosModule, VideosModule, CloudinaryModule],
   controllers: [MediaController],
 })
-export class MediaModule {} 
+export class MediaModule {}

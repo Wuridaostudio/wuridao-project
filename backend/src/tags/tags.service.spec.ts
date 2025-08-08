@@ -3,7 +3,11 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TagsService } from './tags.service';
 import { Tag } from './entities/tag.entity';
-import { ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 
 // Mock the Repository
 const mockTagsRepository = {
@@ -41,7 +45,7 @@ describe('TagsService', () => {
     jest.clearAllMocks();
     // Make findOne mirror findOneBy for compatibility
     mockTagsRepository.findOne.mockImplementation((...args) =>
-      mockTagsRepository.findOneBy(...args)
+      mockTagsRepository.findOneBy(...args),
     );
   });
 
@@ -55,13 +59,20 @@ describe('TagsService', () => {
       const result = await service.create(createTagDto);
 
       expect(result.name).toEqual('New Tag');
-      expect(mockTagsRepository.findOne).toHaveBeenCalledWith({ where: { name: 'New Tag' } });
+      expect(mockTagsRepository.findOne).toHaveBeenCalledWith({
+        where: { name: 'New Tag' },
+      });
     });
 
     it('should throw a ConflictException if tag name already exists', async () => {
       const createTagDto = { name: 'Existing Tag' };
-      mockTagsRepository.findOneBy.mockResolvedValue({ id: 1, name: 'Existing Tag' });
-      await expect(service.create(createTagDto)).rejects.toThrow(ConflictException);
+      mockTagsRepository.findOneBy.mockResolvedValue({
+        id: 1,
+        name: 'Existing Tag',
+      });
+      await expect(service.create(createTagDto)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
@@ -74,7 +85,9 @@ describe('TagsService', () => {
         where: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ articleCount: '1', photoCount: '0' }),
+        getRawOne: jest
+          .fn()
+          .mockResolvedValue({ articleCount: '1', photoCount: '0' }),
       });
       await expect(service.remove(1)).rejects.toThrow(BadRequestException);
     });
@@ -92,11 +105,13 @@ describe('TagsService', () => {
         where: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ articleCount: '0', photoCount: '0' }),
+        getRawOne: jest
+          .fn()
+          .mockResolvedValue({ articleCount: '0', photoCount: '0' }),
       });
       mockTagsRepository.remove.mockResolvedValue(undefined);
       await expect(service.remove(2)).resolves.toBeUndefined();
       expect(mockTagsRepository.remove).toHaveBeenCalledWith(mockTag);
     });
   });
-}); 
+});

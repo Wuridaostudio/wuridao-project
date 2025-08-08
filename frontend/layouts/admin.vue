@@ -1,11 +1,22 @@
 <!-- layouts/admin.vue -->
+<script setup lang="ts">
+const authStore = useAuthStore()
+
+async function handleLogout() {
+  console.log('[AdminLayout] 執行登出')
+  await authStore.logout()
+}
+</script>
+
 <template>
   <div class="admin-layout">
     <aside class="admin-sidebar">
       <nav class="p-4">
         <ul class="space-y-2">
           <li>
-            <NuxtLink to="/admin" class="sidebar-link"> 儀表板 </NuxtLink>
+            <NuxtLink to="/admin" class="sidebar-link">
+              儀表板
+            </NuxtLink>
           </li>
           <li>
             <NuxtLink to="/admin/editarticles" class="sidebar-link">
@@ -45,13 +56,17 @@
         </ul>
       </nav>
     </aside>
-    
+
     <div class="admin-main-container">
       <header class="admin-header">
         <div class="flex items-center">
-          <h1 class="text-xl font-bold text-gray-800">WURIDAO 管理後台</h1>
+          <h1 class="text-xl font-bold text-gray-800">
+            WURIDAO 管理後台
+          </h1>
         </div>
-        <button @click="handleLogout" class="btn-secondary">登出</button>
+        <button class="btn-secondary" @click="handleLogout">
+          登出
+        </button>
       </header>
       <main class="admin-main">
         <slot />
@@ -59,15 +74,6 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-const authStore = useAuthStore();
-
-const handleLogout = async () => {
-  console.log('[AdminLayout] 執行登出');
-  await authStore.logout();
-};
-</script>
 
 <style scoped>
 .admin-layout {

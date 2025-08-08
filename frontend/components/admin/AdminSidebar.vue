@@ -1,10 +1,16 @@
 <!-- 更新 components/admin/AdminSidebar.vue 加入 SEO 管理連結 -->
+<script setup lang="ts">
+// 簡化的組件，移除複雜的調試信息
+</script>
+
 <template>
   <aside class="admin-sidebar">
     <nav class="p-4">
       <ul class="space-y-2">
         <li>
-          <NuxtLink to="/admin" class="sidebar-link"> 儀表板 </NuxtLink>
+          <NuxtLink to="/admin" class="sidebar-link">
+            儀表板
+          </NuxtLink>
         </li>
         <li>
           <NuxtLink to="/admin/editarticles" class="sidebar-link">
@@ -45,10 +51,6 @@
     </nav>
   </aside>
 </template>
-
-<script setup lang="ts">
-// 簡化的組件，移除複雜的調試信息
-</script>
 
 <style scoped>
 .admin-sidebar {

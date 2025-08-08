@@ -28,7 +28,9 @@ export class AuthService {
 
     if (!user) {
       // 安全日誌：記錄失敗的登入嘗試
-      this.logger.warn(`[SECURITY] Failed login attempt for username: ${loginDto.username} - User not found`);
+      this.logger.warn(
+        `[SECURITY] Failed login attempt for username: ${loginDto.username} - User not found`,
+      );
       throw new UnauthorizedException('帳號或密碼錯誤');
     }
 
@@ -39,12 +41,16 @@ export class AuthService {
 
     if (!isPasswordValid) {
       // 安全日誌：記錄失敗的登入嘗試
-      this.logger.warn(`[SECURITY] Failed login attempt for username: ${loginDto.username} - Invalid password`);
+      this.logger.warn(
+        `[SECURITY] Failed login attempt for username: ${loginDto.username} - Invalid password`,
+      );
       throw new UnauthorizedException('帳號或密碼錯誤');
     }
 
     // 安全日誌：記錄成功的登入
-    this.logger.log(`[SECURITY] Successful login for username: ${loginDto.username} (User ID: ${user.id})`);
+    this.logger.log(
+      `[SECURITY] Successful login for username: ${loginDto.username} (User ID: ${user.id})`,
+    );
 
     const payload = { sub: user.id, username: user.username };
     return {
@@ -93,7 +99,9 @@ export class AuthService {
     const user = await this.userRepository.findOne({ where: { id: userId } });
 
     if (!user) {
-      this.logger.warn(`[SECURITY] Password change attempt for non-existent user ID: ${userId}`);
+      this.logger.warn(
+        `[SECURITY] Password change attempt for non-existent user ID: ${userId}`,
+      );
       throw new UnauthorizedException('用戶不存在');
     }
 
@@ -105,12 +113,17 @@ export class AuthService {
 
     if (!isCurrentPasswordValid) {
       // 安全日誌：記錄失敗的密碼修改嘗試
-      this.logger.warn(`[SECURITY] Failed password change attempt for username: ${user.username} - Invalid current password`);
+      this.logger.warn(
+        `[SECURITY] Failed password change attempt for username: ${user.username} - Invalid current password`,
+      );
       throw new UnauthorizedException('當前密碼錯誤');
     }
 
     // 加密新密碼
-    const hashedNewPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
+    const hashedNewPassword = await bcrypt.hash(
+      changePasswordDto.newPassword,
+      10,
+    );
 
     // 更新密碼
     await this.userRepository.update(userId, {
@@ -118,7 +131,9 @@ export class AuthService {
     });
 
     // 安全日誌：記錄成功的密碼修改
-    this.logger.log(`[SECURITY] Successful password change for username: ${user.username} (User ID: ${userId})`);
+    this.logger.log(
+      `[SECURITY] Successful password change for username: ${user.username} (User ID: ${userId})`,
+    );
 
     return { message: '密碼修改成功' };
   }

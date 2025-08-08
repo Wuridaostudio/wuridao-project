@@ -7,7 +7,7 @@ import { UpdateSeoSettingsDto } from './dto/update-seo.dto';
 // 簡單的 HTML 清理函數
 function sanitizeHtml(input: string): string {
   if (!input) return input;
-  
+
   // 移除危險標籤和屬性
   return input
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -36,7 +36,8 @@ export class SeoService {
       settings = this.seoSettingsRepository.create({
         id: 1,
         siteTitle: 'WURIDAO 智慧家',
-        siteDescription: 'WURIDAO 智慧家提供完整的智能家居解決方案，包括智能控制、安全守護、節能環保等功能',
+        siteDescription:
+          'WURIDAO 智慧家提供完整的智能家居解決方案，包括智能控制、安全守護、節能環保等功能',
         siteKeywords: '智慧家居,智能家居,智慧家,WURIDAO,物聯網,IoT,家庭自動化',
         featuredSnippet: '',
         faqs: [],
@@ -61,17 +62,22 @@ export class SeoService {
     });
 
     // 清理輸入資料
-    if (updateDto.siteTitle) updateDto.siteTitle = sanitizeHtml(updateDto.siteTitle);
-    if (updateDto.siteDescription) updateDto.siteDescription = sanitizeHtml(updateDto.siteDescription);
-    if (updateDto.siteKeywords) updateDto.siteKeywords = sanitizeHtml(updateDto.siteKeywords);
-    if (updateDto.featuredSnippet) updateDto.featuredSnippet = sanitizeHtml(updateDto.featuredSnippet);
+    if (updateDto.siteTitle)
+      updateDto.siteTitle = sanitizeHtml(updateDto.siteTitle);
+    if (updateDto.siteDescription)
+      updateDto.siteDescription = sanitizeHtml(updateDto.siteDescription);
+    if (updateDto.siteKeywords)
+      updateDto.siteKeywords = sanitizeHtml(updateDto.siteKeywords);
+    if (updateDto.featuredSnippet)
+      updateDto.featuredSnippet = sanitizeHtml(updateDto.featuredSnippet);
     if (updateDto.address) updateDto.address = sanitizeHtml(updateDto.address);
     if (updateDto.city) updateDto.city = sanitizeHtml(updateDto.city);
-    if (updateDto.postalCode) updateDto.postalCode = sanitizeHtml(updateDto.postalCode);
+    if (updateDto.postalCode)
+      updateDto.postalCode = sanitizeHtml(updateDto.postalCode);
 
     // 清理 FAQ 內容
     if (updateDto.faqs) {
-      updateDto.faqs = updateDto.faqs.map(faq => ({
+      updateDto.faqs = updateDto.faqs.map((faq) => ({
         question: sanitizeHtml(faq.question),
         answer: sanitizeHtml(faq.answer),
       }));
@@ -151,60 +157,60 @@ export class SeoService {
 
   async generateStructuredData(type: string): Promise<any> {
     const settings = await this.getSettings();
-    
+
     switch (type) {
       case 'organization':
         return {
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          "name": settings.siteTitle || "WURIDAO 智慧家",
-          "description": settings.siteDescription,
-          "url": "https://wuridao.com",
-          "logo": "https://wuridao.com/logo.png",
-          "sameAs": [
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: settings.siteTitle || 'WURIDAO 智慧家',
+          description: settings.siteDescription,
+          url: 'https://wuridao.com',
+          logo: 'https://wuridao.com/logo.png',
+          sameAs: [
             settings.facebookUrl,
             settings.instagramUrl,
             settings.youtubeUrl,
           ].filter(Boolean),
         };
-      
+
       case 'place':
         return {
-          "@context": "https://schema.org",
-          "@type": "Place",
-          "name": settings.siteTitle || "WURIDAO 智慧家",
-          "address": {
-            "@type": "PostalAddress",
-            "streetAddress": settings.address,
-            "addressLocality": settings.city,
-            "postalCode": settings.postalCode,
+          '@context': 'https://schema.org',
+          '@type': 'Place',
+          name: settings.siteTitle || 'WURIDAO 智慧家',
+          address: {
+            '@type': 'PostalAddress',
+            streetAddress: settings.address,
+            addressLocality: settings.city,
+            postalCode: settings.postalCode,
           },
-          "geo": {
-            "@type": "GeoCoordinates",
-            "latitude": settings.latitude,
-            "longitude": settings.longitude,
+          geo: {
+            '@type': 'GeoCoordinates',
+            latitude: settings.latitude,
+            longitude: settings.longitude,
           },
         };
-      
+
       case 'faq':
         if (settings.faqs && settings.faqs.length > 0) {
           return {
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            "mainEntity": settings.faqs.map((faq: any) => ({
-              "@type": "Question",
-              "name": faq.question,
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": faq.answer,
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: settings.faqs.map((faq: any) => ({
+              '@type': 'Question',
+              name: faq.question,
+              acceptedAnswer: {
+                '@type': 'Answer',
+                text: faq.answer,
               },
             })),
           };
         }
         return null;
-      
+
       default:
         throw new Error('不支援的結構化資料類型');
     }
   }
-} 
+}

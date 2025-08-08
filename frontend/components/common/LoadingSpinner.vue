@@ -2,12 +2,12 @@
 <template>
   <div class="container">
     <div class="loader">
-      <div class="crystal"></div>
-      <div class="crystal"></div>
-      <div class="crystal"></div>
-      <div class="crystal"></div>
-      <div class="crystal"></div>
-      <div class="crystal"></div>
+      <div class="crystal" />
+      <div class="crystal" />
+      <div class="crystal" />
+      <div class="crystal" />
+      <div class="crystal" />
+      <div class="crystal" />
     </div>
   </div>
 </template>

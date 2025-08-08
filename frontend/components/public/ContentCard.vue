@@ -1,11 +1,159 @@
 <!-- components/public/ContentCard.vue -->
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+
+// ===== Props 定義 =====
+interface Props {
+  type: 'article' | 'photo' | 'video'
+  item: any
+  isLoading?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  isLoading: false,
+})
+
+const { $gsap } = useNuxtApp()
+
+// ===== Refs =====
+const cardElement = ref<HTMLElement>()
+const videoElement = ref<HTMLVideoElement>()
+
+// ===== 響應式狀態 =====
+const isPlaying = ref(false)
+const isHovered = ref(false)
+
+// ===== 計算屬性 =====
+// 從 publicId 中提取簡單的 ID
+function getSimpleId(id: string | number) {
+  if (typeof id === 'string' && id.includes('/')) {
+    // 如果是 publicId 格式，取最後一部分
+    return id.split('/').pop()
+  }
+  return id
+}
+
+// 詳細頁面 URL
+const detailPageUrl = computed(() => {
+  if (props.type === 'video')
+    return `/media/${getSimpleId(props.item.id)}`
+  if (props.type === 'photo')
+    return `/media/${getSimpleId(props.item.id)}`
+  if (props.type === 'article')
+    return `/articles/${props.item.id}`
+  return '#'
+})
+
+// 懸停效果類別
+const hoverClass = computed(() => {
+  return isHovered.value ? 'transform scale-105' : ''
+})
+
+// 圖片濾鏡效果
+const imageFilter = computed(() => {
+  if (props.type !== 'photo')
+    return ''
+
+  const filters = [
+    'brightness(1.1) contrast(1.1)',
+    'saturate(1.2) hue-rotate(5deg)',
+    'brightness(1.05) saturate(1.1)',
+    'contrast(1.1) saturate(1.15)',
+  ]
+
+  const index = props.item.id % filters.length
+  return filters[index]
+})
+
+// ===== 工具函數 =====
+// 格式化日期
+function formatDate(dateString: string) {
+  if (!dateString)
+    return ''
+
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('zh-TW', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+  catch (error) {
+    console.error('❌ [ContentCard.vue] 日期格式化失敗:', error)
+    return dateString
+  }
+}
+
+// 格式化時長
+function formatDuration(seconds: number) {
+  if (!seconds)
+    return ''
+
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+}
+
+// 移除 HTML 標籤
+function stripHtml(html: string) {
+  if (!html)
+    return ''
+
+  try {
+    return html.replace(/<[^>]*>/g, '').trim()
+  }
+  catch (error) {
+    console.error('❌ [ContentCard.vue] HTML 清理失敗:', error)
+    return html
+  }
+}
+
+// ===== 事件處理方法 =====
+// 滑鼠進入事件
+function handleMouseEnter() {
+  isHovered.value = true
+
+  if (props.type === 'video' && videoElement.value) {
+    videoElement.value.play().catch(() => {
+      // 忽略自動播放失敗
+    })
+    isPlaying.value = true
+  }
+}
+
+// 滑鼠離開事件
+function handleMouseLeave() {
+  isHovered.value = false
+
+  if (props.type === 'video' && videoElement.value) {
+    videoElement.value.pause()
+    videoElement.value.currentTime = 0
+    isPlaying.value = false
+  }
+}
+
+// 影片載入完成
+function handleVideoLoaded() {
+  if (videoElement.value) {
+    videoElement.value.currentTime = 0
+  }
+}
+
+// 調試項目信息
+function logItem(item: any) {
+  if (item && item.id) {
+    console.log('[ContentCard] id:', item.id, 'title:', item.title, 'coverImageUrl:', item.coverImageUrl)
+  }
+  return ''
+}
+</script>
+
 <template>
   <router-link :to="detailPageUrl" class="block">
     <article
       ref="cardElement"
-      :class="[
-        'masonry-item bg-gray-900 rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300',
-        'cursor-pointer group relative',
+      class="masonry-item bg-gray-900 rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300 cursor-pointer group relative" :class="[
         hoverClass,
       ]"
       @mouseenter="handleMouseEnter"
@@ -13,7 +161,9 @@
     >
       <!-- 文章卡片 -->
       <template v-if="type === 'article'">
-        <div v-if="true">{{ logItem(item) }}</div>
+        <div v-if="true">
+          {{ logItem(item) }}
+        </div>
         <div class="relative overflow-hidden aspect-[16/9]">
           <img
             v-if="item.coverImageUrl"
@@ -21,11 +171,11 @@
             :alt="item.title"
             class="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110"
             loading="lazy"
-          />
+          >
           <div
             v-if="item.coverImageUrl"
             class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity"
-          ></div>
+          />
         </div>
 
         <!-- 內容 -->
@@ -102,7 +252,7 @@
             class="w-full transform transition-all duration-500"
             :style="{ filter: imageFilter }"
             loading="lazy"
-          />
+          >
 
           <!-- 懸停資訊 -->
           <div
@@ -248,159 +398,15 @@
 
       <!-- 載入骨架 -->
       <div v-if="isLoading" class="animate-pulse">
-        <div class="bg-gray-800 h-48 mb-4"></div>
+        <div class="bg-gray-800 h-48 mb-4" />
         <div class="p-4">
-          <div class="bg-gray-800 h-4 w-3/4 mb-2"></div>
-          <div class="bg-gray-800 h-4 w-1/2"></div>
+          <div class="bg-gray-800 h-4 w-3/4 mb-2" />
+          <div class="bg-gray-800 h-4 w-1/2" />
         </div>
       </div>
     </article>
   </router-link>
 </template>
-
-<script setup lang="ts">
-import { ref, computed } from "vue";
-
-// ===== Props 定義 =====
-interface Props {
-  type: "article" | "photo" | "video";
-  item: any;
-  isLoading?: boolean;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  isLoading: false,
-});
-
-const { $gsap } = useNuxtApp();
-
-// ===== Refs =====
-const cardElement = ref<HTMLElement>();
-const videoElement = ref<HTMLVideoElement>();
-
-// ===== 響應式狀態 =====
-const isPlaying = ref(false);
-const isHovered = ref(false);
-
-// ===== 計算屬性 =====
-// 從 publicId 中提取簡單的 ID
-const getSimpleId = (id: string | number) => {
-  if (typeof id === 'string' && id.includes('/')) {
-    // 如果是 publicId 格式，取最後一部分
-    return id.split('/').pop();
-  }
-  return id;
-};
-
-// 詳細頁面 URL
-const detailPageUrl = computed(() => {
-  if (props.type === "video") return `/media/${getSimpleId(props.item.id)}`;
-  if (props.type === "photo") return `/media/${getSimpleId(props.item.id)}`;
-  if (props.type === "article") return `/articles/${props.item.id}`;
-  return "#";
-});
-
-// 懸停效果類別
-const hoverClass = computed(() => {
-  return isHovered.value ? "transform scale-105" : "";
-});
-
-// 圖片濾鏡效果
-const imageFilter = computed(() => {
-  if (props.type !== "photo") return "";
-
-  const filters = [
-    "brightness(1.1) contrast(1.1)",
-    "saturate(1.2) hue-rotate(5deg)",
-    "brightness(1.05) saturate(1.1)",
-    "contrast(1.1) saturate(1.15)",
-  ];
-
-  const index = props.item.id % filters.length;
-  return filters[index];
-});
-
-// ===== 工具函數 =====
-// 格式化日期
-const formatDate = (dateString: string) => {
-  if (!dateString) return "";
-
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("zh-TW", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch (error) {
-    console.error("❌ [ContentCard.vue] 日期格式化失敗:", error);
-    return dateString;
-  }
-};
-
-// 格式化時長
-const formatDuration = (seconds: number) => {
-  if (!seconds) return "";
-
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-};
-
-// 移除 HTML 標籤
-const stripHtml = (html: string) => {
-  if (!html) return "";
-
-  try {
-    return html.replace(/<[^>]*>/g, "").trim();
-  } catch (error) {
-    console.error("❌ [ContentCard.vue] HTML 清理失敗:", error);
-    return html;
-  }
-};
-
-// ===== 事件處理方法 =====
-// 滑鼠進入事件
-const handleMouseEnter = () => {
-  isHovered.value = true;
-  
-  if (props.type === "video" && videoElement.value) {
-    videoElement.value.play().catch(() => {
-      // 忽略自動播放失敗
-    });
-    isPlaying.value = true;
-  }
-};
-
-// 滑鼠離開事件
-const handleMouseLeave = () => {
-  isHovered.value = false;
-  
-  if (props.type === "video" && videoElement.value) {
-    videoElement.value.pause();
-    videoElement.value.currentTime = 0;
-    isPlaying.value = false;
-  }
-};
-
-// 影片載入完成
-const handleVideoLoaded = () => {
-  if (videoElement.value) {
-    videoElement.value.currentTime = 0;
-  }
-};
-
-// 調試項目信息
-const logItem = (item: any) => {
-  console.log(`[ContentCard] 渲染項目:`, {
-    type: props.type,
-    id: item?.id,
-    title: item?.title,
-    url: item?.url,
-    detailPageUrl: detailPageUrl.value
-  });
-};
-</script>
 
 <style scoped>
 /* 卡片懸停效果 */

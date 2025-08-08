@@ -1,44 +1,21 @@
-<template>
-  <div ref="ctnDom" class="relative" style="position: relative">
-    <slot />
-    <div
-      v-if="props.text"
-      class="orb-text"
-      :style="{
-        color: '#6ed6ff',
-        position: 'absolute',
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -50%)',
-        fontWeight: 'bold',
-        fontSize: '6rem',
-        letterSpacing: '0.1em',
-        zIndex: 2,
-      }"
-    >
-      {{ props.text }}
-    </div>
-  </div>
-</template>
-
 <script setup>
-import { onMounted, onBeforeUnmount, ref, watch } from "vue";
-import { Renderer, Program, Mesh, Triangle, Vec3 } from "ogl";
+import { Mesh, Program, Renderer, Triangle, Vec3 } from 'ogl'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 const props = defineProps({
   hue: { type: Number, default: 20 },
   hoverIntensity: { type: Number, default: 1.2 },
   rotateOnHover: { type: Boolean, default: true },
   forceHoverState: { type: Boolean, default: false },
-  text: { type: String, default: "" },
-});
+  text: { type: String, default: '' },
+})
 
-const ctnDom = ref(null);
-let renderer, gl, program, mesh, rafId;
-let targetHover = 0;
-let lastTime = 0;
-let currentRot = 0;
-const rotationSpeed = 0.3;
+const ctnDom = ref(null)
+let renderer, gl, program, mesh, rafId
+let targetHover = 0
+let lastTime = 0
+let currentRot = 0
+const rotationSpeed = 0.3
 
 const vert = `precision highp float;
 attribute vec2 position;
@@ -47,7 +24,7 @@ varying vec2 vUv;
 void main() {
   vUv = uv;
   gl_Position = vec4(position, 0.0, 1.0);
-}`;
+}`
 
 const frag = `precision highp float;
 
@@ -193,30 +170,31 @@ void main() {
   vec4 col = mainImage(fragCoord);
   gl_FragColor = vec4(col.rgb * col.a, col.a);
 }
-`;
+`
 
 function resize() {
-  if (!ctnDom.value) return;
-  const dpr = window.devicePixelRatio || 1;
-  const width = ctnDom.value.clientWidth;
-  const height = ctnDom.value.clientHeight;
-  renderer.setSize(width * dpr, height * dpr);
-  gl.canvas.style.width = width + "px";
-  gl.canvas.style.height = height + "px";
+  if (!ctnDom.value)
+    return
+  const dpr = window.devicePixelRatio || 1
+  const width = ctnDom.value.clientWidth
+  const height = ctnDom.value.clientHeight
+  renderer.setSize(width * dpr, height * dpr)
+  gl.canvas.style.width = `${width}px`
+  gl.canvas.style.height = `${height}px`
   program.uniforms.iResolution.value.set(
     gl.canvas.width,
     gl.canvas.height,
     gl.canvas.width / gl.canvas.height,
-  );
+  )
 }
 
 function setupOrb() {
-  renderer = new Renderer({ alpha: true, premultipliedAlpha: false });
-  gl = renderer.gl;
-  gl.clearColor(0, 0, 0, 0);
-  ctnDom.value.appendChild(gl.canvas);
+  renderer = new Renderer({ alpha: true, premultipliedAlpha: false })
+  gl = renderer.gl
+  gl.clearColor(0, 0, 0, 0)
+  ctnDom.value.appendChild(gl.canvas)
 
-  const geometry = new Triangle(gl);
+  const geometry = new Triangle(gl)
   program = new Program(gl, {
     vertex: vert,
     fragment: frag,
@@ -234,65 +212,89 @@ function setupOrb() {
       rot: { value: 0 },
       hoverIntensity: { value: props.hoverIntensity },
     },
-  });
-  mesh = new Mesh(gl, { geometry, program });
+  })
+  mesh = new Mesh(gl, { geometry, program })
 
-  window.addEventListener("resize", resize);
-  resize();
+  window.addEventListener('resize', resize)
+  resize()
 
   const handleMouseMove = (e) => {
-    const rect = ctnDom.value.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const width = rect.width;
-    const height = rect.height;
-    const size = Math.min(width, height);
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const uvX = ((x - centerX) / size) * 2.0;
-    const uvY = ((y - centerY) / size) * 2.0;
+    const rect = ctnDom.value.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const width = rect.width
+    const height = rect.height
+    const size = Math.min(width, height)
+    const centerX = width / 2
+    const centerY = height / 2
+    const uvX = ((x - centerX) / size) * 2.0
+    const uvY = ((y - centerY) / size) * 2.0
     if (Math.sqrt(uvX * uvX + uvY * uvY) < 0.8) {
-      targetHover = 1;
-    } else {
-      targetHover = 0;
+      targetHover = 1
     }
-  };
+    else {
+      targetHover = 0
+    }
+  }
   const handleMouseLeave = () => {
-    targetHover = 0;
-  };
-  ctnDom.value.addEventListener("mousemove", handleMouseMove);
-  ctnDom.value.addEventListener("mouseleave", handleMouseLeave);
+    targetHover = 0
+  }
+  ctnDom.value.addEventListener('mousemove', handleMouseMove)
+  ctnDom.value.addEventListener('mouseleave', handleMouseLeave)
 
   const update = (t) => {
-    rafId = requestAnimationFrame(update);
-    const dt = (t - lastTime) * 0.001;
-    lastTime = t;
-    program.uniforms.iTime.value = t * 0.001;
-    program.uniforms.hue.value = props.hue;
-    program.uniforms.hoverIntensity.value = props.hoverIntensity;
-    const effectiveHover = props.forceHoverState ? 1 : targetHover;
-    program.uniforms.hover.value +=
-      (effectiveHover - program.uniforms.hover.value) * 0.1;
+    rafId = requestAnimationFrame(update)
+    const dt = (t - lastTime) * 0.001
+    lastTime = t
+    program.uniforms.iTime.value = t * 0.001
+    program.uniforms.hue.value = props.hue
+    program.uniforms.hoverIntensity.value = props.hoverIntensity
+    const effectiveHover = props.forceHoverState ? 1 : targetHover
+    program.uniforms.hover.value
+      += (effectiveHover - program.uniforms.hover.value) * 0.1
     if (props.rotateOnHover && effectiveHover > 0.5) {
-      currentRot += dt * rotationSpeed;
+      currentRot += dt * rotationSpeed
     }
-    program.uniforms.rot.value = currentRot;
-    renderer.render({ scene: mesh });
-  };
-  rafId = requestAnimationFrame(update);
+    program.uniforms.rot.value = currentRot
+    renderer.render({ scene: mesh })
+  }
+  rafId = requestAnimationFrame(update)
 
   onBeforeUnmount(() => {
-    cancelAnimationFrame(rafId);
-    window.removeEventListener("resize", resize);
-    ctnDom.value.removeEventListener("mousemove", handleMouseMove);
-    ctnDom.value.removeEventListener("mouseleave", handleMouseLeave);
-    ctnDom.value.removeChild(gl.canvas);
-    gl.getExtension("WEBGL_lose_context")?.loseContext();
-  });
+    cancelAnimationFrame(rafId)
+    window.removeEventListener('resize', resize)
+    ctnDom.value.removeEventListener('mousemove', handleMouseMove)
+    ctnDom.value.removeEventListener('mouseleave', handleMouseLeave)
+    ctnDom.value.removeChild(gl.canvas)
+    gl.getExtension('WEBGL_lose_context')?.loseContext()
+  })
 }
 
-onMounted(setupOrb);
+onMounted(setupOrb)
 </script>
+
+<template>
+  <div ref="ctnDom" class="relative" style="position: relative">
+    <slot />
+    <div
+      v-if="props.text"
+      class="orb-text"
+      :style="{
+        color: '#6ed6ff',
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        fontWeight: 'bold',
+        fontSize: '6rem',
+        letterSpacing: '0.1em',
+        zIndex: 2,
+      }"
+    >
+      {{ props.text }}
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .orb-container {

@@ -1,17 +1,17 @@
 // src/articles/dto/update-article.dto.ts
 import { PartialType } from '@nestjs/swagger';
 import { CreateArticleDto, FaqItemDto } from './create-article.dto';
-import { 
-  IsOptional, 
-  IsString, 
-  IsArray, 
-  IsNumber, 
-  IsUrl, 
-  MaxLength, 
+import {
+  IsOptional,
+  IsString,
+  IsArray,
+  IsNumber,
+  IsUrl,
+  MaxLength,
   IsEnum,
   ValidateNested,
   IsLatitude,
-  IsLongitude
+  IsLongitude,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
@@ -23,20 +23,26 @@ export class UpdateArticleDto extends PartialType(CreateArticleDto) {
 
   @IsOptional()
   @IsString({ message: '封面圖片URL必須是字串' })
+  @Transform(({ value }) => {
+    if (typeof value === 'string' && value.trim() === '') {
+      return undefined;
+    }
+    return value;
+  })
   @IsUrl({}, { message: '請輸入有效的圖片URL' })
   coverImageUrl?: string;
 
   @IsOptional()
-  @IsString({ message: 'Cloudinary ID必須是字串' })
-  @MaxLength(100, { message: 'Cloudinary ID不能超過 100 個字元' })
+  @IsString({ message: '封面圖片Public ID必須是字串' })
   coverImagePublicId?: string;
 
   @IsOptional()
-  @IsString({ message: '狀態必須是字串' })
-  @IsEnum(['draft', 'published', 'archived'], { 
-    message: '狀態必須是 draft、published 或 archived' 
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
   })
-  status?: string;
+  isDraft?: boolean;
 
   // SEO 欄位
   @IsOptional()
@@ -71,23 +77,27 @@ export class UpdateArticleDto extends PartialType(CreateArticleDto) {
   })
   seoKeywords?: string;
 
-  // AEO (FAQ) 欄位
+  // AEO (FAQ) 欄位：放寬驗證，避免 whitelist 擋住 question/answer
   @IsOptional()
-  @IsArray({ message: 'FAQ必須是陣列' })
-  @ValidateNested({ each: true })
-  @Type(() => FaqItemDto)
   @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        value = JSON.parse(value);
+      } catch {
+        return [];
+      }
+    }
     if (!Array.isArray(value)) return [];
-    return value.filter(item => 
-      item && 
-      typeof item === 'object' && 
-      item.question && 
-      item.answer && 
-      item.question.trim() !== '' && 
-      item.answer.trim() !== ''
+    return value.filter((item) =>
+      item &&
+      typeof item === 'object' &&
+      typeof item.question === 'string' &&
+      typeof item.answer === 'string' &&
+      item.question.trim() !== '' &&
+      item.answer.trim() !== '',
     );
   })
-  aeoFaq?: FaqItemDto[];
+  aeoFaq?: any[];
 
   // GEO 欄位
   @IsOptional()

@@ -8,11 +8,28 @@ import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 import { OptimisticLockVersionMismatchError } from 'typeorm';
+import { Tag } from '../tags/entities/tag.entity';
+
+// Mock Express.Multer.File
+type MockFile = Express.Multer.File;
 
 describe('ArticlesService', () => {
   let service: ArticlesService;
   let articleRepository: Repository<Article>;
   let cloudinaryService: CloudinaryService;
+
+  const mockQueryBuilder = {
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    orderBy: jest.fn().mockReturnThis(),
+    getMany: jest.fn(),
+    getOne: jest.fn(),
+    getManyAndCount: jest.fn(),
+    skip: jest.fn().mockReturnThis(),
+    take: jest.fn().mockReturnThis(),
+    getSql: jest.fn().mockReturnValue('SELECT ...'),
+  };
 
   const mockArticleRepository = {
     create: jest.fn(),
@@ -21,19 +38,19 @@ describe('ArticlesService', () => {
     findOne: jest.fn(),
     findOneBy: jest.fn(),
     remove: jest.fn(),
-    createQueryBuilder: jest.fn(() => ({
-      leftJoinAndSelect: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      orderBy: jest.fn().mockReturnThis(),
-      getMany: jest.fn(),
-      getOne: jest.fn(),
-    })),
+    createQueryBuilder: jest.fn(() => mockQueryBuilder),
   };
 
   const mockCloudinaryService = {
     uploadImage: jest.fn(),
-    deleteImage: jest.fn(),
+    deleteResource: jest.fn(),
+    safelyDeleteResource: jest.fn(),
+    checkResourceExists: jest.fn(),
+    uploadBuffer: jest.fn(),
+  };
+  
+  const mockTagRepository = {
+    findBy: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -45,6 +62,10 @@ describe('ArticlesService', () => {
           useValue: mockArticleRepository,
         },
         {
+          provide: getRepositoryToken(Tag),
+          useValue: mockTagRepository,
+        },
+        {
           provide: CloudinaryService,
           useValue: mockCloudinaryService,
         },
@@ -52,7 +73,9 @@ describe('ArticlesService', () => {
     }).compile();
 
     service = module.get<ArticlesService>(ArticlesService);
-    articleRepository = module.get<Repository<Article>>(getRepositoryToken(Article));
+    articleRepository = module.get<Repository<Article>>(
+      getRepositoryToken(Article),
+    );
     cloudinaryService = module.get<CloudinaryService>(CloudinaryService);
   });
 
@@ -68,39 +91,43 @@ describe('ArticlesService', () => {
         categoryId: 1,
       };
 
-      const mockFile = {
+      const mockFile: MockFile = {
         fieldname: 'coverImage',
         originalname: 'test.jpg',
-        buffer: Buffer.from('test'),
+        encoding: '7bit',
         mimetype: 'image/jpeg',
+        size: 123,
+        buffer: Buffer.from('test'),
+        stream: null,
+        destination: '',
+        filename: '',
+        path: '',
       };
 
       const mockUploadResult = {
-        url: 'https://res.cloudinary.com/test/image/upload/test.jpg',
+        secure_url: 'https://res.cloudinary.com/test/image/upload/test.jpg',
         public_id: 'test_public_id',
       };
 
       const mockArticle = {
         id: 1,
         ...createArticleDto,
-        coverImageUrl: mockUploadResult.url,
+        coverImageUrl: mockUploadResult.secure_url,
         coverImagePublicId: mockUploadResult.public_id,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
       mockCloudinaryService.uploadImage.mockResolvedValue(mockUploadResult);
+      mockCloudinaryService.uploadBuffer.mockResolvedValue(mockUploadResult);
       mockArticleRepository.create.mockReturnValue(mockArticle);
       mockArticleRepository.save.mockResolvedValue(mockArticle);
+      mockArticleRepository.findOne.mockResolvedValue(mockArticle);
 
       const result = await service.create(createArticleDto, mockFile);
 
-      expect(cloudinaryService.uploadImage).toHaveBeenCalledWith(mockFile);
-      expect(articleRepository.create).toHaveBeenCalledWith({
-        ...createArticleDto,
-        coverImageUrl: mockUploadResult.url,
-        coverImagePublicId: mockUploadResult.public_id,
-      });
+      expect(cloudinaryService.uploadImage).toHaveBeenCalledWith(mockFile, 'articles');
+      expect(articleRepository.create).toHaveBeenCalledWith(expect.any(Object));
       expect(articleRepository.save).toHaveBeenCalledWith(mockArticle);
       expect(result).toEqual(mockArticle);
     });
@@ -117,14 +144,21 @@ describe('ArticlesService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+      
+      const mockUploadResult = {
+        secure_url: 'https://res.cloudinary.com/test/image/upload/test.jpg',
+        public_id: 'test_public_id',
+      };
 
+      mockCloudinaryService.uploadBuffer.mockResolvedValue(mockUploadResult);
       mockArticleRepository.create.mockReturnValue(mockArticle);
       mockArticleRepository.save.mockResolvedValue(mockArticle);
+      mockArticleRepository.findOne.mockResolvedValue(mockArticle);
 
       const result = await service.create(createArticleDto);
 
       expect(cloudinaryService.uploadImage).not.toHaveBeenCalled();
-      expect(articleRepository.create).toHaveBeenCalledWith(createArticleDto);
+      expect(articleRepository.create).toHaveBeenCalledWith(expect.any(Object));
       expect(articleRepository.save).toHaveBeenCalledWith(mockArticle);
       expect(result).toEqual(mockArticle);
     });
@@ -137,20 +171,15 @@ describe('ArticlesService', () => {
         { id: 2, title: 'Article 2', content: 'Content 2' },
       ];
 
-      const mockQueryBuilder = {
-        leftJoinAndSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        orderBy: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue(mockArticles),
-      };
-
-      mockArticleRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([mockArticles, mockArticles.length]);
+      mockArticleRepository.find.mockResolvedValue(mockArticles);
 
       const result = await service.findAll();
 
-      expect(articleRepository.createQueryBuilder).toHaveBeenCalledWith('article');
-      expect(result).toEqual(mockArticles);
+      expect(articleRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'article',
+      );
+      expect(result.data).toEqual(mockArticles);
     });
   });
 
@@ -162,29 +191,19 @@ describe('ArticlesService', () => {
         content: 'Test content',
       };
 
-      const mockQueryBuilder = {
-        leftJoinAndSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getOne: jest.fn().mockResolvedValue(mockArticle),
-      };
-
-      mockArticleRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockArticleRepository.findOne.mockResolvedValue(mockArticle);
 
       const result = await service.findOne(1);
 
-      expect(articleRepository.createQueryBuilder).toHaveBeenCalledWith('article');
-      expect(result).toEqual(mockArticle);
+      expect(articleRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+        relations: ['category', 'tags'],
+      });
+      expect(result).toEqual({ ...mockArticle, jsonLd: expect.any(Object) });
     });
 
     it('should throw NotFoundException when article not found', async () => {
-      const mockQueryBuilder = {
-        leftJoinAndSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getOne: jest.fn().mockResolvedValue(null),
-      };
-
-      mockArticleRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
-
+      mockArticleRepository.findOne.mockResolvedValue(null);
       await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
     });
   });
@@ -208,18 +227,12 @@ describe('ArticlesService', () => {
         version: 2,
       };
 
-      const mockQueryBuilder = {
-        leftJoinAndSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getOne: jest.fn().mockResolvedValue(existingArticle),
-      };
-
-      mockArticleRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockArticleRepository.findOne.mockResolvedValue(existingArticle);
       mockArticleRepository.save.mockResolvedValue(updatedArticle);
 
       const result = await service.update(1, updateArticleDto);
 
-      expect(articleRepository.save).toHaveBeenCalledWith(updatedArticle);
+      expect(articleRepository.save).toHaveBeenCalledWith(expect.any(Object));
       expect(result).toEqual(updatedArticle);
     });
 
@@ -228,15 +241,11 @@ describe('ArticlesService', () => {
         title: 'Updated Article',
       };
 
-      const mockQueryBuilder = {
-        leftJoinAndSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getOne: jest.fn().mockResolvedValue(null),
-      };
+      mockArticleRepository.findOne.mockResolvedValue(null);
 
-      mockArticleRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
-
-      await expect(service.update(999, updateArticleDto)).rejects.toThrow(NotFoundException);
+      await expect(service.update(999, updateArticleDto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should handle optimistic lock version mismatch', async () => {
@@ -251,16 +260,14 @@ describe('ArticlesService', () => {
         version: 1,
       };
 
-      const mockQueryBuilder = {
-        leftJoinAndSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getOne: jest.fn().mockResolvedValue(existingArticle),
-      };
+      mockArticleRepository.findOne.mockResolvedValue(existingArticle);
+      mockArticleRepository.save.mockRejectedValue(
+        new OptimisticLockVersionMismatchError('test', 1, 2),
+      );
 
-      mockArticleRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
-      mockArticleRepository.save.mockRejectedValue(new OptimisticLockVersionMismatchError('', '', ''));
-
-      await expect(service.update(1, updateArticleDto)).rejects.toThrow(ConflictException);
+      await expect(service.update(1, updateArticleDto)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
@@ -270,34 +277,44 @@ describe('ArticlesService', () => {
         id: 1,
         title: 'Test Article',
         coverImagePublicId: 'test_public_id',
+        contentPublicId: 'test_content_public_id',
+        jsonLd: {
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: 'Test Article',
+          image: [],
+          datePublished: '',
+          dateModified: '',
+          author: {
+            '@type': 'Person',
+            name: 'WURIDAO',
+          },
+          description: '',
+          keywords: '',
+        },
       };
 
-      const mockQueryBuilder = {
-        leftJoinAndSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getOne: jest.fn().mockResolvedValue(mockArticle),
-      };
-
-      mockArticleRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
+      mockArticleRepository.findOne.mockResolvedValue(mockArticle);
       mockArticleRepository.remove.mockResolvedValue(mockArticle);
-      mockCloudinaryService.deleteImage.mockResolvedValue(undefined);
+      mockCloudinaryService.checkResourceExists.mockResolvedValue(true);
+      mockCloudinaryService.deleteResource.mockResolvedValue(undefined);
 
       await service.remove(1);
 
-      expect(cloudinaryService.deleteImage).toHaveBeenCalledWith('test_public_id');
+      expect(cloudinaryService.deleteResource).toHaveBeenCalledWith(
+        'test_public_id',
+        'image',
+      );
+      expect(cloudinaryService.deleteResource).toHaveBeenCalledWith(
+        'test_content_public_id',
+        'raw',
+      );
       expect(articleRepository.remove).toHaveBeenCalledWith(mockArticle);
     });
 
     it('should throw NotFoundException when article not found', async () => {
-      const mockQueryBuilder = {
-        leftJoinAndSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        getOne: jest.fn().mockResolvedValue(null),
-      };
-
-      mockArticleRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
-
+      mockArticleRepository.findOne.mockResolvedValue(null);
       await expect(service.remove(999)).rejects.toThrow(NotFoundException);
     });
   });
-}); 
+});

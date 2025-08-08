@@ -1,10 +1,65 @@
 <!-- pages/admin/change-password.vue -->
+<script setup lang="ts">
+import LoadingSpinner from '~/components/common/LoadingSpinner.vue'
+
+definePageMeta({
+  layout: 'admin',
+  middleware: 'auth',
+})
+
+const authStore = useAuthStore()
+
+const passwordData = reactive({
+  currentPassword: '',
+  newPassword: '',
+})
+const confirmPassword = ref('')
+const loading = ref(false)
+const error = ref<string | null>(null)
+const success = ref(false)
+
+async function handleChangePassword() {
+  error.value = null
+  success.value = false
+
+  if (passwordData.newPassword !== confirmPassword.value) {
+    error.value = '新密碼與確認密碼不符'
+    return
+  }
+
+  if (passwordData.newPassword.length < 8) {
+    error.value = '新密碼至少需要 8 個字元'
+    return
+  }
+
+  loading.value = true
+
+  try {
+    await authStore.updatePassword(passwordData)
+    success.value = true
+
+    // Clear form
+    passwordData.currentPassword = ''
+    passwordData.newPassword = ''
+    confirmPassword.value = ''
+  }
+  catch (e: any) {
+    error.value = e.data?.message || '密碼更新失敗'
+  }
+  finally {
+    loading.value = false
+  }
+}
+</script>
+
 <template>
   <div class="max-w-md">
-    <h1 class="text-3xl font-bold mb-8">修改密碼</h1>
+    <h1 class="text-3xl font-bold mb-8">
+      修改密碼
+    </h1>
 
     <div class="card">
-      <form @submit.prevent="handleChangePassword" class="space-y-6">
+      <form class="space-y-6" @submit.prevent="handleChangePassword">
         <div>
           <label
             for="currentPassword"
@@ -18,7 +73,7 @@
             type="password"
             required
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+          >
         </div>
 
         <div>
@@ -35,7 +90,7 @@
             required
             minlength="8"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+          >
         </div>
 
         <div>
@@ -51,7 +106,7 @@
             type="password"
             required
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+          >
         </div>
 
         <ErrorMessage v-if="error" :message="error" />
@@ -75,57 +130,6 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import LoadingSpinner from "~/components/common/LoadingSpinner.vue";
-
-definePageMeta({
-  layout: "admin",
-  middleware: "auth",
-});
-
-const authStore = useAuthStore();
-
-const passwordData = reactive({
-  currentPassword: "",
-  newPassword: "",
-});
-const confirmPassword = ref("");
-const loading = ref(false);
-const error = ref<string | null>(null);
-const success = ref(false);
-
-const handleChangePassword = async () => {
-  error.value = null;
-  success.value = false;
-
-  if (passwordData.newPassword !== confirmPassword.value) {
-    error.value = "新密碼與確認密碼不符";
-    return;
-  }
-
-  if (passwordData.newPassword.length < 8) {
-    error.value = "新密碼至少需要 8 個字元";
-    return;
-  }
-
-  loading.value = true;
-
-  try {
-    await authStore.updatePassword(passwordData);
-    success.value = true;
-
-    // Clear form
-    passwordData.currentPassword = "";
-    passwordData.newPassword = "";
-    confirmPassword.value = "";
-  } catch (e: any) {
-    error.value = e.data?.message || "密碼更新失敗";
-  } finally {
-    loading.value = false;
-  }
-};
-</script>
 
 <style scoped>
 label {

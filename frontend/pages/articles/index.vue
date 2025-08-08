@@ -1,3 +1,22 @@
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import ArticleSkeleton from '~/components/common/ArticleSkeleton.vue'
+
+const articles = ref([])
+const pending = ref(true)
+
+onMounted(async () => {
+  try {
+    // 請替換為實際 API
+    const res = await $fetch('/api/articles')
+    articles.value = res
+  }
+  finally {
+    pending.value = false
+  }
+})
+</script>
+
 <template>
   <div>
     <ArticleSkeleton v-if="pending" />
@@ -10,21 +29,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import ArticleSkeleton from '~/components/common/ArticleSkeleton.vue'
-
-const articles = ref([])
-const pending = ref(true)
-
-onMounted(async () => {
-  try {
-    // 請替換為實際 API
-    const res = await $fetch('/api/articles')
-    articles.value = res
-  } finally {
-    pending.value = false
-  }
-})
-</script>

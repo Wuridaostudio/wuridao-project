@@ -1,3 +1,38 @@
+<script setup lang="ts">
+// 確保組件在客戶端正確載入
+const ToastNotification = defineAsyncComponent(() =>
+  import('~/components/common/ToastNotification.vue'),
+)
+
+// SEO Meta 全站設定
+useHead({
+  htmlAttrs: {
+    lang: 'zh-TW',
+  },
+  bodyAttrs: {
+    class: 'font-sans antialiased',
+  },
+})
+
+// 全站 SEO 設定
+useSeoMeta({
+  titleTemplate: titleChunk =>
+    titleChunk ? `${titleChunk} - WURIDAO 智慧家` : 'WURIDAO 智慧家',
+  ogImage: 'https://wuridao.com/og-image.jpg',
+  twitterCard: 'summary_large_image',
+})
+
+// 監聽路由變化以追蹤頁面瀏覽
+const route = useRoute()
+watch(
+  () => route.fullPath,
+  (newPath) => {
+    // 可以在這裡加入分析追蹤
+    console.log('Page view:', newPath)
+  },
+)
+</script>
+
 <template>
   <div>
     <NuxtLayout>
@@ -8,41 +43,6 @@
     </ClientOnly>
   </div>
 </template>
-
-<script setup lang="ts">
-// 確保組件在客戶端正確載入
-const ToastNotification = defineAsyncComponent(() => 
-  import('~/components/common/ToastNotification.vue')
-);
-
-// SEO Meta 全站設定
-useHead({
-  htmlAttrs: {
-    lang: "zh-TW",
-  },
-  bodyAttrs: {
-    class: "font-sans antialiased",
-  },
-});
-
-// 全站 SEO 設定
-useSeoMeta({
-  titleTemplate: (titleChunk) =>
-    titleChunk ? `${titleChunk} - WURIDAO 智慧家` : "WURIDAO 智慧家",
-  ogImage: "https://wuridao.com/og-image.jpg",
-  twitterCard: "summary_large_image",
-});
-
-// 監聽路由變化以追蹤頁面瀏覽
-const route = useRoute();
-watch(
-  () => route.fullPath,
-  (newPath) => {
-    // 可以在這裡加入分析追蹤
-    console.log("Page view:", newPath);
-  },
-);
-</script>
 
 <style>
 /* 全站過渡動畫 */

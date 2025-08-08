@@ -1,25 +1,6 @@
-<template>
-  <component
-    :is="as"
-    ref="containerRef"
-    :class="['inline-block whitespace-pre-wrap tracking-tight', className]"
-  >
-    <span class="inline" :style="{ color: getCurrentTextColor() }">
-      {{ displayedText }}
-    </span>
-    <span
-      v-if="showCursor"
-      ref="cursorRef"
-      :class="['ml-1 inline-block', shouldHideCursor ? 'hidden' : '', cursorClassName]"
-    >
-      {{ cursorCharacter }}
-    </span>
-  </component>
-</template>
-
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { gsap } from 'gsap'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 const props = defineProps({
   text: { type: Array, required: true },
@@ -38,7 +19,7 @@ const props = defineProps({
   textColors: { type: Array, default: () => [] },
   variableSpeed: { type: Object, default: null },
   startOnVisible: { type: Boolean, default: false },
-  reverseMode: { type: Boolean, default: false }
+  reverseMode: { type: Boolean, default: false },
 })
 
 const displayedText = ref('')
@@ -54,19 +35,21 @@ let timeout: any = null
 const textArray = props.text
 
 function getRandomSpeed() {
-  if (!props.variableSpeed) return props.typingSpeed
+  if (!props.variableSpeed)
+    return props.typingSpeed
   const { min, max } = props.variableSpeed
   return Math.random() * (max - min) + min
 }
 
 function getCurrentTextColor() {
-  if (!props.textColors.length) return '#fff'
+  if (!props.textColors.length)
+    return '#fff'
   return props.textColors[currentTextIndex.value % props.textColors.length]
 }
 
 const shouldHideCursor = computed(() =>
-  props.hideCursorWhileTyping &&
-  (currentCharIndex.value < textArray[currentTextIndex.value].length || isDeleting.value)
+  props.hideCursorWhileTyping
+  && (currentCharIndex.value < textArray[currentTextIndex.value].length || isDeleting.value),
 )
 
 onMounted(() => {
@@ -77,17 +60,18 @@ onMounted(() => {
       duration: props.cursorBlinkDuration,
       repeat: -1,
       yoyo: true,
-      ease: 'power2.inOut'
+      ease: 'power2.inOut',
     })
   }
   if (props.startOnVisible && containerRef.value) {
     observer.value = new window.IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) isVisible.value = true
+          if (entry.isIntersecting)
+            isVisible.value = true
         })
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     )
     observer.value.observe(containerRef.value)
   }
@@ -112,10 +96,11 @@ watch(
     () => props.initialDelay,
     isVisible,
     () => props.reverseMode,
-    () => props.variableSpeed
+    () => props.variableSpeed,
   ],
   () => {
-    if (!isVisible.value) return
+    if (!isVisible.value)
+      return
     const currentText = textArray[currentTextIndex.value]
     const processedText = props.reverseMode
       ? currentText.split('').reverse().join('')
@@ -125,22 +110,26 @@ watch(
       if (isDeleting.value) {
         if (displayedText.value === '') {
           isDeleting.value = false
-          if (currentTextIndex.value === textArray.length - 1 && !props.loop) return
+          if (currentTextIndex.value === textArray.length - 1 && !props.loop)
+            return
           currentTextIndex.value = (currentTextIndex.value + 1) % textArray.length
           currentCharIndex.value = 0
           timeout = setTimeout(() => {}, props.pauseDuration)
-        } else {
+        }
+        else {
           timeout = setTimeout(() => {
             displayedText.value = displayedText.value.slice(0, -1)
           }, props.deletingSpeed)
         }
-      } else {
+      }
+      else {
         if (currentCharIndex.value < processedText.length) {
           timeout = setTimeout(() => {
             displayedText.value += processedText[currentCharIndex.value]
             currentCharIndex.value += 1
           }, props.variableSpeed ? getRandomSpeed() : props.typingSpeed)
-        } else if (textArray.length > 1) {
+        }
+        else if (textArray.length > 1) {
           timeout = setTimeout(() => {
             isDeleting.value = true
           }, props.pauseDuration)
@@ -149,16 +138,36 @@ watch(
     }
 
     if (
-      currentCharIndex.value === 0 &&
-      !isDeleting.value &&
-      displayedText.value === ''
+      currentCharIndex.value === 0
+      && !isDeleting.value
+      && displayedText.value === ''
     ) {
       timeout = setTimeout(executeTypingAnimation, props.initialDelay)
-    } else {
+    }
+    else {
       executeTypingAnimation()
     }
     // 移除 watch 內的 onUnmounted
   },
-  { immediate: true }
+  { immediate: true },
 )
-</script> 
+</script>
+
+<template>
+  <component
+    :is="as"
+    ref="containerRef"
+    class="block whitespace-pre-wrap tracking-tight break-words leading-relaxed text-type-container" :class="[className]"
+  >
+    <span class="inline whitespace-pre-line" :style="{ color: getCurrentTextColor() }">
+      {{ displayedText }}
+    </span>
+    <span
+      v-if="showCursor"
+      ref="cursorRef"
+      class="ml-1 inline-block" :class="[shouldHideCursor ? 'hidden' : '', cursorClassName]"
+    >
+      {{ cursorCharacter }}
+    </span>
+  </component>
+</template>

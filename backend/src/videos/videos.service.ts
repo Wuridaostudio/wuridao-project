@@ -20,9 +20,7 @@ export class VideosService {
     private readonly logger: Logger,
   ) {}
 
-  async create(
-    createVideoDto: CreateVideoDto,
-  ) {
+  async create(createVideoDto: CreateVideoDto) {
     let tags: Tag[] = [];
     if (createVideoDto.tagIds && createVideoDto.tagIds.length > 0) {
       tags = await this.tagRepository.findByIds(createVideoDto.tagIds);
@@ -56,6 +54,25 @@ export class VideosService {
     return video;
   }
 
+  // 依 publicId 精確查找（含關聯）
+  async findByPublicIdExact(publicId: string) {
+    return this.videoRepository.findOne({
+      where: { publicId },
+      relations: ['category', 'tags'],
+    });
+  }
+
+  // 依 publicId 尾段查找（例如路由只帶尾段 id 時）
+  async findByPublicIdSuffix(suffix: string) {
+    const like = `%/${suffix}`;
+    return this.videoRepository
+      .createQueryBuilder('video')
+      .leftJoinAndSelect('video.category', 'category')
+      .leftJoinAndSelect('video.tags', 'tags')
+      .where('video.publicId LIKE :like', { like })
+      .getOne();
+  }
+
   async update(
     id: number,
     updateVideoDto: UpdateVideoDto,
@@ -69,15 +86,25 @@ export class VideosService {
     // 如果有新檔案，刪除舊的 Cloudinary 資源
     if (videoFile && video.publicId) {
       try {
-        const exists = await this.cloudinaryService.checkResourceExists(video.publicId, 'video');
+        const exists = await this.cloudinaryService.checkResourceExists(
+          video.publicId,
+          'video',
+        );
         if (exists) {
           await this.cloudinaryService.deleteResource(video.publicId, 'video');
-          this.logger.debug(`[VideosService] Old Cloudinary resource deleted: ${video.publicId ? 'yes' : 'no'}`);
+          this.logger.debug(
+            `[VideosService] Old Cloudinary resource deleted: ${video.publicId ? 'yes' : 'no'}`,
+          );
         } else {
-          this.logger.debug(`[VideosService] Old Cloudinary resource not found: ${video.publicId ? 'yes' : 'no'}`);
+          this.logger.debug(
+            `[VideosService] Old Cloudinary resource not found: ${video.publicId ? 'yes' : 'no'}`,
+          );
         }
       } catch (error) {
-        this.logger.error(`[VideosService] Error deleting old Cloudinary resource: ${video.publicId}`, error);
+        this.logger.error(
+          `[VideosService] Error deleting old Cloudinary resource: ${video.publicId}`,
+          error,
+        );
       }
     }
 
@@ -116,15 +143,25 @@ export class VideosService {
     if (video.publicId) {
       try {
         // 檢查資源是否存在
-        const exists = await this.cloudinaryService.checkResourceExists(video.publicId, 'video');
+        const exists = await this.cloudinaryService.checkResourceExists(
+          video.publicId,
+          'video',
+        );
         if (exists) {
           await this.cloudinaryService.deleteResource(video.publicId, 'video');
-          this.logger.debug(`[VideosService] Cloudinary resource deleted: ${video.publicId ? 'yes' : 'no'}`);
+          this.logger.debug(
+            `[VideosService] Cloudinary resource deleted: ${video.publicId ? 'yes' : 'no'}`,
+          );
         } else {
-          this.logger.debug(`[VideosService] Cloudinary resource not found: ${video.publicId ? 'yes' : 'no'}`);
+          this.logger.debug(
+            `[VideosService] Cloudinary resource not found: ${video.publicId ? 'yes' : 'no'}`,
+          );
         }
       } catch (error) {
-        this.logger.error(`[VideosService] Error deleting Cloudinary resource: ${video.publicId}`, error);
+        this.logger.error(
+          `[VideosService] Error deleting Cloudinary resource: ${video.publicId}`,
+          error,
+        );
         // 即使 Cloudinary 刪除失敗，也要刪除資料庫記錄
       }
     }

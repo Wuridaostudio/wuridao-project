@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router'
 import LoadingSpinner from '~/components/common/LoadingSpinner.vue'
 
 import { useMediaStore } from '~/stores/media'
+import { useApi } from '~/composables/useApi'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,6 +14,7 @@ const media = ref<any>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const mediaStore = useMediaStore()
+const api = useApi()
 const allPhotos = computed(() => mediaStore.photos)
 const allVideos = computed(() => mediaStore.videos)
 const currentIndex = computed(() => {
@@ -61,6 +63,38 @@ async function fetchMedia() {
   error.value = null
 
   try {
+    // 優先：從後端單筆查詢，取得含分類與標籤的完整資料
+    try {
+      // 先嘗試從照片 API 查詢
+      try {
+        const photoData = await api.getPhoto(String(id))
+        if (photoData) {
+          media.value = { ...photoData, type: 'photo' }
+          console.log('[fetchMedia] 從後端獲取到完整照片資料:', photoData)
+          return
+        }
+      }
+      catch (photoError) {
+        console.log('[fetchMedia] 照片 API 查詢失敗，嘗試影片 API:', photoError)
+      }
+      
+      // 再嘗試從影片 API 查詢
+      try {
+        const videoData = await api.getVideo(String(id))
+        if (videoData) {
+          media.value = { ...videoData, type: 'video' }
+          console.log('[fetchMedia] 從後端獲取到完整影片資料:', videoData)
+          return
+        }
+      }
+      catch (videoError) {
+        console.log('[fetchMedia] 影片 API 查詢失敗，改用 Cloudinary 列表回退:', videoError)
+      }
+    }
+    catch (e) {
+      console.log('[fetchMedia] 後端查詢失敗，改用 Cloudinary 列表回退:', e)
+    }
+
     // 強制清除所有快取並重新載入數據
     console.log('[fetchMedia] 強制清除快取並重新載入媒體數據...')
     mediaStore.clearAllCache()
@@ -161,6 +195,17 @@ function handleKeydown(e) {
   }
 }
 
+// 計算屬性
+const displayTitle = computed(() => {
+  if (!media.value) return ''
+  return media.value.title || media.value.description || media.value.filename || '（無標題）'
+})
+
+const showDescription = computed(() => {
+  if (!media.value) return false
+  return media.value.description && media.value.description !== displayTitle.value
+})
+
 watch(() => route.params.id, fetchMedia)
 </script>
 
@@ -235,12 +280,20 @@ watch(() => route.params.id, fetchMedia)
           @error="error = '影片載入失敗'"
         />
 
-        <div class="mt-6 text-white text-lg font-bold text-center">
-          {{ media?.description || "（無描述）" }}
+        <!-- 標題 -->
+        <div class="mt-6 text-white text-xl font-bold text-center">
+          {{ displayTitle }}
         </div>
+        
+        <!-- 描述 -->
+        <div v-if="showDescription" class="mt-2 text-gray-300 text-sm text-center max-w-2xl">
+          {{ media.description }}
+        </div>
+        
+        <!-- 標籤 -->
         <div
           v-if="media?.tags?.length"
-          class="flex gap-2 flex-wrap justify-center mt-2"
+          class="flex gap-2 flex-wrap justify-center mt-4"
         >
           <span
             v-for="tag in media.tags"
@@ -248,7 +301,9 @@ watch(() => route.params.id, fetchMedia)
             class="bg-white/20 text-white border border-white/30 text-xs px-3 py-1 rounded-full hover:bg-white/40 transition"
           >{{ tag.name }}</span>
         </div>
-        <div v-if="media?.category" class="text-sm text-gray-300 mt-2">
+        
+        <!-- 分類 -->
+        <div v-if="media?.category" class="text-sm text-gray-300 mt-3">
           分類：{{ media.category?.name }}
         </div>
         <div class="text-xs text-gray-400 mt-1">

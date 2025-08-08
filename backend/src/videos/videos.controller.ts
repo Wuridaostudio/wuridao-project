@@ -10,6 +10,8 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -39,8 +41,23 @@ export class VideosController {
 
   @ApiOperation({ summary: '獲取單個影片' })
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.videosService.findOne(+id);
+  async findOne(@Param('id') id: string) {
+    // 輸入驗證：確保 id 是有效的字符串
+    if (!id || typeof id !== 'string' || id.length > 100) {
+      throw new BadRequestException('無效的媒體 ID');
+    }
+
+    // 先嘗試按數字 ID 查找
+    try {
+      return await this.videosService.findOne(+id);
+    } catch (error) {
+      // 如果不是數字 ID 或找不到，嘗試按 publicId 尾段查找
+      const video = await this.videosService.findByPublicIdSuffix(id);
+      if (!video) {
+        throw new NotFoundException('找不到指定的媒體');
+      }
+      return video;
+    }
   }
 
   @ApiOperation({ summary: '更新影片' })

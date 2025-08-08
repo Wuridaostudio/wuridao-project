@@ -76,6 +76,10 @@ export function useApi() {
     },
 
     getArticle: (id: number) => publicApi(`/articles/${id}`),
+    
+    // 媒體相關 API
+    getPhoto: (id: string) => publicApi(`/photos/${id}`),
+    getVideo: (id: string) => publicApi(`/videos/${id}`),
 
     createArticle: (article: Partial<Article>, coverImageFile?: File) => {
       console.log('🚀 [useApi] ===== 創建文章 API 調用開始 =====')
@@ -234,7 +238,6 @@ export function useApi() {
 
     // Videos
     getVideos: () => api('/videos'),
-    getVideo: (id: number) => api(`/videos/${id}`),
 
     createVideo: (video: Partial<Video>) =>
       api('/videos', { method: 'POST', body: video }),

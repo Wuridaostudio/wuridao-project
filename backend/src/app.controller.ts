@@ -4,9 +4,13 @@ import { DataSource } from 'typeorm';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { CloudinaryService } from './cloudinary/cloudinary.service';
 import { UnsplashService } from './unsplash/unsplash.service';
+import { ApiOperation } from '@nestjs/swagger';
+import { Logger } from '@nestjs/common';
 
 @Controller()
 export class AppController {
+  private readonly logger = new Logger(AppController.name);
+
   constructor(
     private readonly appService: AppService,
     @InjectDataSource() private dataSource: DataSource,
@@ -109,15 +113,9 @@ export class AppController {
       health.services.cors = 'error';
     }
 
-    // 檢查 Cloudinary 服務
+    // 檢查 Cloudinary 配置
     try {
-      if (
-        process.env.CLOUDINARY_CLOUD_NAME &&
-        process.env.CLOUDINARY_API_KEY &&
-        process.env.CLOUDINARY_API_SECRET
-      ) {
-        // 嘗試簡單的 Cloudinary 操作
-        await this.cloudinaryService.getCloudinaryConfig();
+      if (process.env.CLOUDINARY_CLOUD_NAME) {
         health.services.cloudinary = 'ok';
       } else {
         health.services.cloudinary = 'error';
@@ -128,7 +126,7 @@ export class AppController {
       health.status = 'degraded';
     }
 
-    // 檢查 Unsplash 服務
+    // 檢查 Unsplash 配置
     try {
       if (process.env.UNSPLASH_ACCESS_KEY) {
         health.services.unsplash = 'ok';
@@ -139,7 +137,7 @@ export class AppController {
       health.services.unsplash = 'error';
     }
 
-    // 檢查壓縮中間件
+    // 檢查壓縮配置
     try {
       health.services.compression = 'ok';
     } catch (error) {
@@ -156,23 +154,21 @@ export class AppController {
     ];
 
     const optionalEnvVars = [
-      'UNSPLASH_ACCESS_KEY',
       'FRONTEND_URL',
-      'ADMIN_USERNAME',
-      'ADMIN_PASSWORD',
+      'UNSPLASH_ACCESS_KEY',
+      'SENTRY_DSN',
     ];
 
     const missingRequiredEnvVars = requiredEnvVars.filter(
       (envVar) => !process.env[envVar],
     );
-
     const missingOptionalEnvVars = optionalEnvVars.filter(
       (envVar) => !process.env[envVar],
     );
 
     if (missingRequiredEnvVars.length > 0) {
-      health.status = 'degraded';
       health['missingRequiredEnvVars'] = missingRequiredEnvVars;
+      health.status = 'error';
     }
 
     if (missingOptionalEnvVars.length > 0) {
@@ -211,7 +207,12 @@ export class AppController {
         method: 'GET',
         requiresAuth: false,
       },
-      { name: 'tags', path: '/api/tags', method: 'GET', requiresAuth: false },
+      {
+        name: 'tags',
+        path: '/api/tags',
+        method: 'GET',
+        requiresAuth: false,
+      },
       {
         name: 'photos',
         path: '/api/photos',
@@ -234,6 +235,64 @@ export class AppController {
     }));
 
     return health;
+  }
+
+  @Get('api/statistics')
+  @ApiOperation({ summary: '獲取系統統計數據' })
+  async getStatistics() {
+    try {
+      // 獲取文章數量
+      const articlesCount = await this.dataSource.query(
+        'SELECT COUNT(*) as count FROM articles',
+      );
+
+      // 獲取照片數量
+      const photosCount = await this.dataSource.query(
+        'SELECT COUNT(*) as count FROM photos',
+      );
+
+      // 獲取影片數量
+      const videosCount = await this.dataSource.query(
+        'SELECT COUNT(*) as count FROM videos',
+      );
+
+      // 獲取用戶數量
+      const usersCount = await this.dataSource.query(
+        'SELECT COUNT(*) as count FROM users',
+      );
+
+      // 獲取分類數量
+      const categoriesCount = await this.dataSource.query(
+        'SELECT COUNT(*) as count FROM categories',
+      );
+
+      // 獲取標籤數量
+      const tagsCount = await this.dataSource.query(
+        'SELECT COUNT(*) as count FROM tags',
+      );
+
+      return {
+        articles: parseInt(articlesCount[0].count),
+        photos: parseInt(photosCount[0].count),
+        videos: parseInt(videosCount[0].count),
+        users: parseInt(usersCount[0].count),
+        categories: parseInt(categoriesCount[0].count),
+        tags: parseInt(tagsCount[0].count),
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error) {
+      this.logger.error('Failed to get statistics:', error);
+      return {
+        articles: 0,
+        photos: 0,
+        videos: 0,
+        users: 0,
+        categories: 0,
+        tags: 0,
+        error: 'Failed to get statistics',
+        timestamp: new Date().toISOString(),
+      };
+    }
   }
 
   @Get('api/health/endpoints')

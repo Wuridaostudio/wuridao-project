@@ -15,6 +15,8 @@ import {
   Query,
   DefaultValuePipe,
   ParseIntPipe,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -59,8 +61,23 @@ export class PhotosController {
 
   @ApiOperation({ summary: '獲取單張照片' })
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.photosService.findOne(+id);
+  async findOne(@Param('id') id: string) {
+    // 輸入驗證：確保 id 是有效的字符串
+    if (!id || typeof id !== 'string' || id.length > 100) {
+      throw new BadRequestException('無效的媒體 ID');
+    }
+
+    // 先嘗試按數字 ID 查找
+    try {
+      return await this.photosService.findOne(+id);
+    } catch (error) {
+      // 如果不是數字 ID 或找不到，嘗試按 publicId 尾段查找
+      const photo = await this.photosService.findByPublicIdSuffix(id);
+      if (!photo) {
+        throw new NotFoundException('找不到指定的媒體');
+      }
+      return photo;
+    }
   }
 
   @ApiOperation({ summary: '更新照片' })

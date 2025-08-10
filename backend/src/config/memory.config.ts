@@ -12,7 +12,26 @@ export const memoryConfig = {
     // 啟用強制垃圾回收的記憶體閾值
     forceGCThreshold: 400 * 1024 * 1024, // 400MB
     // 垃圾回收間隔（毫秒）
-    interval: 5 * 60 * 1000, // 5分鐘
+    interval: 15 * 60 * 1000, // 15分鐘（從5分鐘調整）
+  },
+
+  // 監控配置
+  monitoring: {
+    // 開發環境：每5分鐘檢查
+    development: {
+      interval: 5 * 60 * 1000, // 5分鐘
+      enabled: true,
+    },
+    // 生產環境：每15分鐘檢查
+    production: {
+      interval: 15 * 60 * 1000, // 15分鐘
+      enabled: true,
+    },
+    // 免費服務環境：每30分鐘檢查
+    freeTier: {
+      interval: 30 * 60 * 1000, // 30分鐘
+      enabled: true,
+    },
   },
 
   // 資料庫連接池配置

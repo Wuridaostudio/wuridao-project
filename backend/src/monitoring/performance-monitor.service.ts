@@ -6,8 +6,35 @@ import { memoryConfig } from '../config/memory.config';
 export class PerformanceMonitorService {
   private readonly logger = new Logger(PerformanceMonitorService.name);
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  // 根據環境決定監控頻率
+  private getMonitoringInterval(): string {
+    const env = process.env.NODE_ENV || 'development';
+    const isFreeTier = process.env.FREE_TIER === 'true';
+    
+    if (isFreeTier) {
+      return '0 */30 * * * *'; // 每30分鐘
+    } else if (env === 'production') {
+      return '0 */15 * * * *'; // 每15分鐘
+    } else {
+      return '0 */5 * * * *'; // 每5分鐘
+    }
+  }
+
+  @Cron('0 */5 * * * *') // 保持每5分鐘，但內部會根據環境調整
   async monitorSystemHealth() {
+    const env = process.env.NODE_ENV || 'development';
+    const isFreeTier = process.env.FREE_TIER === 'true';
+    
+    // 免費服務環境減少監控頻率
+    if (isFreeTier && Math.random() > 0.17) { // 約每30分鐘執行一次
+      return;
+    }
+    
+    // 生產環境減少監控頻率
+    if (env === 'production' && Math.random() > 0.33) { // 約每15分鐘執行一次
+      return;
+    }
+
     const memoryUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
     
@@ -31,6 +58,8 @@ export class PerformanceMonitorService {
       uptime: Math.round(process.uptime()) + ' seconds',
       nodeVersion: process.version,
       platform: process.platform,
+      environment: env,
+      freeTier: isFreeTier,
     });
 
     // 檢查記憶體使用量

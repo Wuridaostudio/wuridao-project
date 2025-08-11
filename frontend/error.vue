@@ -1,5 +1,6 @@
 <!-- error.vue - Nuxt 全域錯誤頁面 -->
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 const props = defineProps<{
   error: {
     url?: string
@@ -72,7 +73,7 @@ async function reportError() {
       })
     }
     catch (e) {
-      console.error('Failed to report error:', e)
+      logger.error('Failed to report error:', e)
     }
   }
 }

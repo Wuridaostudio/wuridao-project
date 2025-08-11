@@ -1,4 +1,4 @@
-<!-- pages/admin/editarticles.vue -->
+﻿<!-- pages/admin/editarticles.vue -->
 <script setup lang="ts">
 import { logger } from '~/utils/logger'
 import { computed, defineAsyncComponent, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
@@ -362,12 +362,12 @@ function insertMarkdown(before: string, after: string) {
 }
 
 async function handleCoverImageUpload(file: File) {
-  console.log('[LOG] handleCoverImageUpload', file)
+      logger.log('[LOG] handleCoverImageUpload', file)
   isUploadingCover.value = true
   try {
     // 將檔案存到表單中，不立即上傳
     articleForm.coverImageFile = file
-    console.log(
+    logger.log(
       '[LOG] Cover image file stored in form, will upload with article:',
       file.name,
     )
@@ -375,7 +375,7 @@ async function handleCoverImageUpload(file: File) {
   }
   catch (err) {
     error('圖片處理失敗')
-    console.error('[ERROR] Cover image processing failed:', err)
+    logger.error('[ERROR] Cover image processing failed:', err)
   }
   finally {
     isUploadingCover.value = false
@@ -415,13 +415,13 @@ async function resolveArticleContent(article: any) {
       }
     }
     catch (e) {
-      console.error('[EditArticles] 取得 Cloudinary 內容失敗:', e)
+      logger.error('[EditArticles] 取得 Cloudinary 內容失敗:', e)
     }
   }
 }
 
 async function editArticle(article: Article) {
-  console.log('[EditArticles] 編輯文章', article)
+  logger.log('[EditArticles] 編輯文章', article)
   // 先以後端單篇查詢拿到已轉成純文字的內容（後端會處理 Cloudinary RAW）
   try {
     const serverArticle = await articlesStore.fetchArticle(article.id)
@@ -429,7 +429,7 @@ async function editArticle(article: Article) {
       article = serverArticle as any
     }
   } catch (err) {
-    console.warn('[EditArticles] 後端單篇查詢失敗，改用前端解析', err)
+    logger.warn('[EditArticles] 後端單篇查詢失敗，改用前端解析', err)
     await resolveArticleContent(article)
   }
   editingArticle.value = article
@@ -441,25 +441,25 @@ async function editArticle(article: Article) {
   articleForm.categoryId = article?.category?.id || null
   articleForm.tagIds = article?.tags?.map(t => t.id) || []
   articleForm.isDraft = article?.isDraft || false
-  console.log(
+  logger.log(
     '[EditArticles] 載入到表單的 coverImageUrl:',
     articleForm.coverImageUrl,
   )
 }
 
 async function togglePublishStatus(article: Article) {
-  console.log('[EditArticles] 切換發佈狀態', article)
+  logger.log('[EditArticles] 切換發佈狀態', article)
   try {
     await articlesStore.togglePublishStatus(article.id)
-    console.log('[EditArticles] 切換發佈狀態成功', article.id)
+    logger.log('[EditArticles] 切換發佈狀態成功', article.id)
   }
   catch (error) {
-    console.error('[EditArticles] 切換發佈狀態失敗', error)
+    logger.error('[EditArticles] 切換發佈狀態失敗', error)
   }
 }
 
 async function saveArticle() {
-  console.log('🚀 [EditArticles] ===== 文章儲存流程開始 =====')
+  logger.log('🚀 [EditArticles] ===== 文章儲存流程開始 =====')
 
   // 表單驗證
   if (!articleForm.title?.trim()) {
@@ -479,7 +479,7 @@ async function saveArticle() {
     return
   }
 
-  console.log('📋 [EditArticles] 原始表單數據:', {
+  logger.log('📋 [EditArticles] 原始表單數據:', {
     id: articleForm.id,
     title: articleForm.title,
     content: `${articleForm.content?.substring(0, 100)}...`,
@@ -499,14 +499,14 @@ async function saveArticle() {
   })
 
   if (isUploadingCover.value) {
-    console.error('❌ [EditArticles] 封面圖片正在上傳中，無法儲存文章')
+    logger.error('❌ [EditArticles] 封面圖片正在上傳中，無法儲存文章')
     error('請等待封面圖片上傳完成後再送出文章')
     return
   }
 
   // 清除自動儲存計時器，避免衝突
   if (autoSaveTimer.value) {
-    console.log('⏰ [EditArticles] 清除自動儲存計時器')
+    logger.log('⏰ [EditArticles] 清除自動儲存計時器')
     clearTimeout(autoSaveTimer.value)
     autoSaveTimer.value = null
   }
@@ -515,11 +515,11 @@ async function saveArticle() {
   autoSaveStatus.value = ''
 
   // --- 統一清理 ---
-  console.log('🧹 [EditArticles] 開始清理 payload...')
+  logger.log('🧹 [EditArticles] 開始清理 payload...')
   const payload = cleanArticlePayload(articleForm, editingArticle.value?.id)
 
-  console.log('✅ [EditArticles] 清理後的 payload:', payload)
-  console.log('📊 [EditArticles] Payload 統計:', {
+  logger.log('✅ [EditArticles] 清理後的 payload:', payload)
+  logger.log('📊 [EditArticles] Payload 統計:', {
     hasTitle: !!payload.title,
     hasContent: !!payload.content,
     hasCoverImageUrl: !!payload.coverImageUrl,
@@ -529,8 +529,8 @@ async function saveArticle() {
   })
 
   try {
-    console.log('🔄 [EditArticles] 調用 articlesStore.saveArticle...')
-    console.log('📤 [EditArticles] 發送到 store 的數據:', {
+    logger.log('🔄 [EditArticles] 調用 articlesStore.saveArticle...')
+    logger.log('📤 [EditArticles] 發送到 store 的數據:', {
       payload,
       coverImageFile: articleForm.coverImageFile
         ? {
@@ -542,24 +542,24 @@ async function saveArticle() {
     })
 
     await articlesStore.saveArticle(payload, articleForm.coverImageFile)
-    console.log('✅ [EditArticles] 儲存文章成功！')
+    logger.log('✅ [EditArticles] 儲存文章成功！')
 
     // 強制重新載入文章列表，確保新文章立即出現
-    console.log('🔄 [EditArticles] 重新載入文章列表...')
+    logger.log('🔄 [EditArticles] 重新載入文章列表...')
     try {
       await articlesStore.fetchArticles({ isDraft: undefined, page: 1, limit: 50 }) // 顯示所有文章（包括草稿）
-      console.log('✅ [EditArticles] 文章列表重新載入成功')
+      logger.log('✅ [EditArticles] 文章列表重新載入成功')
     }
     catch (error) {
-      console.error('❌ [EditArticles] 重新載入文章列表失敗:', error)
+      logger.error('❌ [EditArticles] 重新載入文章列表失敗:', error)
     }
 
     cancelEdit()
-    console.log('🔄 [EditArticles] 編輯狀態已重置')
+    logger.log('🔄 [EditArticles] 編輯狀態已重置')
   }
   catch (err) {
-    console.error('❌ [EditArticles] 儲存文章失敗:', err)
-    console.error('❌ [EditArticles] 錯誤詳情:', {
+    logger.error('❌ [EditArticles] 儲存文章失敗:', err)
+    logger.error('❌ [EditArticles] 錯誤詳情:', {
       message: err.message,
       status: err.status,
       data: err.data,
@@ -568,11 +568,11 @@ async function saveArticle() {
     error('儲存文章失敗')
   }
 
-  console.log('🏁 [EditArticles] ===== 文章儲存流程結束 =====')
+  logger.log('🏁 [EditArticles] ===== 文章儲存流程結束 =====')
 }
 
 function cancelEdit() {
-  console.log('[LOG] cancelEdit')
+  logger.log('[LOG] cancelEdit')
 
   // 清除自動儲存計時器和狀態
   if (autoSaveTimer.value) {
@@ -583,7 +583,7 @@ function cancelEdit() {
 
   showCreateModal.value = false
   editingArticle.value = null
-  console.log('[Debug] editingArticle after cancelEdit:', editingArticle.value)
+  logger.log('[Debug] editingArticle after cancelEdit:', editingArticle.value)
   Object.assign(articleForm, {
     id: undefined,
     title: '',
@@ -682,16 +682,16 @@ function handleSeoOptimize(suggestions: any) {
 }
 
 async function confirmDelete(article: Article) {
-  console.log('[EditArticles] 刪除文章', article)
+  logger.log('[EditArticles] 刪除文章', article)
 
   if (!article.coverImagePublicId && !article.contentPublicId) {
     if (process.client && confirm('文章缺少 Cloudinary 資源 ID，無法刪除 Cloudinary 檔案。確定要刪除資料庫紀錄嗎？')) {
       try {
         await articlesStore.deleteArticle(article.id)
-        console.log('[EditArticles] 刪除文章成功', article.id)
+        logger.log('[EditArticles] 刪除文章成功', article.id)
       }
       catch (error) {
-        console.error('[EditArticles] 刪除文章失敗', error)
+        logger.error('[EditArticles] 刪除文章失敗', error)
       }
     }
     return
@@ -704,10 +704,10 @@ async function confirmDelete(article: Article) {
         article.coverImagePublicId,
         article.contentPublicId,
       )
-      console.log('[EditArticles] 刪除文章成功', article.id)
+      logger.log('[EditArticles] 刪除文章成功', article.id)
     }
     catch (error) {
-      console.error('[EditArticles] 刪除文章失敗', error)
+      logger.error('[EditArticles] 刪除文章失敗', error)
     }
   }
 }
@@ -815,41 +815,41 @@ const SeoAnalyzer = defineAsyncComponent({
 
 onMounted(async () => {
   loading.value = true
-  console.log('[LOG] onMounted: fetch articles/categories/tags')
+  logger.log('[LOG] onMounted: fetch articles/categories/tags')
   try {
     // 強制清除快取並重新載入所有數據
-    console.log('[editarticles.vue] 開始載入數據，強制清除快取...')
+    logger.log('[editarticles.vue] 開始載入數據，強制清除快取...')
 
     await Promise.all([
       articlesStore
         .fetchArticles({ isDraft: undefined, page: 1, limit: 50 }) // 顯示所有文章（包括草稿）
         .then(() => {
-          console.log('[LOG] articles fetched')
-          console.log(
+          logger.log('[LOG] articles fetched')
+          logger.log(
             '[Debug] editingArticle after fetchArticles:',
             editingArticle.value,
           )
         })
-        .catch(e => console.error('[ERROR] fetchArticles', e)),
+        .catch(e => logger.error('[ERROR] fetchArticles', e)),
       categoriesStore
         .fetchCategories('article')
-        .then(() => console.log('[LOG] categories fetched'))
-        .catch(e => console.error('[ERROR] fetchCategories', e)),
+        .then(() => logger.log('[LOG] categories fetched'))
+        .catch(e => logger.error('[ERROR] fetchCategories', e)),
       tagsStore
         .fetchTags()
-        .then(() => console.log('[LOG] tags fetched'))
-        .catch(e => console.error('[ERROR] fetchTags', e)),
+        .then(() => logger.log('[LOG] tags fetched'))
+        .catch(e => logger.error('[ERROR] fetchTags', e)),
     ])
     // 前端保險：對列表中的文章內容做一次解析
     try {
       await Promise.all((articlesStore.articles || []).map(a => resolveArticleContent(a)))
     } catch (e) {
-      console.error('[EditArticles] 批次解析文章內容失敗:', e)
+      logger.error('[EditArticles] 批次解析文章內容失敗:', e)
     }
   }
   finally {
     loading.value = false
-    console.log('[LOG] onMounted: loading end')
+    logger.log('[LOG] onMounted: loading end')
   }
 })
 

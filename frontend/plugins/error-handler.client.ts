@@ -1,10 +1,12 @@
 // plugins/error-handler.client.ts
 // 全域錯誤處理插件
+import { logger } from '~/utils/logger'
+
 export default defineNuxtPlugin((nuxtApp) => {
   // 全域錯誤處理
   nuxtApp.vueApp.config.errorHandler = (error, instance, info) => {
-    console.error('Global error:', error)
-    console.error('Error info:', info)
+    logger.error('Global error:', error)
+    logger.error('Error info:', info)
 
     // 發送錯誤到分析服務
     if (process.env.NODE_ENV === 'production') {
@@ -15,7 +17,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 
   // 處理未捕獲的 Promise 錯誤
   window.addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled promise rejection:', event.reason)
+    logger.error('Unhandled promise rejection:', event.reason)
 
     // 顯示用戶友好的錯誤提示
     const { error: showError } = useToast()

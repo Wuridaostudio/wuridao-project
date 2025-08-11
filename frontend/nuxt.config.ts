@@ -103,11 +103,11 @@ export default defineNuxtConfig({
       isDevelopment: process.env.NODE_ENV === 'development',
       isProduction: process.env.NODE_ENV === 'production',
 
-      // 動態 API 配置
+      // API 配置
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL
         || (process.env.NODE_ENV === 'production'
-          ? 'https://wuridaostudio.com/api'
-          : 'http://localhost:3000/api'),
+          ? 'https://wuridaostudio.com'
+          : 'http://localhost:3000'),
 
       // 動態網站 URL 配置
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL
@@ -168,13 +168,6 @@ export default defineNuxtConfig({
     // 改善伺服器端效能
     compressPublicAssets: true,
     minify: true,
-    // 快取配置
-    storage: {
-      redis: {
-        driver: 'redis',
-        /* redis driver options */
-      },
-    },
   },
 
   // TypeScript
@@ -207,4 +200,7 @@ export default defineNuxtConfig({
     // 禁用嚴格模式以避免水合錯誤
     strict: false,
   },
+
+  // 日誌配置
+  logLevel: process.env.NODE_ENV === 'development' ? 'info' : 'error',
 })

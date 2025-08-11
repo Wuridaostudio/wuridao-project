@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { logger } from '~/utils/logger'
 import ErrorBoundary from '~/components/common/ErrorBoundary.vue'
 import LoadingSpinner from '~/components/common/LoadingSpinner.vue'
 
@@ -291,9 +292,9 @@ async function autoOptimize() {
     await new Promise(resolve => setTimeout(resolve, 1000)) // 模擬處理時間
 
     emit('optimize', suggestions.value)
-  }
-  catch (error) {
-    console.error('自動優化失敗:', error)
+      }
+    catch (error) {
+      logger.error('自動優化失敗:', error)
   }
   finally {
     autoOptimizing.value = false

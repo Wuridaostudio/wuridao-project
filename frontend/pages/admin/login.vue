@@ -1,5 +1,6 @@
 <!-- pages/admin/login.vue -->
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 import ErrorMessage from '~/components/common/ErrorMessage.vue'
 import LoadingSpinner from '~/components/common/LoadingSpinner.vue'
 
@@ -25,7 +26,7 @@ async function handleLogin() {
     }
   }
   catch (error) {
-    console.error('[LOGIN PAGE] ❌ Login failed:', error)
+    logger.error('[LOGIN PAGE] ❌ Login failed:', error)
     // 錯誤已由 store 處理
   }
 }

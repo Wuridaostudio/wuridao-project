@@ -1,5 +1,6 @@
 <!-- pages/admin/editvideos.vue -->
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 import type { Video } from '~/types'
 import { storeToRefs } from 'pinia'
 import MediaUploader from '~/components/admin/MediaUploader.vue'
@@ -57,7 +58,7 @@ async function handleUpload() {
     cancelUpload()
   }
   catch (error) {
-    console.error('Upload failed:', error)
+    logger.error('Upload failed:', error)
     uploadError.value
       = error instanceof Error ? error.message : '上傳失敗，請稍後再試'
 

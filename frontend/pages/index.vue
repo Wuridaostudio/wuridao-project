@@ -1,5 +1,6 @@
 <!-- pages/index.vue -->
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 import { onMounted, ref } from 'vue'
 
 import ThreeDCard from '@/components/common/ThreeDCard.vue'
@@ -46,12 +47,12 @@ try {
     }
 
     if (!$gsap) {
-      console.error('❌ [index.vue] $gsap 不可用')
+      logger.error('❌ [index.vue] $gsap 不可用')
       return
     }
 
     if (!$ScrollTrigger) {
-      console.error('❌ [index.vue] $ScrollTrigger 不可用')
+      logger.error('❌ [index.vue] $ScrollTrigger 不可用')
       return
     }
 
@@ -66,7 +67,7 @@ try {
         || !featureCard3.value
       ) {
         if (process.dev) {
-          console.warn('⚠️ [index.vue] Features section 元素不存在，跳過動畫初始化')
+          logger.warn('⚠️ [index.vue] Features section 元素不存在，跳過動畫初始化')
         }
         return
       }
@@ -75,7 +76,7 @@ try {
       const animateElement = (element, delay = 0) => {
         if (!element || !element.value) {
           if (process.dev) {
-            console.warn('⚠️ [index.vue] animateElement: element is undefined or null')
+            logger.warn('⚠️ [index.vue] animateElement: element is undefined or null')
           }
           return
         }
@@ -89,13 +90,13 @@ try {
             }
             catch (error) {
               if (process.dev) {
-                console.warn('⚠️ [index.vue] animateElement: Failed to set style properties:', error)
+                logger.warn('⚠️ [index.vue] animateElement: Failed to set style properties:', error)
               }
             }
           }
           else {
             if (process.dev) {
-              console.warn('⚠️ [index.vue] animateElement: element.value is not a valid DOM element', element.value)
+              logger.warn('⚠️ [index.vue] animateElement: element.value is not a valid DOM element', element.value)
             }
           }
         }, delay)
@@ -118,7 +119,7 @@ try {
         || !ctaButton.value
       ) {
         if (process.dev) {
-          console.warn('⚠️ [index.vue] CTA section 元素不存在，跳過動畫初始化')
+          logger.warn('⚠️ [index.vue] CTA section 元素不存在，跳過動畫初始化')
         }
         return
       }
@@ -136,7 +137,7 @@ try {
   })
 }
 catch (e) {
-  console.error('❌ [index.vue] onMounted 執行失敗:', e)
+      logger.error('❌ [index.vue] onMounted 執行失敗:', e)
 }
 </script>
 

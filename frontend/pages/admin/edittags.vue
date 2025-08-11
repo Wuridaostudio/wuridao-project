@@ -1,5 +1,6 @@
 <!-- pages/admin/edittags.vue -->
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 import { storeToRefs } from 'pinia'
 import ErrorMessage from '~/components/common/ErrorMessage.vue'
 import LoadingSpinner from '~/components/common/LoadingSpinner.vue'
@@ -59,7 +60,7 @@ async function deleteTag(tag: Tag) {
       await tagsStore.deleteTag(tag.id)
     }
     catch (err) {
-      console.error('[EditTags] 刪除標籤失敗', err)
+      logger.error('[EditTags] 刪除標籤失敗', err)
     }
   }
 }

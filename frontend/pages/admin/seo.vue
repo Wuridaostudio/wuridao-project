@@ -1,5 +1,6 @@
 <!-- pages/admin/seo.vue -->
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 import { onMounted, ref } from 'vue'
 import SeoSkeleton from '~/components/common/SeoSkeleton.vue'
 
@@ -204,7 +205,7 @@ onMounted(async () => {
     await seoStore.fetchSettings()
   }
   catch (e) {
-    console.error('載入 SEO 設定失敗:', e)
+    logger.error('載入 SEO 設定失敗:', e)
   }
   finally {
     pending.value = false

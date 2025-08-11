@@ -1,5 +1,6 @@
 <!-- pages/admin/editcategories.vue -->
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 import { storeToRefs } from 'pinia'
 import ErrorMessage from '~/components/common/ErrorMessage.vue'
 import LoadingSpinner from '~/components/common/LoadingSpinner.vue'
@@ -55,7 +56,7 @@ async function createCategory() {
     cancelCreate()
   }
   catch (error) {
-    console.error('[EditCategories] 新增分類失敗', error)
+    logger.error('[EditCategories] 新增分類失敗', error)
   }
   finally {
     saving.value = false
@@ -77,7 +78,7 @@ async function deleteCategory(category: Category) {
       success(`分類「${category.name}」已刪除`)
     }
     catch (error) {
-      console.error('[EditCategories] 刪除分類失敗', error)
+      logger.error('[EditCategories] 刪除分類失敗', error)
       // 添加錯誤提示
       const { error: showError } = useToast()
       showError(error instanceof Error ? error.message : '刪除分類失敗')

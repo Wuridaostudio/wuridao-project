@@ -5,7 +5,6 @@ import { useAuthToken } from '~/composables/useAuthToken'
 import { useAuthStore } from '~/stores/auth'
 
 export default defineNuxtPlugin(async () => {
-  const { $gsap } = useNuxtApp()
   const authStore = useAuthStore()
   const { token } = useAuthToken()
 
@@ -17,7 +16,7 @@ export default defineNuxtPlugin(async () => {
 
     try {
       // 驗證 token 並獲取用戶信息
-      await authStore.validateToken()
+      await authStore.fetchUser()
       log.info('Auth Loader - 用戶資訊恢復成功')
     } catch (error) {
       log.error('Auth Loader - 驗證 token 失敗', error)

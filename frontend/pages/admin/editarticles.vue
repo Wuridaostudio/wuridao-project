@@ -1,5 +1,6 @@
 <!-- pages/admin/editarticles.vue -->
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 import { computed, defineAsyncComponent, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import MediaUploader from '~/components/admin/MediaUploader.vue'
 import TiptapEditor from '~/components/admin/TiptapEditor.vue'
@@ -78,8 +79,8 @@ const autoSaveTimer = ref<NodeJS.Timeout | null>(null)
 
 // Helper: 清理 payload，移除不合規欄位
 function cleanArticlePayload(form: typeof articleForm, editingId?: number) {
-  console.log('🧹 [cleanArticlePayload] 開始清理 payload...')
-  console.log('📥 [cleanArticlePayload] 原始表單數據:', {
+  logger.log('🧹 [cleanArticlePayload] 開始清理 payload...')
+  logger.log('📥 [cleanArticlePayload] 原始表單數據:', {
     id: form.id,
     title: form.title,
     coverImageUrl: form.coverImageUrl,
@@ -95,11 +96,11 @@ function cleanArticlePayload(form: typeof articleForm, editingId?: number) {
   const payload = JSON.parse(JSON.stringify(form))
   if (editingId) {
     payload.id = editingId
-    console.log('🆔 [cleanArticlePayload] 設置編輯 ID:', editingId)
+    logger.log('🆔 [cleanArticlePayload] 設置編輯 ID:', editingId)
   }
 
   // 移除前端專用欄位，這些不應該發送到後端
-  console.log('🗑️ [cleanArticlePayload] 移除 coverImageFile 欄位')
+  logger.log('🗑️ [cleanArticlePayload] 移除 coverImageFile 欄位')
   delete payload.coverImageFile
 
   // 欄位 mapping
@@ -166,7 +167,7 @@ function cleanArticlePayload(form: typeof articleForm, editingId?: number) {
     delete payload.categoryId
   }
   // 處理 coverImageUrl：如果為空字串則刪除
-  console.log('🖼️ [cleanArticlePayload] 處理 coverImageUrl:', {
+  logger.log('🖼️ [cleanArticlePayload] 處理 coverImageUrl:', {
     originalValue: payload.coverImageUrl,
     isEmpty: payload.coverImageUrl === '',
     isNull: payload.coverImageUrl === null,
@@ -174,14 +175,14 @@ function cleanArticlePayload(form: typeof articleForm, editingId?: number) {
   })
 
   if (payload.coverImageUrl === '' || payload.coverImageUrl === null || payload.coverImageUrl === undefined) {
-    console.log('🗑️ [cleanArticlePayload] 刪除空的 coverImageUrl')
+    logger.log('🗑️ [cleanArticlePayload] 刪除空的 coverImageUrl')
     delete payload.coverImageUrl
   }
   else {
-    console.log('✅ [cleanArticlePayload] 保留 coverImageUrl:', payload.coverImageUrl)
+    logger.log('✅ [cleanArticlePayload] 保留 coverImageUrl:', payload.coverImageUrl)
   }
 
-  console.log('🧹 [cleanArticlePayload] 開始清理空值欄位...')
+  logger.log('🧹 [cleanArticlePayload] 開始清理空值欄位...')
   Object.keys(payload).forEach((key) => {
     if (
       payload[key] === null
@@ -189,16 +190,16 @@ function cleanArticlePayload(form: typeof articleForm, editingId?: number) {
       || (typeof payload[key] === 'string' && payload[key].trim() === '' && key !== 'coverImageUrl')
       || (Array.isArray(payload[key]) && payload[key].length === 0)
     ) {
-      console.log('🗑️ [cleanArticlePayload] 刪除空值欄位:', key)
+      logger.log('🗑️ [cleanArticlePayload] 刪除空值欄位:', key)
       delete payload[key]
     }
     else {
-      console.log('✅ [cleanArticlePayload] 保留欄位:', key, '值:', payload[key])
+      logger.log('✅ [cleanArticlePayload] 保留欄位:', key, '值:', payload[key])
     }
   })
 
-  console.log('✅ [cleanArticlePayload] 清理完成，最終 payload:', payload)
-  console.log('📊 [cleanArticlePayload] 最終統計:', {
+  logger.log('✅ [cleanArticlePayload] 清理完成，最終 payload:', payload)
+  logger.log('📊 [cleanArticlePayload] 最終統計:', {
     payloadKeys: Object.keys(payload),
     payloadSize: JSON.stringify(payload).length,
     hasTitle: !!payload.title,
@@ -240,7 +241,7 @@ function autoSave() {
       }, 2000)
     }
     catch (error) {
-      console.error('自動儲存失敗:', error)
+      logger.error('自動儲存失敗:', error)
       autoSaveStatus.value = '自動儲存失敗'
 
       // 3秒後清空錯誤狀態

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
@@ -27,7 +28,7 @@ const currentIndex = computed(() => {
         : p.id
       return String(photoId) === String(id)
     })
-    console.log('[currentIndex] 照片索引計算:', { id, index, totalPhotos: allPhotos.value?.length })
+    logger.log('[currentIndex] 照片索引計算:', { id, index, totalPhotos: allPhotos.value?.length })
     return index
   }
   else if (media.value.type === 'video') {
@@ -37,7 +38,7 @@ const currentIndex = computed(() => {
         : v.id
       return String(videoId) === String(id)
     })
-    console.log('[currentIndex] 影片索引計算:', { id, index, totalVideos: allVideos.value?.length })
+    logger.log('[currentIndex] 影片索引計算:', { id, index, totalVideos: allVideos.value?.length })
     return index
   }
   return -1
@@ -80,12 +81,12 @@ async function fetchMedia() {
         const photoData = await api.getPhoto(String(id))
         if (photoData) {
           media.value = { ...photoData, type: 'photo' }
-          console.log('[fetchMedia] 從後端獲取到完整照片資料:', photoData)
+          logger.log('[fetchMedia] 從後端獲取到完整照片資料:', photoData)
           return
         }
       }
       catch (photoError) {
-        console.log('[fetchMedia] 照片 API 查詢失敗，嘗試影片 API:', photoError)
+        logger.log('[fetchMedia] 照片 API 查詢失敗，嘗試影片 API:', photoError)
       }
       
       // 再嘗試從影片 API 查詢
@@ -93,20 +94,20 @@ async function fetchMedia() {
         const videoData = await api.getVideo(String(id))
         if (videoData) {
           media.value = { ...videoData, type: 'video' }
-          console.log('[fetchMedia] 從後端獲取到完整影片資料:', videoData)
+          logger.log('[fetchMedia] 從後端獲取到完整影片資料:', videoData)
           return
         }
       }
       catch (videoError) {
-        console.log('[fetchMedia] 影片 API 查詢失敗，改用 Cloudinary 列表回退:', videoError)
+        logger.log('[fetchMedia] 影片 API 查詢失敗，改用 Cloudinary 列表回退:', videoError)
       }
     }
     catch (e) {
-      console.log('[fetchMedia] 後端查詢失敗，改用 Cloudinary 列表回退:', e)
+      logger.log('[fetchMedia] 後端查詢失敗，改用 Cloudinary 列表回退:', e)
     }
 
     // 強制清除所有快取並重新載入數據
-    console.log('[fetchMedia] 強制清除快取並重新載入媒體數據...')
+    logger.log('[fetchMedia] 強制清除快取並重新載入媒體數據...')
     mediaStore.clearAllCache()
 
     // 等待一下確保快取清除完成
@@ -134,7 +135,7 @@ async function fetchMedia() {
       return String(videoId) === String(id)
     })
 
-    console.log('[fetchMedia] 查找結果:', {
+    logger.log('[fetchMedia] 查找結果:', {
       photoFound: !!photo,
       videoFound: !!video,
       photoId: photo?.id,
@@ -146,7 +147,7 @@ async function fetchMedia() {
 
     if (photo) {
       media.value = { ...photo, type: 'photo' }
-      console.log('[fetchMedia] 找到照片:', photo)
+      logger.log('[fetchMedia] 找到照片:', photo)
       // 重新計算索引
       const photoIndex = allPhotos.value.findIndex((p) => {
         const photoId = typeof p.id === 'string' && p.id.includes('/')
@@ -154,11 +155,11 @@ async function fetchMedia() {
           : p.id
         return String(photoId) === String(id)
       })
-      console.log('[fetchMedia] 照片索引:', photoIndex)
+      logger.log('[fetchMedia] 照片索引:', photoIndex)
     }
     else if (video) {
       media.value = { ...video, type: 'video' }
-      console.log('[fetchMedia] 找到影片:', video)
+      logger.log('[fetchMedia] 找到影片:', video)
       // 重新計算索引
       const videoIndex = allVideos.value.findIndex((v) => {
         const videoId = typeof v.id === 'string' && v.id.includes('/')
@@ -166,26 +167,26 @@ async function fetchMedia() {
           : v.id
         return String(videoId) === String(id)
       })
-      console.log('[fetchMedia] 影片索引:', videoIndex)
+      logger.log('[fetchMedia] 影片索引:', videoIndex)
     }
     else {
       error.value = '找不到媒體 - 該內容可能已被刪除或移動'
-      console.log('[fetchMedia] 找不到媒體，ID:', id)
+      logger.log('[fetchMedia] 找不到媒體，ID:', id)
 
       // 如果找不到媒體，自動返回上一頁
       setTimeout(() => {
-        console.log('[fetchMedia] 3秒後自動返回上一頁')
+        logger.log('[fetchMedia] 3秒後自動返回上一頁')
         closeModal()
       }, 3000)
     }
   }
   catch (err) {
-    console.error('獲取媒體失敗:', err)
+    logger.error('獲取媒體失敗:', err)
     error.value = '載入媒體失敗，請稍後再試'
 
     // 如果載入失敗，自動返回上一頁
     setTimeout(() => {
-      console.log('[fetchMedia] 載入失敗，3秒後自動返回上一頁')
+      logger.log('[fetchMedia] 載入失敗，3秒後自動返回上一頁')
       closeModal()
     }, 3000)
   }
@@ -195,7 +196,7 @@ async function fetchMedia() {
 }
 
 onMounted(async () => {
-  console.log('[media/[id].vue] 頁面載入，ID:', id)
+  logger.log('[media/[id].vue] 頁面載入，ID:', id)
 
   // 先載入媒體列表，再獲取特定媒體
   await Promise.all([

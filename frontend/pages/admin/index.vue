@@ -1,5 +1,6 @@
 <!-- pages/admin/index.vue -->
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
@@ -25,14 +26,14 @@ onMounted(async () => {
       loading.value = true
       error.value = ''
       
-      console.log('📊 [Dashboard] 開始載入統計數據...')
+      logger.log('📊 [Dashboard] 開始載入統計數據...')
       
       // 從後端統計 API 獲取實際的資料庫數量
       const response = await $fetch('/api/health/api/statistics', {
         baseURL: 'http://localhost:3000',
       })
       
-      console.log('✅ [Dashboard] 統計數據載入成功:', response)
+      logger.log('✅ [Dashboard] 統計數據載入成功:', response)
       
       if (response && typeof response === 'object') {
         stats.value = {
@@ -48,13 +49,13 @@ onMounted(async () => {
       loading.value = false
     }
     catch (err) {
-      console.error('❌ [Dashboard] 載入統計數據失敗:', err)
+      logger.error('❌ [Dashboard] 載入統計數據失敗:', err)
       error.value = '無法載入統計數據，請檢查後端服務是否正常運行'
       loading.value = false
       
       // 如果統計 API 失敗，回退到使用 store 數據
       try {
-        console.log('🔄 [Dashboard] 嘗試使用備用數據源...')
+        logger.log('🔄 [Dashboard] 嘗試使用備用數據源...')
         const articlesStore = useArticlesStore()
         const mediaStore = useMediaStore()
 
@@ -68,11 +69,11 @@ onMounted(async () => {
         stats.value.photos = mediaStore.photos?.length || 0
         stats.value.videos = mediaStore.videos?.length || 0
         
-        console.log('✅ [Dashboard] 備用數據載入成功')
+        logger.log('✅ [Dashboard] 備用數據載入成功')
         error.value = '使用備用數據源（可能不是最新數據）'
       }
       catch (fallbackError) {
-        console.error('❌ [Dashboard] 備用數據載入也失敗:', fallbackError)
+        logger.error('❌ [Dashboard] 備用數據載入也失敗:', fallbackError)
         error.value = '無法載入任何統計數據，請檢查網路連接和後端服務'
       }
     }

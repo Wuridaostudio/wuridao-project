@@ -1,5 +1,6 @@
 <!-- pages/admin/editphotos.vue -->
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 import type { Photo } from '~/types'
 import { storeToRefs } from 'pinia'
 import MediaUploader from '~/components/admin/MediaUploader.vue'
@@ -37,7 +38,7 @@ const photoCategories = computed(() =>
 async function handleUpload() {
   formSubmitted.value = true
   if (!selectedFile.value) {
-    console.error('[EditPhotos] 沒有選擇檔案，無法上傳')
+    logger.error('[EditPhotos] 沒有選擇檔案，無法上傳')
     return
   }
 
@@ -49,7 +50,7 @@ async function handleUpload() {
     mediaUploader.value.setUploading(true)
   }
 
-  console.log('[EditPhotos] 開始上傳', selectedFile.value)
+      logger.log('[EditPhotos] 開始上傳', selectedFile.value)
   try {
     await mediaStore.uploadPhoto(
       selectedFile.value,
@@ -57,11 +58,11 @@ async function handleUpload() {
       photoCategoryId.value || undefined,
       photoTagIds.value,
     )
-    console.log('[EditPhotos] 上傳成功')
+    logger.log('[EditPhotos] 上傳成功')
     cancelUpload() // Reset form after successful upload
   }
   catch (error) {
-    console.error('[EditPhotos] 上傳失敗', error)
+    logger.error('[EditPhotos] 上傳失敗', error)
     uploadError.value = error instanceof Error ? error.message : '發生未知錯誤'
 
     // 設置 MediaUploader 錯誤狀態

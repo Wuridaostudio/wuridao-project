@@ -1,4 +1,6 @@
 // middleware/loading.global.ts - 路由載入中間件
+import { logger } from '~/utils/logger'
+
 export default defineNuxtRouteMiddleware(() => {
   // 只在客戶端執行
   if (process.server)
@@ -18,6 +20,6 @@ export default defineNuxtRouteMiddleware(() => {
     })
   }
   catch (error) {
-    console.error('Loading middleware error:', error)
+    logger.error('Loading middleware error:', error)
   }
 })

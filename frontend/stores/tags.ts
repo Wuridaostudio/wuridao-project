@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useApi } from '~/composables/useApi'
 import { useLoading } from '~/composables/useLoading'
+import { logger } from '~/utils/logger'
 // import type { Tag } from "~/types"; // 若有型別可打開
 
 export const useTagsStore = defineStore('tags', () => {
@@ -20,7 +21,7 @@ export const useTagsStore = defineStore('tags', () => {
     }
     catch (err) {
       error.value = '載入標籤失敗'
-      console.error('[TagsStore] Fetch error:', err)
+      logger.error('[TagsStore] Fetch error:', err)
       throw err
     }
     finally {
@@ -38,7 +39,7 @@ export const useTagsStore = defineStore('tags', () => {
     }
     catch (err) {
       error.value = '新增標籤失敗'
-      console.error('[TagsStore] Create error:', err)
+      logger.error('[TagsStore] Create error:', err)
       throw err
     }
     finally {
@@ -55,7 +56,7 @@ export const useTagsStore = defineStore('tags', () => {
     }
     catch (err) {
       error.value = '刪除標籤失敗'
-      console.error('[TagsStore] Delete error:', err)
+      logger.error('[TagsStore] Delete error:', err)
       throw err
     }
     finally {

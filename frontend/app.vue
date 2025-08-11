@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
+
 // 確保組件在客戶端正確載入
 const ToastNotification = defineAsyncComponent(() =>
   import('~/components/common/ToastNotification.vue'),
@@ -28,7 +30,7 @@ watch(
   () => route.fullPath,
   (newPath) => {
     // 可以在這裡加入分析追蹤
-    console.log('Page view:', newPath)
+    logger.log('Page view:', newPath)
   },
 )
 </script>

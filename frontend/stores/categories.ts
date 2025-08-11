@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useApi } from '~/composables/useApi'
+import { logger } from '~/utils/logger'
 
 export const useCategoriesStore = defineStore('categories', () => {
   const api = useApi()
@@ -97,7 +98,7 @@ export const useCategoriesStore = defineStore('categories', () => {
     }
     catch (e: any) {
       const errorMessage = e.data?.message || '刪除分類失敗'
-      console.error('刪除分類失敗:', e)
+      logger.error('刪除分類失敗:', e)
       throw new Error(errorMessage)
     }
     finally {

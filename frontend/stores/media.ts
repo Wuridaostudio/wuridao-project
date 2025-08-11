@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useFileValidation } from '~/composables/useFileValidation'
 import { useUpload } from '~/composables/useUpload'
 import { useApi } from '~/composables/useApi'
+import { logger } from '~/utils/logger'
 
 export const useMediaStore = defineStore('media', () => {
   const api = useApi()
@@ -54,19 +55,19 @@ export const useMediaStore = defineStore('media', () => {
   const clearPhotosCache = () => {
     photosLastFetched.value = 0
     photos.value = [] // 清空數據
-    console.log('[clearPhotosCache] 照片快取已清除')
+    logger.log('[clearPhotosCache] 照片快取已清除')
   }
 
   const clearVideosCache = () => {
     videosLastFetched.value = 0
     videos.value = [] // 清空數據
-    console.log('[clearVideosCache] 影片快取已清除')
+    logger.log('[clearVideosCache] 影片快取已清除')
   }
 
   const clearAllCache = () => {
     clearPhotosCache()
     clearVideosCache()
-    console.log('[clearAllCache] 所有快取已清除')
+    logger.log('[clearAllCache] 所有快取已清除')
   }
 
   const fetchPhotos = async (page = 1) => {
@@ -133,7 +134,7 @@ export const useMediaStore = defineStore('media', () => {
         folder,
         (progress, speed) => {
           uploadProgress.value = progress
-          console.log(`[uploadPhoto] Progress: ${progress}%, Speed: ${speed}`)
+          logger.log(`[uploadPhoto] Progress: ${progress}%, Speed: ${speed}`)
         },
       )
       if (url.startsWith('data:')) {
@@ -147,7 +148,7 @@ export const useMediaStore = defineStore('media', () => {
           typeof categoryId === 'string' ? Number.parseInt(categoryId) : categoryId,
         tagIds: Array.isArray(tagIds) ? tagIds.map(Number) : [],
       }
-      console.log('[uploadPhoto] 呼叫 createPhoto', payload)
+      logger.log('[uploadPhoto] 呼叫 createPhoto', payload)
       const photo = await api.createPhoto(payload)
       photos.value.push(photo)
       return photo
@@ -170,7 +171,7 @@ export const useMediaStore = defineStore('media', () => {
     try {
       // 如果 id 看起來像 publicId（包含斜線），則只刪除 Cloudinary 資源
       if (typeof id === 'string' && id.includes('/')) {
-        console.log('[deletePhoto] 檢測到 publicId 格式的 id，只刪除 Cloudinary 資源')
+        logger.log('[deletePhoto] 檢測到 publicId 格式的 id，只刪除 Cloudinary 資源')
         await deleteFromCloudinary(id)
         // 從本地列表中移除
         photos.value = photos.value.filter(p => p.id !== id)
@@ -240,7 +241,7 @@ export const useMediaStore = defineStore('media', () => {
         folder,
         (progress, speed) => {
           uploadProgress.value = progress
-          console.log(`[uploadVideo] Progress: ${progress}%, Speed: ${speed}`)
+          logger.log(`[uploadVideo] Progress: ${progress}%, Speed: ${speed}`)
         },
       )
       if (url.startsWith('data:')) {
@@ -254,14 +255,14 @@ export const useMediaStore = defineStore('media', () => {
           typeof categoryId === 'string' ? Number.parseInt(categoryId) : categoryId,
         tagIds: Array.isArray(tagIds) ? tagIds.map(Number) : [],
       }
-      console.log('[uploadVideo] 呼叫 createVideo', payload)
+      logger.log('[uploadVideo] 呼叫 createVideo', payload)
       try {
         const video = await api.createVideo(payload)
-        console.log('[uploadVideo] createVideo 成功:', video)
+        logger.log('[uploadVideo] createVideo 成功:', video)
         videos.value.push(video)
         return video
       } catch (error) {
-        console.error('[uploadVideo] createVideo 失敗:', error)
+        logger.error('[uploadVideo] createVideo 失敗:', error)
         throw error
       }
     }
@@ -283,7 +284,7 @@ export const useMediaStore = defineStore('media', () => {
     try {
       // 如果 id 看起來像 publicId（包含斜線），則只刪除 Cloudinary 資源
       if (typeof id === 'string' && id.includes('/')) {
-        console.log('[deleteVideo] 檢測到 publicId 格式的 id，只刪除 Cloudinary 資源')
+        logger.log('[deleteVideo] 檢測到 publicId 格式的 id，只刪除 Cloudinary 資源')
         await deleteFromCloudinary(id)
         // 從本地列表中移除
         videos.value = videos.value.filter(v => v.id !== id)
@@ -317,19 +318,19 @@ export const useMediaStore = defineStore('media', () => {
     const cacheValid = !forceReload && now - photosLastFetched.value < CACHE_DURATION
 
     if (cacheValid && photos.value.length > 0) {
-      console.log('[fetchCloudinaryPhotos] 使用快取數據，跳過重複請求')
+      logger.log('[fetchCloudinaryPhotos] 使用快取數據，跳過重複請求')
       return photos.value
     }
 
     // 如果正在載入中，則跳過重複請求
     if (fetchPhotosLoading.value) {
-      console.log('[fetchCloudinaryPhotos] 正在載入中，跳過重複請求')
+      logger.log('[fetchCloudinaryPhotos] 正在載入中，跳過重複請求')
       return photos.value
     }
 
     fetchPhotosLoading.value = true
     try {
-      console.log('[fetchCloudinaryPhotos] 開始從 Cloudinary 載入照片...')
+      logger.log('[fetchCloudinaryPhotos] 開始從 Cloudinary 載入照片...')
       const response = await api.getPublicCloudinaryResources('image')
 
       // 將 Cloudinary 資源轉換為與資料庫格式相容的格式
@@ -352,18 +353,18 @@ export const useMediaStore = defineStore('media', () => {
 
       const uniquePhotos = Array.from(photoMap.values())
 
-      console.log(`[fetchCloudinaryPhotos] 載入 ${cloudinaryPhotos.length} 張照片，去重後 ${uniquePhotos.length} 張`)
+      logger.log(`[fetchCloudinaryPhotos] 載入 ${cloudinaryPhotos.length} 張照片，去重後 ${uniquePhotos.length} 張`)
 
       // 暫時移除資源存在性檢查，直接使用所有照片
       // 這可以避免 API 調用錯誤，同時確保數據是最新的
-      console.log(`[fetchCloudinaryPhotos] 使用所有照片: ${uniquePhotos.length} 張`)
+      logger.log(`[fetchCloudinaryPhotos] 使用所有照片: ${uniquePhotos.length} 張`)
 
       photos.value = uniquePhotos
       photosLastFetched.value = now
       return uniquePhotos
     }
     catch (e: any) {
-      console.error('載入 Cloudinary 照片失敗:', e)
+      logger.error('載入 Cloudinary 照片失敗:', e)
       return []
     }
     finally {
@@ -377,19 +378,19 @@ export const useMediaStore = defineStore('media', () => {
     const cacheValid = !forceReload && now - videosLastFetched.value < CACHE_DURATION
 
     if (cacheValid && videos.value.length > 0) {
-      console.log('[fetchCloudinaryVideos] 使用快取數據，跳過重複請求')
+      logger.log('[fetchCloudinaryVideos] 使用快取數據，跳過重複請求')
       return videos.value
     }
 
     // 如果正在載入中，則跳過重複請求
     if (fetchVideosLoading.value) {
-      console.log('[fetchCloudinaryVideos] 正在載入中，跳過重複請求')
+      logger.log('[fetchCloudinaryVideos] 正在載入中，跳過重複請求')
       return videos.value
     }
 
     fetchVideosLoading.value = true
     try {
-      console.log('[fetchCloudinaryVideos] 開始從 Cloudinary 載入影片...')
+      logger.log('[fetchCloudinaryVideos] 開始從 Cloudinary 載入影片...')
       const response = await api.getPublicCloudinaryResources('video')
 
       // 將 Cloudinary 資源轉換為與資料庫格式相容的格式
@@ -412,18 +413,18 @@ export const useMediaStore = defineStore('media', () => {
 
       const uniqueVideos = Array.from(videoMap.values())
 
-      console.log(`[fetchCloudinaryVideos] 載入 ${cloudinaryVideos.length} 個影片，去重後 ${uniqueVideos.length} 個`)
+      logger.log(`[fetchCloudinaryVideos] 載入 ${cloudinaryVideos.length} 個影片，去重後 ${uniqueVideos.length} 個`)
 
       // 暫時移除資源存在性檢查，直接使用所有影片
       // 這可以避免 API 調用錯誤，同時確保數據是最新的
-      console.log(`[fetchCloudinaryVideos] 使用所有影片: ${uniqueVideos.length} 個`)
+      logger.log(`[fetchCloudinaryVideos] 使用所有影片: ${uniqueVideos.length} 個`)
 
       videos.value = uniqueVideos
       videosLastFetched.value = now
       return uniqueVideos
     }
     catch (e: any) {
-      console.error('載入 Cloudinary 影片失敗:', e)
+      logger.error('載入 Cloudinary 影片失敗:', e)
       return []
     }
     finally {

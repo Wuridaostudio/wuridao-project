@@ -2,6 +2,7 @@ import type { LoginCredentials, User } from '~/types'
 // frontend/stores/auth.ts
 import { defineStore } from 'pinia'
 import { useAuthToken } from '~/composables/useAuthToken'
+import { logger } from '~/utils/logger'
 
 export const useAuthStore = defineStore('auth', () => {
   const { setToken } = useAuthToken()
@@ -73,7 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = fetchedUser
     }
     catch (e) {
-      console.error('[Auth Store] 無法取得使用者資訊，Token 可能已失效。', e)
+      logger.error('[Auth Store] 無法取得使用者資訊，Token 可能已失效。', e)
       setToken(null) // 清除失效的 token
     }
     finally {

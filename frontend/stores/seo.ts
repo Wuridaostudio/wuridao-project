@@ -1,5 +1,6 @@
 // stores/seo.ts
 import { defineStore } from 'pinia'
+import { logger } from '~/utils/logger'
 
 export interface SeoSettings {
   title: string
@@ -70,7 +71,7 @@ export const useSeoStore = defineStore('seo', () => {
     }
     catch (e: any) {
       error.value = e.data?.message || '載入設定失敗'
-      console.error('載入 SEO 設定失敗:', e)
+      logger.error('載入 SEO 設定失敗:', e)
     }
     finally {
       loading.value = false
@@ -88,7 +89,7 @@ export const useSeoStore = defineStore('seo', () => {
     }
     catch (e: any) {
       error.value = e.data?.message || '儲存 SEO 設定失敗'
-      console.error('儲存 SEO 設定失敗:', e)
+      logger.error('儲存 SEO 設定失敗:', e)
       throw new Error(error.value)
     }
     finally {
@@ -107,7 +108,7 @@ export const useSeoStore = defineStore('seo', () => {
     }
     catch (e: any) {
       error.value = e.data?.message || '儲存 AEO 設定失敗'
-      console.error('儲存 AEO 設定失敗:', e)
+      logger.error('儲存 AEO 設定失敗:', e)
       throw new Error(error.value)
     }
     finally {
@@ -126,7 +127,7 @@ export const useSeoStore = defineStore('seo', () => {
     }
     catch (e: any) {
       error.value = e.data?.message || '儲存 GEO 設定失敗'
-      console.error('儲存 GEO 設定失敗:', e)
+      logger.error('儲存 GEO 設定失敗:', e)
       throw new Error(error.value)
     }
     finally {
@@ -145,7 +146,7 @@ export const useSeoStore = defineStore('seo', () => {
     }
     catch (e: any) {
       error.value = e.data?.message || '儲存社群設定失敗'
-      console.error('儲存社群設定失敗:', e)
+      logger.error('儲存社群設定失敗:', e)
       throw new Error(error.value)
     }
     finally {

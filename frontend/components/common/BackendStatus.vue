@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 const showStatus = ref(false)
 const status = ref<'connected' | 'disconnected' | 'checking'>('checking')
 const statusText = computed(() => {
@@ -47,13 +48,13 @@ async function checkBackendStatus() {
     }
   }
   catch (error) {
-    console.error('Backend health check failed:', error)
+    logger.error('Backend health check failed:', error)
     status.value = 'disconnected'
     showStatus.value = true
 
     // 如果是連接錯誤，增加重試邏輯
     if (error?.message?.includes('fetch failed') || error?.message?.includes('ECONNREFUSED')) {
-      console.log('Connection failed, will retry in 5 seconds...')
+      logger.log('Connection failed, will retry in 5 seconds...')
       setTimeout(() => {
         if (status.value === 'disconnected') {
           checkBackendStatus()

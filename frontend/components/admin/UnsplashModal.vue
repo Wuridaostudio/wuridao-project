@@ -1,6 +1,7 @@
 <!-- components/admin/UnsplashModal.vue -->
 <script setup lang="ts">
 import LoadingSpinner from '~/components/common/LoadingSpinner.vue'
+import { logger } from '~/utils/logger'
 
 interface UnsplashImage {
   id: string
@@ -27,7 +28,7 @@ const config = useRuntimeConfig()
 const { error: showError } = useToast()
 
 // Debug: 確認 key 是否正確注入
-console.log('[UnsplashModal] Unsplash Key:', config.public.unsplashAccessKey)
+logger.log('[UnsplashModal] Unsplash Key:', config.public.unsplashAccessKey)
 
 // 狀態
 const searchQuery = ref('')
@@ -88,7 +89,7 @@ async function searchImages(reset = true) {
   catch (err) {
     error.value = '無法搜尋圖片，請稍後再試'
     showError(error.value)
-    console.error('[UnsplashModal] Unsplash API Error:', err)
+    logger.error('[UnsplashModal] Unsplash API Error:', err)
   }
   finally {
     loading.value = false

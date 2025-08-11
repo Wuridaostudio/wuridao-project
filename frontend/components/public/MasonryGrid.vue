@@ -4,6 +4,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import LoadingSpinner from '~/components/common/LoadingSpinner.vue'
 import ContentCard from '~/components/public/ContentCard.vue'
+import { logger } from '~/utils/logger'
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
@@ -13,35 +14,35 @@ const emit = defineEmits<{
   loadMore: []
 }>()
 
-console.log('🔍 [MasonryGrid.vue] Script setup 開始執行')
+logger.log('🔍 [MasonryGrid.vue] Script setup 開始執行')
 
-console.log('🔍 [MasonryGrid.vue] 所有 imports 完成')
+logger.log('🔍 [MasonryGrid.vue] 所有 imports 完成')
 
 const { $gsap } = useNuxtApp()
 
-console.log('🔍 [MasonryGrid.vue] NuxtApp 初始化完成')
-console.log('🔍 [MasonryGrid.vue] $gsap 存在:', !!$gsap)
+logger.log('🔍 [MasonryGrid.vue] NuxtApp 初始化完成')
+logger.log('🔍 [MasonryGrid.vue] $gsap 存在:', !!$gsap)
 
 // ===== Props 定義 =====
-console.log('🔍 [MasonryGrid.vue] 開始定義 Props')
+logger.log('🔍 [MasonryGrid.vue] 開始定義 Props')
 
 interface Props {
   items: Array<any>
   loading?: boolean
 }
 
-console.log('🔍 [MasonryGrid.vue] Props 接收:', {
+logger.log('🔍 [MasonryGrid.vue] Props 接收:', {
   itemsLength: props.items?.length || 0,
   loading: props.loading,
 })
 
 // ===== Emits 定義 =====
-console.log('🔍 [MasonryGrid.vue] 開始定義 Emits')
+logger.log('🔍 [MasonryGrid.vue] 開始定義 Emits')
 
-console.log('🔍 [MasonryGrid.vue] Emits 定義完成')
+logger.log('🔍 [MasonryGrid.vue] Emits 定義完成')
 
 // ===== 響應式狀態 =====
-console.log('🔍 [MasonryGrid.vue] 開始定義響應式狀態')
+logger.log('🔍 [MasonryGrid.vue] 開始定義響應式狀態')
 
 const masonryContainer = ref()
 const gridContainer = ref()
@@ -51,10 +52,10 @@ const activeFilter = ref('all')
 const selectedItem = ref(null)
 const loadingMore = ref(false)
 
-console.log('🔍 [MasonryGrid.vue] 響應式狀態定義完成')
+logger.log('🔍 [MasonryGrid.vue] 響應式狀態定義完成')
 
 // ===== 篩選器選項 =====
-console.log('🔍 [MasonryGrid.vue] 開始定義篩選器選項')
+logger.log('🔍 [MasonryGrid.vue] 開始定義篩選器選項')
 
 const filters = [
   { label: '全部', value: 'all' },
@@ -63,44 +64,44 @@ const filters = [
   { label: '影片', value: 'video' },
 ]
 
-console.log('🔍 [MasonryGrid.vue] 篩選器選項:', filters)
+logger.log('🔍 [MasonryGrid.vue] 篩選器選項:', filters)
 
 // ===== 計算屬性 =====
-console.log('🔍 [MasonryGrid.vue] 開始定義計算屬性')
+logger.log('🔍 [MasonryGrid.vue] 開始定義計算屬性')
 
 const filteredItems = computed(() => {
-  console.log('🔍 [MasonryGrid.vue] filteredItems computed 執行')
-  console.log('🔍 [MasonryGrid.vue] activeFilter:', activeFilter.value)
-  console.log(
+  logger.log('🔍 [MasonryGrid.vue] filteredItems computed 執行')
+  logger.log('🔍 [MasonryGrid.vue] activeFilter:', activeFilter.value)
+  logger.log(
     '🔍 [MasonryGrid.vue] props.items 長度:',
     props.items?.length || 0,
   )
 
   if (activeFilter.value === 'all') {
-    console.log('🔍 [MasonryGrid.vue] 顯示全部項目')
+    logger.log('🔍 [MasonryGrid.vue] 顯示全部項目')
     return props.items
   }
 
   const filtered = props.items.filter(
     item => item.type === activeFilter.value,
   )
-  console.log('🔍 [MasonryGrid.vue] 篩選後項目數:', filtered.length)
+  logger.log('🔍 [MasonryGrid.vue] 篩選後項目數:', filtered.length)
   return filtered
 })
 
-console.log('🔍 [MasonryGrid.vue] 計算屬性定義完成')
+logger.log('🔍 [MasonryGrid.vue] 計算屬性定義完成')
 
 // ===== 動畫方法 =====
-console.log('🔍 [MasonryGrid.vue] 開始定義動畫方法')
+logger.log('🔍 [MasonryGrid.vue] 開始定義動畫方法')
 
 function beforeEnter(el: HTMLElement) {
-  console.log('🔍 [MasonryGrid.vue] beforeEnter 被呼叫')
+  logger.log('🔍 [MasonryGrid.vue] beforeEnter 被呼叫')
   el.style.opacity = '0'
   el.style.transform = 'scale(0.8) translateY(30px)'
 }
 
 function enter(el: HTMLElement, done: () => void) {
-  console.log('🔍 [MasonryGrid.vue] enter 被呼叫')
+  logger.log('🔍 [MasonryGrid.vue] enter 被呼叫')
   const index = Number.parseInt(el.dataset.index || '0')
 
   if (process.client && el) {
@@ -113,7 +114,7 @@ function enter(el: HTMLElement, done: () => void) {
     }, index * 50)
   }
   else {
-    console.log('⚠️ [MasonryGrid.vue] 不在 client 端，使用預設動畫')
+    logger.log('⚠️ [MasonryGrid.vue] 不在 client 端，使用預設動畫')
     if (el) {
       el.style.opacity = '1'
     }
@@ -122,7 +123,7 @@ function enter(el: HTMLElement, done: () => void) {
 }
 
 function leave(el: HTMLElement, done: () => void) {
-  console.log('🔍 [MasonryGrid.vue] leave 被呼叫')
+  logger.log('🔍 [MasonryGrid.vue] leave 被呼叫')
 
   if (process.client && el) {
     el.style.transition = 'opacity 0.4s ease-in'
@@ -130,7 +131,7 @@ function leave(el: HTMLElement, done: () => void) {
     setTimeout(done, 400)
   }
   else {
-    console.log('⚠️ [MasonryGrid.vue] 不在 client 端，使用預設動畫')
+    logger.log('⚠️ [MasonryGrid.vue] 不在 client 端，使用預設動畫')
     if (el) {
       el.style.opacity = '0'
     }
@@ -138,15 +139,15 @@ function leave(el: HTMLElement, done: () => void) {
   }
 }
 
-console.log('🔍 [MasonryGrid.vue] 動畫方法定義完成')
+logger.log('🔍 [MasonryGrid.vue] 動畫方法定義完成')
 
 // ===== 事件處理方法 =====
-console.log('🔍 [MasonryGrid.vue] 開始定義事件處理方法')
+logger.log('🔍 [MasonryGrid.vue] 開始定義事件處理方法')
 
 // 處理項目點擊
 function handleItemClick(item: any) {
-  console.log('🔍 [MasonryGrid.vue] handleItemClick 被呼叫')
-  console.log('🔍 [MasonryGrid.vue] 點擊項目:', {
+  logger.log('🔍 [MasonryGrid.vue] handleItemClick 被呼叫')
+  logger.log('🔍 [MasonryGrid.vue] 點擊項目:', {
     type: item.type,
     id: item.id,
     title: item.title,
@@ -157,14 +158,14 @@ function handleItemClick(item: any) {
   // 模態框出現動畫
   nextTick(() => {
     if (modalContent.value && process.client) {
-      console.log('🔍 [MasonryGrid.vue] 開始模態框出現動畫')
+      logger.log('🔍 [MasonryGrid.vue] 開始模態框出現動畫')
       if (modalContent.value) {
         modalContent.value.style.transition = 'opacity 0.4s ease-out'
         modalContent.value.style.opacity = '1'
       }
     }
     else {
-      console.log(
+      logger.log(
         '⚠️ [MasonryGrid.vue] 模態框動畫跳過（不在 client 端或元素不存在）',
       )
     }
@@ -173,28 +174,28 @@ function handleItemClick(item: any) {
 
 // 關閉模態框
 function closeModal() {
-  console.log('🔍 [MasonryGrid.vue] closeModal 被呼叫')
+  logger.log('🔍 [MasonryGrid.vue] closeModal 被呼叫')
 
   if (modalContent.value && process.client) {
-    console.log('🔍 [MasonryGrid.vue] 開始模態框關閉動畫')
+    logger.log('🔍 [MasonryGrid.vue] 開始模態框關閉動畫')
     if (modalContent.value) {
       modalContent.value.style.transition = 'opacity 0.3s ease-in'
       modalContent.value.style.opacity = '0'
       setTimeout(() => {
         selectedItem.value = null
-        console.log('🔍 [MasonryGrid.vue] 模態框關閉完成')
+        logger.log('🔍 [MasonryGrid.vue] 模態框關閉完成')
       }, 300)
     }
   }
   else {
-    console.log('⚠️ [MasonryGrid.vue] 模態框關閉動畫跳過')
+    logger.log('⚠️ [MasonryGrid.vue] 模態框關閉動畫跳過')
     selectedItem.value = null
   }
 }
 
 // 獲取模態框組件
 function getModalComponent(type: string) {
-  console.log('🔍 [MasonryGrid.vue] getModalComponent 被呼叫，type:', type)
+  logger.log('🔍 [MasonryGrid.vue] getModalComponent 被呼叫，type:', type)
 
   switch (type) {
     case 'article':
@@ -204,28 +205,28 @@ function getModalComponent(type: string) {
     case 'video':
       return 'VideoDetail'
     default:
-      console.warn('⚠️ [MasonryGrid.vue] 未知的項目類型:', type)
+      logger.warn('⚠️ [MasonryGrid.vue] 未知的項目類型:', type)
       return 'div'
   }
 }
 
-console.log('🔍 [MasonryGrid.vue] 事件處理方法定義完成')
+logger.log('🔍 [MasonryGrid.vue] 事件處理方法定義完成')
 
 // ===== 生命週期 =====
-console.log('🔍 [MasonryGrid.vue] 開始設定生命週期')
+logger.log('🔍 [MasonryGrid.vue] 開始設定生命週期')
 
 onMounted(() => {
-  console.log('🔍 [MasonryGrid.vue] onMounted 開始執行')
+  logger.log('🔍 [MasonryGrid.vue] onMounted 開始執行')
 
   // 設置無限滾動
   if (sentinel.value && process.client) {
-    console.log('🔍 [MasonryGrid.vue] 設置無限滾動觀察器')
+    logger.log('🔍 [MasonryGrid.vue] 設置無限滾動觀察器')
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && !loadingMore.value && !props.loading) {
-            console.log('🔍 [MasonryGrid.vue] 觸發載入更多')
+            logger.log('🔍 [MasonryGrid.vue] 觸發載入更多')
             loadingMore.value = true
             emit('loadMore')
 
@@ -245,21 +246,21 @@ onMounted(() => {
     const currentObserver = observer
 
     onUnmounted(() => {
-      console.log('🔍 [MasonryGrid.vue] 清理無限滾動觀察器')
+      logger.log('🔍 [MasonryGrid.vue] 清理無限滾動觀察器')
       currentObserver.disconnect()
     })
   }
   else {
-    console.log(
+    logger.log(
       '⚠️ [MasonryGrid.vue] 無限滾動設置跳過（sentinel 不存在或不在 client 端）',
     )
   }
 
-  console.log('🔍 [MasonryGrid.vue] onMounted 執行完成')
+  logger.log('🔍 [MasonryGrid.vue] onMounted 執行完成')
 })
 
-console.log('🔍 [MasonryGrid.vue] 生命週期設定完成')
-console.log('🔍 [MasonryGrid.vue] Script setup 執行完成')
+logger.log('🔍 [MasonryGrid.vue] 生命週期設定完成')
+logger.log('🔍 [MasonryGrid.vue] Script setup 執行完成')
 </script>
 
 <template>

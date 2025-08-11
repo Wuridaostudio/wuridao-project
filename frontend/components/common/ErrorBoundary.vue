@@ -1,6 +1,7 @@
 <!-- components/common/ErrorBoundary.vue -->
 <script setup lang="ts">
 import { onErrorCaptured, ref } from 'vue'
+import { logger } from '~/utils/logger'
 
 const hasError = ref(false)
 const errorInfo = ref<Error | null>(null)
@@ -11,7 +12,7 @@ function retry() {
 }
 
 onErrorCaptured((error: Error) => {
-  console.error('Component error:', error)
+  logger.error('Component error:', error)
   hasError.value = true
   errorInfo.value = error
 

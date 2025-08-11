@@ -6,6 +6,7 @@ import { useUpload } from '../../composables/useUpload'
 import { isValidFileName, sanitizeFileName } from '../../utils/validators'
 import ErrorBoundary from '../common/ErrorBoundary.vue'
 import LoadingSpinner from '../common/LoadingSpinner.vue'
+import { logger } from '~/utils/logger'
 
 interface Props {
   type: 'image' | 'video'
@@ -117,7 +118,7 @@ async function onDrop(event: DragEvent) {
     const processed = await processFile(file)
     if (!processed)
       return
-    console.log('[MediaUploader] 拖曳檔案:', processed)
+    logger.log('[MediaUploader] 拖曳檔案:', processed)
     previewFile(processed)
     emit('upload', processed)
   }
@@ -129,12 +130,12 @@ async function onInputChange(event: Event) {
   if (!file)
     return
 
-  const processed = await processFile(file)
-  if (!processed)
-    return
-  console.log('[MediaUploader] 選擇檔案:', processed)
-  previewFile(processed)
-  emit('upload', processed)
+      const processed = await processFile(file)
+    if (!processed)
+      return
+    logger.log('[MediaUploader] 選擇檔案:', processed)
+    previewFile(processed)
+    emit('upload', processed)
 }
 
 function triggerFileInput() {

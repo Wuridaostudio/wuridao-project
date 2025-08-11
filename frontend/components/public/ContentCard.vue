@@ -1,6 +1,7 @@
 <!-- components/public/ContentCard.vue -->
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { logger } from '~/utils/logger'
 
 // ===== Props 定義 =====
 interface Props {
@@ -80,7 +81,7 @@ function formatDate(dateString: string) {
     })
   }
   catch (error) {
-    console.error('❌ [ContentCard.vue] 日期格式化失敗:', error)
+    logger.error('❌ [ContentCard.vue] 日期格式化失敗:', error)
     return dateString
   }
 }
@@ -104,7 +105,7 @@ function stripHtml(html: string) {
     return html.replace(/<[^>]*>/g, '').trim()
   }
   catch (error) {
-    console.error('❌ [ContentCard.vue] HTML 清理失敗:', error)
+    logger.error('❌ [ContentCard.vue] HTML 清理失敗:', error)
     return html
   }
 }
@@ -143,7 +144,7 @@ function handleVideoLoaded() {
 // 調試項目信息
 function logItem(item: any) {
   if (item && item.id) {
-    console.log('[ContentCard] id:', item.id, 'title:', item.title, 'coverImageUrl:', item.coverImageUrl)
+    logger.log('[ContentCard] id:', item.id, 'title:', item.title, 'coverImageUrl:', item.coverImageUrl)
   }
   return ''
 }

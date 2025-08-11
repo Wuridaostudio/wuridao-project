@@ -1,5 +1,6 @@
 <!-- pages/articles/[id].vue -->
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 import { watch } from 'vue'
 import ArticleSkeleton from '~/components/common/ArticleSkeleton.vue'
 import { useCategoriesStore } from '~/stores/categories'
@@ -77,7 +78,7 @@ async function copyLink() {
       }, 2000)
     }
     catch (err) {
-      console.error('複製失敗:', err)
+      logger.error('複製失敗:', err)
     }
   }
 }
@@ -91,7 +92,7 @@ async function loadRelatedArticles() {
       .slice(0, 3)
   }
   catch (err) {
-    console.error('載入相關文章失敗:', err)
+    logger.error('載入相關文章失敗:', err)
   }
 }
 
@@ -216,7 +217,7 @@ const tags = computed(() => tagsStore.tags)
 watch(
   article,
   (val) => {
-    console.log('文章資料:', val)
+    logger.log('文章資料:', val)
   },
   { immediate: true },
 )

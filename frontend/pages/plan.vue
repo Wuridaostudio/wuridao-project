@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 import { defineAsyncComponent } from 'vue'
 import ScrollStack from '@/components/common/ScrollStack.vue'
 import ScrollStackItem from '@/components/common/ScrollStackItem.vue'
@@ -15,7 +16,7 @@ const SmartFormSection = defineAsyncComponent(
 )
 
 function handleStackComplete() {
-  console.log('Scroll stack animation completed!')
+      logger.log('Scroll stack animation completed!')
 }
 </script>
 

@@ -5,6 +5,8 @@ import { ref } from 'vue'
 import { useApi } from '~/composables/useApi'
 import { useLoading } from '~/composables/useLoading'
 
+import { logger } from '~/utils/logger'
+
 export const useArticlesStore = defineStore('articles', () => {
   const articles = ref<Article[]>([])
   const totalArticles = ref(0)
@@ -35,14 +37,14 @@ export const useArticlesStore = defineStore('articles', () => {
 
   // 獲取文章列表
   const fetchArticles = async ({ isDraft, page = 1, limit = 15 } = {}) => {
-    console.log('🔍 [ArticlesStore][fetchArticles] 開始獲取文章列表')
-    console.log('📋 [ArticlesStore][fetchArticles] 請求參數:', { isDraft, page, limit })
+    logger.log('🔍 [ArticlesStore][fetchArticles] 開始獲取文章列表')
+    logger.log('📋 [ArticlesStore][fetchArticles] 請求參數:', { isDraft, page, limit })
 
     startLoading('fetch-articles', '載入文章列表...')
     error.value = null
     try {
       const { data, total } = await api.getArticles({ isDraft, page, limit })
-      console.log('📊 [ArticlesStore][fetchArticles] API 返回結果:', {
+      logger.log('📊 [ArticlesStore][fetchArticles] API 返回結果:', {
         total,
         dataLength: data.length,
         isDraft,
@@ -54,37 +56,37 @@ export const useArticlesStore = defineStore('articles', () => {
       totalArticles.value = total
       currentPage.value = page
 
-      console.log('📋 [ArticlesStore][fetchArticles] 文章詳情:')
+      logger.log('📋 [ArticlesStore][fetchArticles] 文章詳情:')
       data.forEach((article, index) => {
-        console.log(`  ${index + 1}. ID: ${article.id}, 標題: ${article.title}, isDraft: ${article.isDraft}, coverImageUrl: ${article.coverImageUrl}`)
+        logger.log(`  ${index + 1}. ID: ${article.id}, 標題: ${article.title}, isDraft: ${article.isDraft}, coverImageUrl: ${article.coverImageUrl}`)
       })
 
       // 新增：檢查是否為空結果
       if (data.length === 0) {
-        console.log('⚠️ [ArticlesStore][fetchArticles] 警告：API 返回空結果')
-        console.log('🔍 [ArticlesStore][fetchArticles] 可能的原因：')
-        console.log(`  - 請求參數 isDraft=${isDraft}`)
-        console.log(`  - 請求參數 page=${page}, limit=${limit}`)
-        console.log(`  - API 返回 total=${total}`)
+        logger.log('⚠️ [ArticlesStore][fetchArticles] 警告：API 返回空結果')
+        logger.log('🔍 [ArticlesStore][fetchArticles] 可能的原因：')
+        logger.log(`  - 請求參數 isDraft=${isDraft}`)
+        logger.log(`  - 請求參數 page=${page}, limit=${limit}`)
+        logger.log(`  - API 返回 total=${total}`)
       }
 
       return data
     }
     catch (err) {
-      console.error('❌ [ArticlesStore][fetchArticles] 獲取文章列表失敗:', err)
+      logger.error('❌ [ArticlesStore][fetchArticles] 獲取文章列表失敗:', err)
       error.value = '載入文章列表失敗'
       throw err
     }
     finally {
       stopLoading('fetch-articles')
-      console.log('🏁 [ArticlesStore][fetchArticles] 獲取文章列表完成')
+      logger.log('🏁 [ArticlesStore][fetchArticles] 獲取文章列表完成')
     }
   }
 
   // 儲存（新增或更新）文章
   const saveArticle = async (article: Partial<Article>, coverImageFile?: File) => {
-    console.log('🚀 [ArticlesStore] ===== 文章儲存流程開始 =====')
-    console.log('📋 [ArticlesStore] 接收到的數據:', {
+    logger.log('🚀 [ArticlesStore] ===== 文章儲存流程開始 =====')
+    logger.log('📋 [ArticlesStore] 接收到的數據:', {
       articleId: article.id,
       title: article.title,
       hasContent: !!article.content,
@@ -110,25 +112,25 @@ export const useArticlesStore = defineStore('articles', () => {
       if (article.id) {
         // PATCH: URL 帶 id，body 不帶 id
         const { id, ...body } = article
-        console.log('🔄 [ArticlesStore] 更新文章模式')
-        console.log('🆔 [ArticlesStore] 文章 ID:', id)
-        console.log('📤 [ArticlesStore] 更新數據:', body)
+        logger.log('🔄 [ArticlesStore] 更新文章模式')
+        logger.log('🆔 [ArticlesStore] 文章 ID:', id)
+        logger.log('📤 [ArticlesStore] 更新數據:', body)
         result = await api.updateArticle(id, body, coverImageFile)
-        console.log('✅ [ArticlesStore] 文章更新成功:', result)
+        logger.log('✅ [ArticlesStore] 文章更新成功:', result)
       }
       else {
-        console.log('🆕 [ArticlesStore] 創建新文章模式')
-        console.log('📤 [ArticlesStore] 創建數據:', article)
+        logger.log('🆕 [ArticlesStore] 創建新文章模式')
+        logger.log('📤 [ArticlesStore] 創建數據:', article)
         result = await api.createArticle(article, coverImageFile)
-        console.log('✅ [ArticlesStore] 文章創建成功:', result)
+        logger.log('✅ [ArticlesStore] 文章創建成功:', result)
       }
 
-      console.log('🏁 [ArticlesStore] ===== 文章儲存流程成功結束 =====')
+      logger.log('🏁 [ArticlesStore] ===== 文章儲存流程成功結束 =====')
       return result
     }
     catch (err) {
-      console.error('❌ [ArticlesStore] 文章儲存失敗:', err)
-      console.error('❌ [ArticlesStore] 錯誤詳情:', {
+      logger.error('❌ [ArticlesStore] 文章儲存失敗:', err)
+      logger.error('❌ [ArticlesStore] 錯誤詳情:', {
         message: err.message,
         status: err.status,
         data: err.data,
@@ -139,7 +141,7 @@ export const useArticlesStore = defineStore('articles', () => {
     }
     finally {
       stopLoading('save-article')
-      console.log('🏁 [ArticlesStore] ===== 文章儲存流程結束 =====')
+      logger.log('🏁 [ArticlesStore] ===== 文章儲存流程結束 =====')
     }
   }
 
@@ -152,20 +154,20 @@ export const useArticlesStore = defineStore('articles', () => {
       if (coverImagePublicId) {
         try {
           await api.deleteCloudinaryResource(coverImagePublicId, 'image')
-          console.log('[ARTICLES] Cover image deleted from Cloudinary:', coverImagePublicId)
+          logger.log('[ARTICLES] Cover image deleted from Cloudinary:', coverImagePublicId)
         }
         catch (error) {
-          console.error('[ARTICLES] Error deleting cover image from Cloudinary:', error)
+          logger.error('[ARTICLES] Error deleting cover image from Cloudinary:', error)
         }
       }
 
       if (contentPublicId) {
         try {
           await api.deleteCloudinaryResource(contentPublicId, 'raw')
-          console.log('[ARTICLES] Content deleted from Cloudinary:', contentPublicId)
+          logger.log('[ARTICLES] Content deleted from Cloudinary:', contentPublicId)
         }
         catch (error) {
-          console.error('[ARTICLES] Error deleting content from Cloudinary:', error)
+          logger.error('[ARTICLES] Error deleting content from Cloudinary:', error)
         }
       }
 
@@ -173,7 +175,7 @@ export const useArticlesStore = defineStore('articles', () => {
       await api.deleteArticle(id)
       // 從本地列表中移除
       articles.value = articles.value.filter(article => article.id !== id)
-      console.log('[ARTICLES] Article deleted successfully:', id)
+      logger.log('[ARTICLES] Article deleted successfully:', id)
       return { message: '文章已刪除' }
     }
     catch (err) {
@@ -205,7 +207,7 @@ export const useArticlesStore = defineStore('articles', () => {
         articles.value[index] = updatedArticle
       }
 
-      console.log('[ARTICLES] Publish status toggled:', id)
+      logger.log('[ARTICLES] Publish status toggled:', id)
       return updatedArticle
     }
     catch (err) {

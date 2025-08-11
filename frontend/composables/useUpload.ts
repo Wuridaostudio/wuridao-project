@@ -5,6 +5,7 @@ import { ref } from 'vue'
 import { useRuntimeConfig } from '#imports'
 import { useApi } from '~/composables/useApi'
 import { useAuthToken } from '~/composables/useAuthToken'
+import { logger } from '~/utils/logger'
 
 export function useUpload() {
   const config = useRuntimeConfig()
@@ -102,7 +103,7 @@ export function useUpload() {
     // 檔案驗證
     validateFile(file, type)
 
-    console.log('[useUpload] 開始後端代理上傳:', {
+    logger.log('[useUpload] 開始後端代理上傳:', {
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type,
@@ -151,12 +152,12 @@ export function useUpload() {
           },
         )
 
-        console.log('[useUpload] 後端代理上傳成功:', response.data)
+        logger.log('[useUpload] 後端代理上傳成功:', response.data)
 
         // 統一回傳欄位：優先使用 secure_url 與 public_id
         const mappedUrl = response.data.secure_url || response.data.url
         const mappedPublicId = response.data.publicId || response.data.public_id
-        console.log('[useUpload] 映射後欄位:', { url: mappedUrl, publicId: mappedPublicId })
+        logger.log('[useUpload] 映射後欄位:', { url: mappedUrl, publicId: mappedPublicId })
 
         return {
           url: mappedUrl,
@@ -164,7 +165,7 @@ export function useUpload() {
         }
       }
       catch (error: any) {
-        console.error('[useUpload] 後端代理上傳失敗:', error.response?.data || error.message)
+        logger.error('[useUpload] 後端代理上傳失敗:', error.response?.data || error.message)
 
         // 精細錯誤處理
         let errorMessage = '上傳失敗，請稍後再試'
@@ -196,14 +197,14 @@ export function useUpload() {
   // deleteFromCloudinary 函式保持不變
   const deleteFromCloudinary = async (publicId: string) => {
     if (!publicId || publicId.trim() === '') {
-      console.log('[useUpload] publicId 為空，跳過 Cloudinary 刪除')
+      logger.log('[useUpload] publicId 為空，跳過 Cloudinary 刪除')
       return { message: '跳過 Cloudinary 刪除（publicId 為空）' }
     }
     let resourceType = 'image'
     if (publicId.includes('/videos/')) {
       resourceType = 'video'
     }
-    console.log('[useUpload] 請求後端刪除 Cloudinary 資源:', { publicId, resourceType })
+    logger.log('[useUpload] 請求後端刪除 Cloudinary 資源:', { publicId, resourceType })
     try {
       // 直接呼叫後端刪除，不需要預先檢查
       // 後端會處理 "not found" 的情況
@@ -212,7 +213,7 @@ export function useUpload() {
       )
     }
     catch (error) {
-      console.error('[useUpload] 刪除 Cloudinary 資源失敗:', error)
+      logger.error('[useUpload] 刪除 Cloudinary 資源失敗:', error)
       // 即使失敗，也回傳一個成功的狀態，因為刪除失敗不應阻礙主流程
       return { message: '刪除請求已發送，但過程中發生錯誤' }
     }

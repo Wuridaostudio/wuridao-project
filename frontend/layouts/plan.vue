@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 import { useNuxtApp } from '#app'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -30,10 +31,10 @@ const footerLinks: Array<{ path: string, label: string }> = [
 
 // 確保數組始終可用
 if (!navLinks || !Array.isArray(navLinks)) {
-  console.error('navLinks is not properly defined')
+  logger.error('navLinks is not properly defined')
 }
 if (!footerLinks || !Array.isArray(footerLinks)) {
-  console.error('footerLinks is not properly defined')
+  logger.error('footerLinks is not properly defined')
 }
 
 const { $gsap } = useNuxtApp()
@@ -80,21 +81,21 @@ function handleHomeClick(e) {
 }
 
 function handleNavClick(path: string, label: string) {
-  console.log('[NavClick] 點擊連結:', label, 'path:', path)
+  logger.log('[NavClick] 點擊連結:', label, 'path:', path)
   if (route.path === path) {
-    console.log('[NavClick] 已在該頁，不跳轉')
+          logger.log('[NavClick] 已在該頁，不跳轉')
     return
   }
   router
     .push(path)
     .then(() => {
-      console.log(
+      logger.log(
         '[NavClick] router.push 完成，當前路由:',
         router.currentRoute.value.fullPath,
       )
     })
     .catch((err) => {
-      console.error('[NavClick] router.push 發生錯誤:', err)
+      logger.error('[NavClick] router.push 發生錯誤:', err)
     })
 }
 
@@ -152,7 +153,7 @@ onMounted(() => {
       navbar.value.style.opacity = '1'
     }
     catch (error) {
-      console.error('Animation error:', error)
+      logger.error('Animation error:', error)
     }
   }
 })

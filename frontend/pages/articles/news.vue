@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 import { useHead, useNuxtApp } from '#app'
 import { computed, onMounted, ref } from 'vue'
 import { useArticlesStore } from '~/stores/articles'
@@ -132,7 +133,7 @@ async function loadMoreItems() {
     ])
   }
   catch (error) {
-    console.error('❌ [news.vue] 載入更多內容失敗:', error)
+    logger.error('❌ [news.vue] 載入更多內容失敗:', error)
   }
 }
 
@@ -203,7 +204,7 @@ async function forceReloadMedia() {
     ])
   }
   catch (error) {
-    console.error('❌ [news.vue] 重新載入媒體數據失敗:', error)
+    logger.error('❌ [news.vue] 重新載入媒體數據失敗:', error)
   }
   finally {
     loading.value = false
@@ -215,7 +216,7 @@ async function forceReloadMedia() {
 onMounted(async () => {
   try {
     // 強制清除快取並重新載入所有數據
-    console.log('[news.vue] 開始載入數據，強制清除快取...')
+    logger.log('[news.vue] 開始載入數據，強制清除快取...')
     mediaStore.clearAllCache()
 
     // 強制重新載入所有數據
@@ -226,7 +227,7 @@ onMounted(async () => {
       categoriesStore.fetchCategories(),
     ])
 
-    console.log('[news.vue] 數據載入完成')
+    logger.log('[news.vue] 數據載入完成')
 
     // 關閉載入狀態
     loading.value = false
@@ -250,7 +251,7 @@ onMounted(async () => {
     }
   }
   catch (error) {
-    console.error('❌ [news.vue] onMounted 執行失敗:', error)
+    logger.error('❌ [news.vue] onMounted 執行失敗:', error)
     loading.value = false
   }
 })

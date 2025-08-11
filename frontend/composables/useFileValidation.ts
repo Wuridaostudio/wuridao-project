@@ -1,3 +1,5 @@
+import { logger } from '~/utils/logger'
+
 export function useFileValidation() {
   const validateFileBasic = (
     file: File,
@@ -70,7 +72,7 @@ export function useFileValidation() {
 
   // 驗證影片檔案
   const validateVideoFile = async (file: File, maxSize = 100 * 1024 * 1024) => {
-    console.log('[validateVideoFile] 開始驗證影片:', {
+    logger.log('[validateVideoFile] 開始驗證影片:', {
       name: file.name,
       size: file.size,
       type: file.type,
@@ -83,30 +85,30 @@ export function useFileValidation() {
     })
 
     if (basicValidation) {
-      console.log('[validateVideoFile] 基本驗證失敗:', basicValidation)
+      logger.log('[validateVideoFile] 基本驗證失敗:', basicValidation)
       return basicValidation
     }
 
     // 檢查影片時長
     try {
-      console.log('[validateVideoFile] 開始檢查影片時長...')
+      logger.log('[validateVideoFile] 開始檢查影片時長...')
       const duration = await getVideoDuration(file)
-      console.log('[validateVideoFile] 影片時長:', duration, '秒')
+      logger.log('[validateVideoFile] 影片時長:', duration, '秒')
       if (duration > 300) {
         // 5分鐘
         return '影片時長不能超過 5 分鐘'
       }
     }
     catch (error) {
-      console.error('[validateVideoFile] 檢查影片時長失敗:', error)
+      logger.error('[validateVideoFile] 檢查影片時長失敗:', error)
       // 如果無法讀取時長，但基本驗證通過，我們可以放寬限制
-      console.log(
+      logger.log(
         '[validateVideoFile] 無法讀取影片時長，但基本驗證通過，允許上傳',
       )
       return null
     }
 
-    console.log('[validateVideoFile] 影片驗證通過')
+    logger.log('[validateVideoFile] 影片驗證通過')
     return null
   }
 
@@ -129,11 +131,11 @@ export function useFileValidation() {
   // 獲取影片時長
   const getVideoDuration = (file: File): Promise<number> => {
     return new Promise((resolve, reject) => {
-      console.log('[getVideoDuration] 開始讀取影片時長...')
+      logger.log('[getVideoDuration] 開始讀取影片時長...')
       const video = document.createElement('video')
 
       video.onloadedmetadata = () => {
-        console.log(
+        logger.log(
           '[getVideoDuration] 影片元數據載入成功，時長:',
           video.duration,
         )
@@ -142,21 +144,21 @@ export function useFileValidation() {
       }
 
       video.onerror = (error) => {
-        console.error('[getVideoDuration] 影片載入失敗:', error)
+        logger.error('[getVideoDuration] 影片載入失敗:', error)
         reject(new Error('無法載入影片'))
         URL.revokeObjectURL(video.src)
       }
 
       video.onloadstart = () => {
-        console.log('[getVideoDuration] 開始載入影片...')
+        logger.log('[getVideoDuration] 開始載入影片...')
       }
 
       video.oncanplay = () => {
-        console.log('[getVideoDuration] 影片可以播放')
+        logger.log('[getVideoDuration] 影片可以播放')
       }
 
       const objectUrl = URL.createObjectURL(file)
-      console.log('[getVideoDuration] 創建 object URL:', objectUrl)
+      logger.log('[getVideoDuration] 創建 object URL:', objectUrl)
       video.src = objectUrl
     })
   }

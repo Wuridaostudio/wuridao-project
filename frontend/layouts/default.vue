@@ -1,5 +1,6 @@
 <!-- layouts/default.vue -->
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
 import { useNuxtApp } from '#app'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 // 移除 import BackendStatus from "@/components/common/BackendStatus.vue";
@@ -28,7 +29,7 @@ const mobileNavLinks: Array<{ path: string, label: string }> = [
 // 確保數組始終可用且安全
 const safeNavLinks = computed(() => {
   if (!navLinks || !Array.isArray(navLinks)) {
-    console.warn('navLinks is not properly defined, using fallback')
+    logger.warn('navLinks is not properly defined, using fallback')
     return [
       { path: '/', label: '首頁' },
       { path: '/articles/news', label: '最新消息' },
@@ -41,7 +42,7 @@ const safeNavLinks = computed(() => {
 // 移動端導航連結安全檢查
 const safeMobileNavLinks = computed(() => {
   if (!mobileNavLinks || !Array.isArray(mobileNavLinks)) {
-    console.warn('mobileNavLinks is not properly defined, using fallback')
+    logger.warn('mobileNavLinks is not properly defined, using fallback')
     return [
       { path: '/', label: '首頁' },
       { path: '/plan', label: '規劃服務' },
@@ -62,7 +63,7 @@ const footerLinks: Array<{ path: string, label: string }> = [
 // 確保數組始終可用且安全
 const safeFooterLinks = computed(() => {
   if (!footerLinks || !Array.isArray(footerLinks)) {
-    console.warn('footerLinks is not properly defined, using fallback')
+    logger.warn('footerLinks is not properly defined, using fallback')
     return [
       { path: '/', label: '首頁' },
       { path: '/articles/news', label: '最新消息' },
@@ -87,8 +88,8 @@ const currentYear = new Date().getFullYear()
 // const safeNavLinks = computed(() => navLinks || [])
 // const safeFooterLinks = computed(() => footerLinks || [])
 
-console.log('navLinks:', navLinks)
-console.log('footerLinks:', footerLinks)
+  logger.log('navLinks:', navLinks)
+  logger.log('footerLinks:', footerLinks)
 
 // 社群連結
 const socialLinks = [
@@ -123,21 +124,21 @@ function handleHomeClick(e) {
 }
 
 function handleNavClick(path: string, label: string) {
-  console.log('[NavClick] 點擊連結:', label, 'path:', path)
+  logger.log('[NavClick] 點擊連結:', label, 'path:', path)
   if (route.path === path) {
-    console.log('[NavClick] 已在該頁，不跳轉')
+          logger.log('[NavClick] 已在該頁，不跳轉')
     return
   }
   router
     .push(path)
     .then(() => {
-      console.log(
+      logger.log(
         '[NavClick] router.push 完成，當前路由:',
         router.currentRoute.value.fullPath,
       )
     })
     .catch((err) => {
-      console.error('[NavClick] router.push 發生錯誤:', err)
+      logger.error('[NavClick] router.push 發生錯誤:', err)
     })
 }
 
@@ -195,7 +196,7 @@ onMounted(() => {
       navbar.value.style.opacity = '1'
     }
     catch (error) {
-      console.error('Animation error:', error)
+      logger.error('Animation error:', error)
     }
   }
 })

@@ -1,9 +1,11 @@
 <!-- layouts/admin.vue -->
 <script setup lang="ts">
+import { logger } from '~/utils/logger'
+
 const authStore = useAuthStore()
 
 async function handleLogout() {
-  console.log('[AdminLayout] 執行登出')
+  logger.log('[AdminLayout] 執行登出')
   await authStore.logout()
 }
 </script>

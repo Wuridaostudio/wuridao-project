@@ -3,13 +3,15 @@ import fetch from 'node-fetch'
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY // 請在 .env 設定
 
-console.log('AI Gemini API handler loaded')
+logger.log('AI Gemini API handler loaded')
+
+import { logger } from '~/utils/logger'
 
 export default defineEventHandler(async (event) => {
   // 取得前端傳來的資料
   const body = await readBody(event)
   if (process.env.NODE_ENV === 'development') {
-    console.log('[AI] Request received:', { type: body.type, hasContent: !!body.content })
+    logger.log('[AI] Request received:', { type: body.type, hasContent: !!body.content })
   }
 
   // 組裝 prompt
@@ -38,11 +40,11 @@ export default defineEventHandler(async (event) => {
   )
   const data = await response.json()
   if (process.env.NODE_ENV === 'development') {
-    console.log('[AI] Gemini response received:', { hasCandidates: !!data.candidates, candidatesCount: data.candidates?.length })
+    logger.log('[AI] Gemini response received:', { hasCandidates: !!data.candidates, candidatesCount: data.candidates?.length })
   }
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
   if (process.env.NODE_ENV === 'development') {
-    console.log('[AI] Gemini text length:', text.length)
+    logger.log('[AI] Gemini text length:', text.length)
   }
 
   if (!text) {

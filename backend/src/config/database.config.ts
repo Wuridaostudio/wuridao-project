@@ -1,20 +1,25 @@
-import { DataSource } from 'typeorm';
-import { config } from 'dotenv';
-
-config();
-
-export const AppDataSource = new DataSource({
-  type: 'postgres',
+// src/config/database.config.ts
+export const databaseConfig = {
+  // 基本配置
+  type: 'postgres' as const,
   url: process.env.DATABASE_URL,
   ssl: process.env.USE_SSL === 'true' ? { rejectUnauthorized: false } : false,
-  entities: ['src/**/*.entity.ts', 'dist/**/*.entity.js'],
-  migrations: process.env.NODE_ENV === 'production' 
-    ? ['dist/database/migrations/*.js']
-    : ['src/database/migrations/*.ts'],
+  
+  // 同步配置 - 始終使用遷移
   synchronize: false,
+  
+  // 日誌配置 - 修復類型問題
   logging: process.env.NODE_ENV === 'development' ? ['query', 'error'] : ['error'],
+  
+  // 性能配置
   maxQueryExecutionTime: parseInt(process.env.DB_MAX_QUERY_TIME || '1000'),
+  retryAttempts: parseInt(process.env.DB_RETRY_ATTEMPTS || '3'),
+  retryDelay: parseInt(process.env.DB_RETRY_DELAY || '3000'),
+  autoLoadEntities: true,
+  
+  // 連接池配置
   extra: {
+    // 根據環境調整連接數
     connectionLimit: process.env.NODE_ENV === 'production' 
       ? parseInt(process.env.DB_POOL_SIZE_PROD || '10')
       : parseInt(process.env.DB_POOL_SIZE_DEV || '5'),
@@ -28,4 +33,4 @@ export const AppDataSource = new DataSource({
       idleTimeout: parseInt(process.env.DB_IDLE_TIMEOUT_FREE || '15000'),
     }),
   },
-});
+};

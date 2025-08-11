@@ -22,15 +22,13 @@ useSeoMeta({
   twitterCard: 'summary_large_image',
 })
 
-// 監聽路由變化以追蹤頁面瀏覽
+import { log } from '~/utils/logger'
+
+// 頁面瀏覽追蹤
 const route = useRoute()
-watch(
-  () => route.fullPath,
-  (newPath) => {
-    // 可以在這裡加入分析追蹤
-    console.log('Page view:', newPath)
-  },
-)
+watch(() => route.path, (newPath) => {
+  log.info('Page view', { path: newPath })
+})
 </script>
 
 <template>

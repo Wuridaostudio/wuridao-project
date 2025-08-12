@@ -63,7 +63,11 @@ export class CreateArticleDto {
   })
   @IsOptional()
   @IsInt({ message: '分類ID必須是整數' })
-  @Transform(({ value }) => parseInt(value))
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    const parsed = parseInt(value);
+    return isNaN(parsed) ? undefined : parsed;
+  })
   categoryId?: number;
 
   @ApiProperty({

@@ -50,19 +50,28 @@ import { databaseConfig } from './config/database.config';
   imports: [
     LoggerModule.forRoot({
       pinoHttp: {
-        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-        transport:
-          process.env.NODE_ENV !== 'production'
-            ? {
-                target: 'pino-pretty',
-                options: {
-                  colorize: true,
-                  // 新增以下這兩行
-                  crlf: true,
-                  errorLikeObjectKeys: ['err', 'error'],
-                },
-              }
-            : undefined,
+        level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
+        transport: process.env.NODE_ENV !== 'production'
+          ? {
+              target: 'pino-pretty',
+              options: {
+                colorize: true,
+                crlf: true,
+                errorLikeObjectKeys: ['err', 'error'],
+                ignore: 'pid,hostname',
+                translateTime: 'SYS:standard',
+              },
+            }
+          : undefined,
+        customLogLevel: (req, res, err) => {
+          if (res.statusCode >= 400 && res.statusCode < 500) {
+            return 'warn'
+          }
+          if (res.statusCode >= 500 || err) {
+            return 'error'
+          }
+          return 'info'
+        },
       },
     }),
     ConfigModule.forRoot({ isGlobal: true }),

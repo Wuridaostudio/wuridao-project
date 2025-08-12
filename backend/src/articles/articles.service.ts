@@ -145,12 +145,9 @@ export class ArticlesService {
       limit,
     });
 
-    // 處理 isDraft 參數
-    let isDraftBoolean: boolean | undefined = isDraft;
-
     this.logger.log(
       '🔍 [ArticlesService][findAll] 處理後的 isDraft:',
-      isDraftBoolean,
+      isDraft,
     );
 
     const skip = (page - 1) * limit;
@@ -162,11 +159,11 @@ export class ArticlesService {
       .take(limit)
       .skip(skip);
 
-    if (isDraftBoolean !== undefined) {
-      query.where('article.isDraft = :isDraft', { isDraft: isDraftBoolean });
+    if (isDraft !== undefined) {
+      query.where('article.isDraft = :isDraft', { isDraft });
       this.logger.log(
         '🔍 [ArticlesService][findAll] 應用 isDraft 篩選:',
-        isDraftBoolean,
+        isDraft,
       );
     } else {
       this.logger.log('🔍 [ArticlesService][findAll] 未應用 isDraft 篩選');

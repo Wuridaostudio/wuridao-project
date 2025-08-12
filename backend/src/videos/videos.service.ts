@@ -92,11 +92,11 @@ export class VideosService {
         );
         if (exists) {
           await this.cloudinaryService.deleteResource(video.publicId, 'video');
-          this.logger.debug(
+          this.logger.log(
             `[VideosService] Old Cloudinary resource deleted: ${video.publicId ? 'yes' : 'no'}`,
           );
         } else {
-          this.logger.debug(
+          this.logger.log(
             `[VideosService] Old Cloudinary resource not found: ${video.publicId ? 'yes' : 'no'}`,
           );
         }
@@ -149,11 +149,11 @@ export class VideosService {
         );
         if (exists) {
           await this.cloudinaryService.deleteResource(video.publicId, 'video');
-          this.logger.debug(
+          this.logger.log(
             `[VideosService] Cloudinary resource deleted: ${video.publicId ? 'yes' : 'no'}`,
           );
         } else {
-          this.logger.debug(
+          this.logger.log(
             `[VideosService] Cloudinary resource not found: ${video.publicId ? 'yes' : 'no'}`,
           );
         }

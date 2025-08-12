@@ -43,37 +43,33 @@ export function useApi() {
         logger.error('API request returned 401. Logging out.')
         await authStore.logout()
       }
+      
+      // 統一處理 400 驗證錯誤
+      if (response.status === 400) {
+        logger.warn('Validation error:', response._data)
+      }
+      
+      // 統一處理 500 伺服器錯誤
+      if (response.status >= 500) {
+        logger.error('Server error:', response._data)
+      }
     },
   })
 
   return {
     // Articles - 使用公開 API
     getArticles: (params = {}) => {
-      logger.log('🔍 [useApi][getArticles] 開始獲取文章列表')
-      logger.log('📋 [useApi][getArticles] 請求參數:', params)
-      logger.log('🔗 [useApi][getArticles] 請求 URL: /articles')
+      logger.debug('Fetching articles', { params })
 
-      // 新增：檢查參數類型
-      logger.log('🔍 [useApi][getArticles] 參數類型檢查:')
-      Object.entries(params).forEach(([key, value]) => {
-        logger.log(`  - ${key}: ${value} (類型: ${typeof value})`)
-      })
-
-      // 新增：處理 undefined 值，確保它們不會被過濾掉
+      // 過濾掉 undefined 和 null 值，避免發送空參數
       const processedParams = { ...params }
       Object.keys(processedParams).forEach((key) => {
-        if (processedParams[key] === undefined) {
-          // 將 undefined 轉換為空字串，這樣它會被包含在 URL 參數中
-          processedParams[key] = ''
-          logger.log(`🔄 [useApi][getArticles] 將 ${key}: undefined 轉換為空字串`)
+        if (processedParams[key] === undefined || processedParams[key] === null) {
+          delete processedParams[key]
         }
       })
 
-      logger.log('📋 [useApi][getArticles] 處理後的參數:', processedParams)
-
-      const result = publicApi('/articles', { params: processedParams })
-      logger.log('📤 [useApi][getArticles] 發送請求完成')
-      return result
+      return publicApi('/articles', { params: processedParams })
     },
 
     getArticle: (id: number) => publicApi(`/articles/${id}`),
@@ -83,72 +79,33 @@ export function useApi() {
     getVideo: (id: string) => publicApi(`/videos/${id}`),
 
     createArticle: (article: Partial<Article>, coverImageFile?: File) => {
-      logger.log('🚀 [useApi] ===== 創建文章 API 調用開始 =====')
-      logger.log('📋 [useApi] 接收到的數據:', {
-        article,
-        coverImageFile: coverImageFile
-          ? {
-              name: coverImageFile.name,
-              size: coverImageFile.size,
-              type: coverImageFile.type,
-            }
-          : null,
+      logger.log('Creating article', { 
+        title: article.title, 
+        hasCoverImage: !!coverImageFile 
       })
 
       if (coverImageFile) {
-        logger.log('📁 [useApi] 使用 multipart/form-data 格式（有檔案）')
-        // 使用 multipart/form-data 格式
         const formData = new FormData()
         formData.append('coverImage', coverImageFile)
-        logger.log('📎 [useApi] 已添加檔案到 FormData:', coverImageFile.name)
 
-        // 將文章資料轉換為 JSON 字串並附加到 FormData
-        // 排除 coverImageFile 欄位，因為它不應該發送到後端
-        logger.log('📝 [useApi] 開始處理文章數據...')
         Object.keys(article).forEach((key) => {
-          if (key === 'coverImageFile') {
-            logger.log('⏭️ [useApi] 跳過 coverImageFile 欄位')
-            return // 跳過這個欄位
-          }
+          if (key === 'coverImageFile') return
 
           const value = article[key]
           if (value !== undefined && value !== null) {
             if (typeof value === 'object') {
               formData.append(key, JSON.stringify(value))
-              logger.log('📦 [useApi] 添加物件欄位:', key, '值:', `${JSON.stringify(value).substring(0, 100)}...`)
-            }
-            else {
+            } else {
               formData.append(key, String(value))
-              logger.log('📝 [useApi] 添加字串欄位:', key, '值:', String(value))
             }
           }
-          else {
-            logger.log('⏭️ [useApi] 跳過空值欄位:', key)
-          }
         })
 
-        logger.log('📤 [useApi] 發送 POST 請求到 /articles（有檔案）')
-        logger.log('📊 [useApi] FormData 統計:', {
-          hasCoverImage: formData.has('coverImage'),
-          formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
-            key,
-            valueType: typeof value,
-            valueLength: value instanceof File ? value.size : String(value).length,
-          })),
-        })
-
-        logger.log('🏁 [useApi] ===== 創建文章 API 調用結束 =====')
         return api('/articles', {
           method: 'POST',
           body: formData,
         })
-      }
-      else {
-        logger.log('📄 [useApi] 使用 JSON 格式（無檔案）')
-        logger.log('📤 [useApi] 發送 POST 請求到 /articles（無檔案）')
-        logger.log('📊 [useApi] JSON 數據:', article)
-        logger.log('🏁 [useApi] ===== 創建文章 API 調用結束 =====')
-        // 沒有檔案時使用 JSON 格式
+      } else {
         return api('/articles', {
           method: 'POST',
           body: article,
@@ -157,76 +114,36 @@ export function useApi() {
     },
 
     updateArticle: (id: number, article: Partial<Article>, coverImageFile?: File) => {
-      logger.log('🚀 [useApi] ===== 更新文章 API 調用開始 =====')
-      logger.log('📋 [useApi] 接收到的數據:', {
-        id,
-        article,
-        coverImageFile: coverImageFile
-          ? {
-              name: coverImageFile.name,
-              size: coverImageFile.size,
-              type: coverImageFile.type,
-            }
-          : null,
+      logger.log('Updating article', { 
+        id, 
+        title: article.title, 
+        hasCoverImage: !!coverImageFile 
       })
 
       const url = `/articles/${id}`
-      logger.log('🔗 [useApi] 請求 URL:', url)
 
       if (coverImageFile) {
-        logger.log('📁 [useApi] 使用 multipart/form-data 格式（有檔案）')
-        // 使用 multipart/form-data 格式
         const formData = new FormData()
         formData.append('coverImage', coverImageFile)
-        logger.log('📎 [useApi] 已添加檔案到 FormData:', coverImageFile.name)
 
-        // 將文章資料轉換為 JSON 字串並附加到 FormData
-        // 排除 coverImageFile 欄位，因為它不應該發送到後端
-        logger.log('📝 [useApi] 開始處理文章數據...')
         Object.keys(article).forEach((key) => {
-          if (key === 'coverImageFile') {
-            logger.log('⏭️ [useApi] 跳過 coverImageFile 欄位')
-            return // 跳過這個欄位
-          }
+          if (key === 'coverImageFile') return
 
           const value = article[key]
           if (value !== undefined && value !== null) {
             if (typeof value === 'object') {
               formData.append(key, JSON.stringify(value))
-              logger.log('📦 [useApi] 添加物件欄位:', key, '值:', `${JSON.stringify(value).substring(0, 100)}...`)
-            }
-            else {
+            } else {
               formData.append(key, String(value))
-              logger.log('📝 [useApi] 添加字串欄位:', key, '值:', String(value))
             }
           }
-          else {
-            logger.log('⏭️ [useApi] 跳過空值欄位:', key)
-          }
         })
 
-        logger.log('📤 [useApi] 發送 PATCH 請求到', url, '（有檔案）')
-        logger.log('📊 [useApi] FormData 統計:', {
-          hasCoverImage: formData.has('coverImage'),
-          formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
-            key,
-            valueType: typeof value,
-            valueLength: value instanceof File ? value.size : String(value).length,
-          })),
-        })
-
-        logger.log('🏁 [useApi] ===== 更新文章 API 調用結束 =====')
         return api(url, {
           method: 'PATCH',
           body: formData,
         })
-      }
-      else {
-        logger.log('📄 [useApi] 使用 JSON 格式（無檔案）')
-        logger.log('📤 [useApi] 發送 PATCH 請求到', url, '（無檔案）')
-        logger.log('📊 [useApi] JSON 數據:', article)
-        logger.log('🏁 [useApi] ===== 更新文章 API 調用結束 =====')
-        // 沒有檔案時使用 JSON 格式
+      } else {
         return api(url, {
           method: 'PATCH',
           body: article,

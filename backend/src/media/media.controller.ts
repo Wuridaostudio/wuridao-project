@@ -41,46 +41,35 @@ export class MediaController {
         this.logger.log(`[MEDIA] 找到照片 ID: ${id}`);
         return { ...photo, type: 'photo' };
       }
-    } catch (error) {
-      this.logger.debug(`[MEDIA] 照片 ID ${id} 不存在，嘗試影片`);
-    }
-
-    try {
-      // 再嘗試獲取影片
+      
+      // 如果照片不存在，嘗試影片
+      this.logger.log(`[MEDIA] 照片 ID ${id} 不存在，嘗試影片`);
       const video = await this.videosService.findOne(+id);
       if (video) {
-        this.logger.log(`[MEDIA] 找到影片 ID: ${id}`);
-        return { ...video, type: 'video' };
+        return video;
       }
-    } catch (error) {
-      this.logger.debug(`[MEDIA] 影片 ID ${id} 不存在`);
-    }
-
-    // 2) 最後再嘗試完整 public_id 命中 Cloudinary 作為回退
-    if (id.includes('/')) {
-      this.logger.log(`[MEDIA] 檢測到 Cloudinary public_id: ${id}`);
+      
+      this.logger.log(`[MEDIA] 影片 ID ${id} 不存在`);
+      
+      // 嘗試從 Cloudinary 獲取
       try {
-        const exists = await this.cloudinaryService.checkResourceExists(id);
-        if (exists) {
-          const resourceType = id.includes('/videos/') ? 'video' : 'image';
-          const cloudinaryResource = await this.cloudinaryService.getCloudinaryConfig();
-          return {
-            id,
-            url: `https://res.cloudinary.com/${cloudinaryResource.cloudName}/image/upload/${id}`,
-            publicId: id,
-            description: '',
-            type: resourceType,
-            createdAt: new Date().toISOString(),
-          };
+        const cloudinaryResource = await this.cloudinaryService.getResource(id);
+        if (cloudinaryResource) {
+          return cloudinaryResource;
         }
-      } catch (error) {
-        this.logger.debug(`[MEDIA] Cloudinary 資源 ${id} 不存在`);
+      } catch (cloudinaryError) {
+        this.logger.log(`[MEDIA] Cloudinary 資源 ${id} 不存在`);
       }
+      
+      throw new NotFoundException(`Media with ID ${id} not found`);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      
+      this.logger.error(`[MEDIA] 獲取媒體時發生錯誤: ${error.message}`);
+      throw new NotFoundException(`Media with ID ${id} not found`);
     }
-
-    // 如果都找不到，拋出 404 錯誤
-    this.logger.warn(`[MEDIA] 媒體 ID ${id} 不存在`);
-    throw new NotFoundException(`找不到 ID 為 ${id} 的媒體項目`);
   }
 
   @ApiOperation({ summary: '獲取公開媒體列表（從 Cloudinary）' })

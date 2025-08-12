@@ -3,8 +3,8 @@ import type { Article } from '~/types/article'
 import { defineStore } from 'pinia'
 import { useApi } from '~/composables/useApi'
 import { useLoading } from '~/composables/useLoading'
-
 import { logger } from '~/utils/logger'
+import { handleApiError, showErrorToast } from '~/utils/errorHandler'
 
 export const useArticlesStore = defineStore('articles', {
   state: () => ({
@@ -28,7 +28,9 @@ export const useArticlesStore = defineStore('articles', {
         return this.currentArticle
       }
       catch (err) {
-        this.error = '載入文章失敗'
+        const error = handleApiError(err, 'ArticlesStore.fetchArticle')
+        this.error = error.message
+        showErrorToast(error)
         throw err
       }
       finally {
@@ -39,78 +41,56 @@ export const useArticlesStore = defineStore('articles', {
     // 獲取文章列表
     async fetchArticles({ isDraft, page = 1, limit = 15 } = {}) {
       const { startLoading, stopLoading } = useLoading()
-      logger.log('🔍 [ArticlesStore][fetchArticles] 開始獲取文章列表')
-      logger.log('📋 [ArticlesStore][fetchArticles] 請求參數:', { isDraft, page, limit })
+      logger.debug('Fetching articles', { isDraft, page, limit })
 
       startLoading('fetch-articles', '載入文章列表...')
       this.error = null
       try {
         const api = useApi()
         const { data, total } = await api.getArticles({ isDraft, page, limit })
-        logger.log('📊 [ArticlesStore][fetchArticles] API 返回結果:', {
-          total,
-          dataLength: data.length,
-          isDraft,
-          page,
-          limit,
-        })
-
+        
         this.articles = data
         this.totalArticles = total
         this.currentPage = page
 
-        logger.log('📋 [ArticlesStore][fetchArticles] 文章詳情:')
-        data.forEach((article, index) => {
-          logger.log(`  ${index + 1}. ID: ${article.id}, 標題: ${article.title}, isDraft: ${article.isDraft}, coverImageUrl: ${article.coverImageUrl}`)
-        })
-
-        // 新增：檢查是否為空結果
-        if (data.length === 0) {
-          logger.log('⚠️ [ArticlesStore][fetchArticles] 警告：API 返回空結果')
-          logger.log('🔍 [ArticlesStore][fetchArticles] 可能的原因：')
-          logger.log(`  - 請求參數 isDraft=${isDraft}`)
-          logger.log(`  - 請求參數 page=${page}, limit=${limit}`)
-          logger.log(`  - API 返回 total=${total}`)
-        }
-
+        logger.debug('Articles fetched', { total, count: data.length, isDraft })
         return data
       }
       catch (err) {
-        logger.error('❌ [ArticlesStore][fetchArticles] 獲取文章列表失敗:', err)
-        this.error = '載入文章列表失敗'
+        const error = handleApiError(err, 'ArticlesStore.fetchArticles')
+        this.error = error.message
+        showErrorToast(error)
         throw err
       }
       finally {
         stopLoading('fetch-articles')
-        logger.log('🏁 [ArticlesStore][fetchArticles] 獲取文章列表完成')
       }
     },
 
     // 儲存（新增或更新）文章
     async saveArticle(article: Partial<Article>, coverImageFile?: File) {
       const { startLoading, stopLoading } = useLoading()
-      logger.log('🚀 [ArticlesStore] ===== 文章儲存流程開始 =====')
-      logger.log('📋 [ArticlesStore] 接收到的數據:', {
-        articleId: article.id,
-        title: article.title,
-        hasContent: !!article.content,
-        contentLength: article.content?.length || 0,
-        coverImageUrl: article.coverImageUrl,
-        coverImageFile: coverImageFile
-          ? {
-              name: coverImageFile.name,
-              size: coverImageFile.size,
-              type: coverImageFile.type,
-            }
-          : null,
+      logger.debug('Article save started', { 
+        id: article.id, 
+        title: article.title, 
+        hasCoverImage: !!coverImageFile 
       })
 
       startLoading('save-article', '儲存文章中...')
       this.error = null
       try {
         const api = useApi()
-        const savedArticle = await api.saveArticle(article, coverImageFile)
-        logger.log('✅ [ArticlesStore] 文章儲存成功:', savedArticle)
+        let savedArticle: Article
+
+        if (article.id) {
+          logger.debug('Updating existing article', { id: article.id })
+          savedArticle = await api.updateArticle(article.id, article, coverImageFile)
+        } else {
+          logger.debug('Creating new article')
+          savedArticle = await api.createArticle(article, coverImageFile)
+        }
+
+        logger.debug('Article saved successfully', { id: savedArticle.id })
 
         // 更新本地列表
         const index = this.articles.findIndex(a => a.id === savedArticle.id)
@@ -122,20 +102,14 @@ export const useArticlesStore = defineStore('articles', {
 
         return savedArticle
       }
-      catch (err: any) {
-        logger.error('❌ [ArticlesStore] 文章儲存失敗:', {
-          message: err.message,
-          status: err.status,
-          statusText: err.statusText,
-          data: err.data,
-          stack: err.stack?.substring(0, 500),
-        })
-        this.error = '儲存文章失敗'
+      catch (err) {
+        const error = handleApiError(err, 'ArticlesStore.saveArticle')
+        this.error = error.message
+        showErrorToast(error)
         throw err
       }
       finally {
         stopLoading('save-article')
-        logger.log('🏁 [ArticlesStore] ===== 文章儲存流程結束 =====')
       }
     },
 

@@ -41,11 +41,13 @@ async function bootstrap() {
     next();
   });
 
-  // 配置 Multer 檔案上傳編碼
+  // 修正 multipart/form-data 中文亂碼問題
   app.use((req, res, next) => {
-    // 確保檔案名稱編碼正確
-    if (req.headers['content-type']?.includes('multipart/form-data')) {
-      res.setHeader('Content-Type', 'multipart/form-data; charset=utf-8');
+    if (
+      req.headers['content-type']?.includes('multipart/form-data') &&
+      !req.headers['content-type']?.includes('charset')
+    ) {
+      req.headers['content-type'] += '; charset=utf-8';
     }
     next();
   });

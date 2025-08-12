@@ -76,12 +76,17 @@ export class ArticlesController {
       coverImageSize: coverImage?.size,
       coverImageMimeType: coverImage?.mimetype
     });
-    
-    this.logger.debug({ 
-      controllerCoverImageExists: !!coverImage, 
-      controllerCoverImageName: coverImage?.originalname,
-      createArticleDtoKeys: Object.keys(createArticleDto)
-    }, '[ArticlesController][create] Received data:');
+
+    this.logger.log({
+      title: createArticleDto.title,
+      contentLength: createArticleDto.content?.length || 0,
+      coverImageUrl: createArticleDto.coverImageUrl,
+      coverImagePublicId: createArticleDto.coverImagePublicId,
+      isDraft: createArticleDto.isDraft,
+      categoryId: createArticleDto.categoryId,
+      tagIds: createArticleDto.tagIds,
+      dtoKeys: Object.keys(createArticleDto)
+    }, 'createArticleDto');
     
     console.log("🔄 [ArticlesController] 調用 ArticlesService.create...");
     const result = this.articlesService.create(createArticleDto, coverImage);
@@ -94,11 +99,22 @@ export class ArticlesController {
   @ApiOperation({ summary: '獲取文章列表 (公開)' })
   @Get()
   findAll(
-    @Query('draft', new DefaultValuePipe(false), ParseBoolPipe) isDraft: boolean,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(15), ParseIntPipe) limit: number,
+    @Query('draft') isDraft?: string,
   ) {
-    return this.articlesService.findAll(isDraft, page, limit);
+    // 手動處理布林值轉換
+    let isDraftBoolean: boolean | undefined = undefined;
+    
+    if (isDraft !== undefined && isDraft !== '') {
+      if (isDraft === 'true' || isDraft === '1') {
+        isDraftBoolean = true;
+      } else if (isDraft === 'false' || isDraft === '0') {
+        isDraftBoolean = false;
+      }
+    }
+    
+    return this.articlesService.findAll(isDraftBoolean, page, limit);
   }
 
   @ApiOperation({ summary: '獲取單篇文章 (公開)' })
@@ -129,11 +145,10 @@ export class ArticlesController {
     // 安全日誌：記錄文章更新操作
     this.logger.log(`[SECURITY] Article update (ID: ${id}) by user ID: ${req.user?.userId}`);
     
-    console.log("📋 [ArticlesController] 接收到的 DTO 數據:", {
+    console.log("📋 [ArticlesController] 接收到的更新數據:", {
       title: updateArticleDto.title,
       contentLength: updateArticleDto.content?.length || 0,
       coverImageUrl: updateArticleDto.coverImageUrl,
-      coverImagePublicId: updateArticleDto.coverImagePublicId,
       isDraft: updateArticleDto.isDraft,
       categoryId: updateArticleDto.categoryId,
       tagIds: updateArticleDto.tagIds,
@@ -147,7 +162,7 @@ export class ArticlesController {
       coverImageMimeType: coverImage?.mimetype
     });
     
-    this.logger.debug({ updateArticleDto }, 'updateArticleDto');
+    this.logger.log({ updateArticleDto }, 'updateArticleDto');
     
     console.log("🔄 [ArticlesController] 調用 ArticlesService.update...");
     const result = this.articlesService.update(+id, updateArticleDto, coverImage);

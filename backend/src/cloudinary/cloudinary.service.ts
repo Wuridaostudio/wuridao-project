@@ -149,7 +149,7 @@ export class CloudinaryService {
         throw new BadRequestException('File must have either path or buffer property');
       }
 
-      this.logger.debug('[CLOUDINARY SDK RESULT]', { result, folder, publicId });
+      this.logger.log('[CLOUDINARY SDK RESULT]', { result, folder, publicId });
       return result;
     } catch (error: any) {
       this.logger.error('[CLOUDINARY ERROR]', error);
@@ -300,6 +300,23 @@ export class CloudinaryService {
     } catch (error) {
       if (error.http_code === 404) {
         return false;
+      }
+      throw error;
+    }
+  }
+
+  async getResource(
+    publicId: string,
+    resourceType: 'image' | 'video' | 'raw' = 'image',
+  ) {
+    try {
+      const result = await cloudinary.api.resource(publicId, {
+        resource_type: resourceType,
+      });
+      return result;
+    } catch (error) {
+      if (error.http_code === 404) {
+        return null;
       }
       throw error;
     }

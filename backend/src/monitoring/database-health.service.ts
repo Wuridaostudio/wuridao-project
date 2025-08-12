@@ -27,7 +27,7 @@ export class DatabaseHealthService {
       const result = await this.dataSource.query('SELECT 1 as health_check');
       
       if (result && result[0]?.health_check === 1) {
-        this.logger.debug('✅ [DatabaseHealth] 資料庫連接正常');
+        this.logger.log('✅ [DatabaseHealth] 資料庫連接正常');
       } else {
         this.logger.warn('⚠️ [DatabaseHealth] 資料庫響應異常');
       }
@@ -41,7 +41,7 @@ export class DatabaseHealthService {
           waiting: pool.waiting,
         };
         
-        this.logger.debug('📊 [DatabaseHealth] 連接池狀態', poolStats);
+        this.logger.log('📊 [DatabaseHealth] 連接池狀態', poolStats);
         
         // 檢查連接池健康狀況
         if (pool.waiting > 5) {
@@ -90,9 +90,30 @@ export class DatabaseHealthService {
   async testConnection() {
     try {
       await this.dataSource.query('SELECT 1');
-      return { success: true, message: '資料庫連接正常' };
+      this.logger.log('✅ [DatabaseHealth] 資料庫連接正常');
+      return { status: 'healthy', message: 'Database connection is healthy' };
     } catch (error) {
-      return { success: false, message: error.message };
+      this.logger.error('❌ [DatabaseHealth] 資料庫連接失敗:', error);
+      return { status: 'unhealthy', message: 'Database connection failed', error: error.message };
+    }
+  }
+
+  async getConnectionPoolStats() {
+    try {
+      const poolStats = await this.dataSource.query(`
+        SELECT 
+          count(*) as total_connections,
+          count(*) FILTER (WHERE state = 'active') as active_connections,
+          count(*) FILTER (WHERE state = 'idle') as idle_connections
+        FROM pg_stat_activity 
+        WHERE datname = current_database()
+      `);
+      
+      this.logger.log('📊 [DatabaseHealth] 連接池狀態', poolStats);
+      return poolStats[0];
+    } catch (error) {
+      this.logger.error('❌ [DatabaseHealth] 獲取連接池狀態失敗:', error);
+      return null;
     }
   }
 }

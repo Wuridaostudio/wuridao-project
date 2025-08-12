@@ -18,4 +18,5 @@ export const logger = {
   warn: isDevelopment ? console.warn.bind(console, LOG_PREFIX) : noOp,
   error: isDevelopment ? console.error.bind(console, LOG_PREFIX) : noOp,
   info: isDevelopment ? console.info.bind(console, LOG_PREFIX) : noOp,
+  debug: isDevelopment ? console.debug.bind(console, LOG_PREFIX) : noOp,
 };

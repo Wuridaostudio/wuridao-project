@@ -77,3 +77,4 @@ export class ArticleSeoService {
     return plainText.length > 160 ? plainText.substring(0, 157) + '...' : plainText;
   }
 }
+

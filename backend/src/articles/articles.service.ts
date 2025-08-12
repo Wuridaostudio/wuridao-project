@@ -134,7 +134,7 @@ export class ArticlesService {
   }
 
   async findAll(
-    isDraft?: string,
+    isDraft?: boolean,
     page = 1,
     limit = 15,
   ): Promise<{ data: Article[]; total: number }> {
@@ -146,17 +146,7 @@ export class ArticlesService {
     });
 
     // 處理 isDraft 參數
-    let isDraftBoolean: boolean | undefined;
-    if (isDraft === 'true') {
-      isDraftBoolean = true;
-    } else if (isDraft === 'false') {
-      isDraftBoolean = false;
-    } else if (isDraft === '' || isDraft === undefined) {
-      isDraftBoolean = undefined; // 不應用篩選
-    } else {
-      this.logger.warn('⚠️ [ArticlesService][findAll] 未知的 isDraft 值:', isDraft);
-      isDraftBoolean = undefined;
-    }
+    let isDraftBoolean: boolean | undefined = isDraft;
 
     this.logger.log(
       '🔍 [ArticlesService][findAll] 處理後的 isDraft:',

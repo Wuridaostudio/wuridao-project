@@ -1,5 +1,5 @@
 // src/app.module.ts - 完整的應用模組
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -8,7 +8,6 @@ import { APP_GUARD } from '@nestjs/core';
 import { MulterModule } from '@nestjs/platform-express';
 import * as multer from 'multer';
 import { LoggerModule } from 'nestjs-pino';
-import { Logger } from 'nestjs-pino';
 import * as Sentry from '@sentry/node';
 
 // 業務模組
@@ -56,7 +55,12 @@ import { databaseConfig } from './config/database.config';
           process.env.NODE_ENV !== 'production'
             ? {
                 target: 'pino-pretty',
-                options: { colorize: true },
+                options: {
+                  colorize: true,
+                  // 新增以下這兩行
+                  crlf: true,
+                  errorLikeObjectKeys: ['err', 'error'],
+                },
               }
             : undefined,
       },
@@ -143,7 +147,7 @@ import { databaseConfig } from './config/database.config';
     CreateAdminSeed,
     CreateCategoriesSeed,
     CreateTagsSeed,
-    Logger,
+    // Logger, // Logger is provided by LoggerModule
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
@@ -151,6 +155,8 @@ import { databaseConfig } from './config/database.config';
   ],
 })
 export class AppModule implements OnModuleInit {
+  private readonly logger = new Logger(AppModule.name); // 實例化 Logger
+
   constructor(
     private readonly createAdminSeed: CreateAdminSeed,
     private readonly createCategoriesSeed: CreateCategoriesSeed,
@@ -173,9 +179,9 @@ export class AppModule implements OnModuleInit {
         await this.createAdminSeed.run();
         await this.createCategoriesSeed.run();
         await this.createTagsSeed.run();
-        console.log('✅ 種子數據初始化完成');
+        this.logger.log('✅ 種子數據初始化完成');
       } catch (error) {
-        console.error('❌ 種子數據初始化失敗:', error);
+        this.logger.error({ err: error }, '❌ 種子數據初始化失敗');
       }
     }
   }

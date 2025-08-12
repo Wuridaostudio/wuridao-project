@@ -5,7 +5,6 @@ import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -51,8 +50,8 @@ async function bootstrap() {
     next();
   });
 
-  // 全域異常過濾器 - 使用新的全域錯誤處理
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  // 全局異常過濾器
+  app.useGlobalFilters(new HttpExceptionFilter(app.get(Logger)));
 
   // 全局攔截器
   app.useGlobalInterceptors(new LoggingInterceptor());
@@ -132,7 +131,6 @@ async function bootstrap() {
     .addTag('Unsplash', 'Unsplash 圖片搜尋接口')
     .addTag('數據分析', '網站數據分析接口')
     .addTag('SEO', 'SEO 相關接口')
-    .addTag('系統健康檢查', '系統健康檢查接口')
     .addBearerAuth()
     .addServer('http://localhost:3000', '本地開發環境')
     .addServer('https://wuridao-api.onrender.com', '生產環境')

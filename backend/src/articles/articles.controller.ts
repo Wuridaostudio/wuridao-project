@@ -50,22 +50,16 @@ export class ArticlesController {
     @Body() createArticleDto: CreateArticleDto,
     @UploadedFile() coverImage?: Express.Multer.File,
   ) {
-    // 處理 isDraft 參數
-    if (typeof createArticleDto.isDraft === 'string') {
-      createArticleDto.isDraft = createArticleDto.isDraft === 'true';
-    }
-    console.log('🚀 [ArticlesController] ===== 文章創建請求開始 =====');
-    console.log('👤 [ArticlesController] 用戶信息:', {
+    console.log("🚀 [ArticlesController] ===== 文章創建請求開始 =====");
+    console.log("👤 [ArticlesController] 用戶信息:", {
       userId: req.user?.userId,
-      username: req.user?.username,
+      username: req.user?.username
     });
-
+    
     // 安全日誌：記錄文章創建操作
-    this.logger.log(
-      `[SECURITY] Article creation by user ID: ${req.user?.userId}`,
-    );
-
-    console.log('📋 [ArticlesController] 接收到的 DTO 數據:', {
+    this.logger.log(`[SECURITY] Article creation by user ID: ${req.user?.userId}`);
+    
+    console.log("📋 [ArticlesController] 接收到的 DTO 數據:", {
       title: createArticleDto.title,
       contentLength: createArticleDto.content?.length || 0,
       coverImageUrl: createArticleDto.coverImageUrl,
@@ -73,39 +67,36 @@ export class ArticlesController {
       isDraft: createArticleDto.isDraft,
       categoryId: createArticleDto.categoryId,
       tagIds: createArticleDto.tagIds,
-      dtoKeys: Object.keys(createArticleDto),
+      dtoKeys: Object.keys(createArticleDto)
     });
-
-    console.log('📁 [ArticlesController] 檔案信息:', {
+    
+    console.log("📁 [ArticlesController] 檔案信息:", {
       hasCoverImage: !!coverImage,
       coverImageName: coverImage?.originalname,
       coverImageSize: coverImage?.size,
-      coverImageMimeType: coverImage?.mimetype,
+      coverImageMimeType: coverImage?.mimetype
     });
-
-    this.logger.debug(
-      {
-        controllerCoverImageExists: !!coverImage,
-        controllerCoverImageName: coverImage?.originalname,
-        createArticleDtoKeys: Object.keys(createArticleDto),
-      },
-      '[ArticlesController][create] Received data:',
-    );
-
-    console.log('🔄 [ArticlesController] 調用 ArticlesService.create...');
+    
+    this.logger.debug({ 
+      controllerCoverImageExists: !!coverImage, 
+      controllerCoverImageName: coverImage?.originalname,
+      createArticleDtoKeys: Object.keys(createArticleDto)
+    }, '[ArticlesController][create] Received data:');
+    
+    console.log("🔄 [ArticlesController] 調用 ArticlesService.create...");
     const result = this.articlesService.create(createArticleDto, coverImage);
-    console.log('✅ [ArticlesController] 文章創建請求處理完成');
-    console.log('🏁 [ArticlesController] ===== 文章創建請求結束 =====');
-
+    console.log("✅ [ArticlesController] 文章創建請求處理完成");
+    console.log("🏁 [ArticlesController] ===== 文章創建請求結束 =====");
+    
     return result;
   }
 
   @ApiOperation({ summary: '獲取文章列表 (公開)' })
   @Get()
   findAll(
-    @Query('isDraft') isDraft?: string,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
-    @Query('limit', new DefaultValuePipe(15), ParseIntPipe) limit?: number,
+    @Query('draft', new DefaultValuePipe(false), ParseBoolPipe) isDraft: boolean,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(15), ParseIntPipe) limit: number,
   ) {
     return this.articlesService.findAll(isDraft, page, limit);
   }
@@ -128,19 +119,17 @@ export class ArticlesController {
     @Body() updateArticleDto: UpdateArticleDto,
     @UploadedFile() coverImage?: Express.Multer.File,
   ) {
-    console.log('🚀 [ArticlesController] ===== 文章更新請求開始 =====');
-    console.log('👤 [ArticlesController] 用戶信息:', {
+    console.log("🚀 [ArticlesController] ===== 文章更新請求開始 =====");
+    console.log("👤 [ArticlesController] 用戶信息:", {
       userId: req.user?.userId,
-      username: req.user?.username,
+      username: req.user?.username
     });
-    console.log('🆔 [ArticlesController] 文章 ID:', id);
-
+    console.log("🆔 [ArticlesController] 文章 ID:", id);
+    
     // 安全日誌：記錄文章更新操作
-    this.logger.log(
-      `[SECURITY] Article update (ID: ${id}) by user ID: ${req.user?.userId}`,
-    );
-
-    console.log('📋 [ArticlesController] 接收到的 DTO 數據:', {
+    this.logger.log(`[SECURITY] Article update (ID: ${id}) by user ID: ${req.user?.userId}`);
+    
+    console.log("📋 [ArticlesController] 接收到的 DTO 數據:", {
       title: updateArticleDto.title,
       contentLength: updateArticleDto.content?.length || 0,
       coverImageUrl: updateArticleDto.coverImageUrl,
@@ -148,27 +137,23 @@ export class ArticlesController {
       isDraft: updateArticleDto.isDraft,
       categoryId: updateArticleDto.categoryId,
       tagIds: updateArticleDto.tagIds,
-      dtoKeys: Object.keys(updateArticleDto),
+      dtoKeys: Object.keys(updateArticleDto)
     });
-
-    console.log('📁 [ArticlesController] 檔案信息:', {
+    
+    console.log("📁 [ArticlesController] 檔案信息:", {
       hasCoverImage: !!coverImage,
       coverImageName: coverImage?.originalname,
       coverImageSize: coverImage?.size,
-      coverImageMimeType: coverImage?.mimetype,
+      coverImageMimeType: coverImage?.mimetype
     });
-
+    
     this.logger.debug({ updateArticleDto }, 'updateArticleDto');
-
-    console.log('🔄 [ArticlesController] 調用 ArticlesService.update...');
-    const result = this.articlesService.update(
-      +id,
-      updateArticleDto,
-      coverImage,
-    );
-    console.log('✅ [ArticlesController] 文章更新請求處理完成');
-    console.log('🏁 [ArticlesController] ===== 文章更新請求結束 =====');
-
+    
+    console.log("🔄 [ArticlesController] 調用 ArticlesService.update...");
+    const result = this.articlesService.update(+id, updateArticleDto, coverImage);
+    console.log("✅ [ArticlesController] 文章更新請求處理完成");
+    console.log("🏁 [ArticlesController] ===== 文章更新請求結束 =====");
+    
     return result;
   }
 
@@ -176,14 +161,9 @@ export class ArticlesController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  remove(
-    @Param('id') id: string,
-    @Request() req: ExpressRequest & { user?: JwtUser },
-  ) {
+  remove(@Param('id') id: string, @Request() req: ExpressRequest & { user?: JwtUser }) {
     // 安全日誌：記錄文章刪除操作
-    this.logger.log(
-      `[SECURITY] Article deletion (ID: ${id}) by user ID: ${req.user?.userId}`,
-    );
+    this.logger.log(`[SECURITY] Article deletion (ID: ${id}) by user ID: ${req.user?.userId}`);
     return this.articlesService.remove(+id);
   }
 }

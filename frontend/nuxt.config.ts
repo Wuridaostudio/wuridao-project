@@ -137,6 +137,17 @@ export default defineNuxtConfig({
       include: ['gsap', 'gsap/ScrollTrigger'],
     },
     build: {
+      // 修復 Terser 錯誤
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: false,
+          drop_debugger: true,
+        },
+        format: {
+          comments: false,
+        },
+      },
       rollupOptions: {
         output: {
           manualChunks: {

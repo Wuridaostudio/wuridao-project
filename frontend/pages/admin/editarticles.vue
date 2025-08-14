@@ -94,9 +94,19 @@ function cleanArticlePayload(form: typeof articleForm, editingId?: number) {
   })
 
   const payload = JSON.parse(JSON.stringify(form))
+  
+  // 修复：在编辑模式下不应该发送id字段，因为后端UpdateArticleDto不允许id字段
   if (editingId) {
-    payload.id = editingId
-    logger.log('🆔 [cleanArticlePayload] 設置編輯 ID:', editingId)
+    // 编辑模式：删除id字段，因为后端UpdateArticleDto不允许id字段
+    delete payload.id
+    logger.log('🆔 [cleanArticlePayload] 編輯模式，刪除 ID 欄位（後端不允許）')
+  } else if (form.id) {
+    // 新建模式但表单中有ID：删除ID
+    delete payload.id
+    logger.log('🆔 [cleanArticlePayload] 新建模式，移除表單 ID')
+  } else {
+    // 新建模式且表单中没有ID：保持现状
+    logger.log('🆔 [cleanArticlePayload] 新建模式，無需處理 ID')
   }
 
   // 移除前端專用欄位，這些不應該發送到後端
@@ -232,7 +242,7 @@ function autoSave() {
       }
 
       const payload = cleanArticlePayload(articleForm, editingArticle.value?.id)
-      await articlesStore.saveArticle(payload)
+      await articlesStore.saveArticle(payload, undefined, editingArticle.value?.id)
       autoSaveStatus.value = '已自動儲存'
 
       // 2秒後清空狀態
@@ -541,7 +551,7 @@ async function saveArticle() {
         : null,
     })
 
-    await articlesStore.saveArticle(payload, articleForm.coverImageFile)
+          await articlesStore.saveArticle(payload, articleForm.coverImageFile, editingArticle.value?.id)
     logger.log('✅ [EditArticles] 儲存文章成功！')
 
     // 強制重新載入文章列表，確保新文章立即出現

@@ -68,10 +68,11 @@ export const useArticlesStore = defineStore('articles', {
     },
 
     // 儲存（新增或更新）文章
-    async saveArticle(article: Partial<Article>, coverImageFile?: File) {
+    async saveArticle(article: Partial<Article>, coverImageFile?: File, editingId?: number) {
       const { startLoading, stopLoading } = useLoading()
       logger.debug('Article save started', { 
         id: article.id, 
+        editingId,
         title: article.title, 
         hasCoverImage: !!coverImageFile 
       })
@@ -82,9 +83,16 @@ export const useArticlesStore = defineStore('articles', {
         const api = useApi()
         let savedArticle: Article
 
-        if (article.id) {
-          logger.debug('Updating existing article', { id: article.id })
-          savedArticle = await api.updateArticle(article.id, article, coverImageFile)
+        // 修復：明確檢查編輯模式，優先使用 editingId
+        const isEditMode = editingId !== undefined && editingId !== null
+        if (isEditMode) {
+          logger.debug('Updating existing article', { id: editingId })
+          
+          // 修復：在編輯模式下，確保不發送 id 字段
+          const cleanArticle = { ...article }
+          delete cleanArticle.id
+          
+          savedArticle = await api.updateArticle(editingId, cleanArticle, coverImageFile)
         } else {
           logger.debug('Creating new article')
           savedArticle = await api.createArticle(article, coverImageFile)

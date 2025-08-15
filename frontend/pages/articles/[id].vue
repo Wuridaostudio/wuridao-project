@@ -86,7 +86,9 @@ async function copyLink() {
 // 載入相關文章
 async function loadRelatedArticles() {
   try {
-    const articles = await api.getArticles(false)
+    const response = await api.getArticles(false)
+    // 後端返回的是 { data: Article[], total: number } 格式
+    const articles = response.data || response
     relatedArticles.value = articles
       .filter(a => a.id !== articleId.value && !a.isDraft)
       .slice(0, 3)

@@ -194,6 +194,8 @@ async function forceReloadMedia() {
   loading.value = true
 
   try {
+    logger.log('[news.vue] 開始強制重新載入媒體數據...')
+    
     // 清除快取
     mediaStore.clearAllCache()
 
@@ -202,6 +204,8 @@ async function forceReloadMedia() {
       mediaStore.fetchCloudinaryPhotos('wuridao/photos', true), // 強制重新載入
       mediaStore.fetchCloudinaryVideos('wuridao/videos', true), // 強制重新載入
     ])
+    
+    logger.log('[news.vue] 媒體數據重新載入完成')
   }
   catch (error) {
     logger.error('❌ [news.vue] 重新載入媒體數據失敗:', error)
@@ -215,15 +219,14 @@ async function forceReloadMedia() {
 
 onMounted(async () => {
   try {
-    // 強制清除快取並重新載入所有數據
-    logger.log('[news.vue] 開始載入數據，強制清除快取...')
-    mediaStore.clearAllCache()
+    // 性能優化：使用快取優先策略，只在必要時重新載入
+    logger.log('[news.vue] 開始載入數據，使用快取優先策略...')
 
-    // 強制重新載入所有數據
+    // 並行載入所有數據，利用快取機制
     await Promise.all([
       articlesStore.fetchArticles({ isDraft: false }), // 只獲取已發布的文章
-      mediaStore.fetchCloudinaryPhotos('wuridao/photos', true), // 強制重新載入
-      mediaStore.fetchCloudinaryVideos('wuridao/videos', true), // 強制重新載入
+      mediaStore.fetchCloudinaryPhotos('wuridao/photos', false), // 使用快取
+      mediaStore.fetchCloudinaryVideos('wuridao/videos', false), // 使用快取
       categoriesStore.fetchCategories(),
     ])
 

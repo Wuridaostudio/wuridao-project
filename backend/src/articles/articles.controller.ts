@@ -124,6 +124,13 @@ export class ArticlesController {
     return instanceToPlain(article);
   }
 
+  @ApiOperation({ summary: '獲取文章內容 (公開)' })
+  @Get(':id/content')
+  async getArticleContent(@Param('id') id: string) {
+    const content = await this.articlesService.loadArticleContent(+id);
+    return { content };
+  }
+
   @ApiOperation({ summary: '更新文章 (管理員)' })
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)

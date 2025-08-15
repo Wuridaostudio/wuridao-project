@@ -187,65 +187,9 @@ export class ArticlesService {
       skip: skip,
     });
 
-    // 新增：處理 Cloudinary 內容
-    this.logger.log('🔍 [ArticlesService][findAll] 開始處理 Cloudinary 內容...');
-    const normalizeDuplicatedFolder = (url: string): string => {
-      // 將 public_id 內重複的 "articles/content" 折疊成一次
-      // 例：articles/content/articles/content/foo.txt -> articles/content/foo.txt
-      return url.replace(
-        /(articles\/content\/)(?:articles\/content\/)+/g,
-        '$1',
-      );
-    };
-
-    for (const article of data) {
-      if (
-        article.content &&
-        article.content.startsWith('https://res.cloudinary.com')
-      ) {
-        try {
-          this.logger.log(
-            `📥 [ArticlesService][findAll] 從 Cloudinary 獲取文章內容: ${article.id}`,
-          );
-          const originalUrl = article.content;
-          let response = await fetch(originalUrl);
-          if (response.ok) {
-            const actualContent = await response.text();
-            article.content = actualContent;
-            this.logger.log(
-              `✅ [ArticlesService][findAll] 文章 ${article.id} 內容已從 Cloudinary 獲取 (${actualContent.length} 字符)`,
-            );
-          } else {
-            this.logger.error(
-              `❌ [ArticlesService][findAll] 文章 ${article.id} 從 Cloudinary 獲取內容失敗: ${response.status}`,
-            );
-            const normalizedUrl = normalizeDuplicatedFolder(originalUrl);
-            if (normalizedUrl !== originalUrl) {
-              this.logger.log(
-                `🔁 [ArticlesService][findAll] 嘗試修正重複資料夾後的 URL 重新抓取: ${normalizedUrl}`,
-              );
-              response = await fetch(normalizedUrl);
-              if (response.ok) {
-                const actualContent = await response.text();
-                article.content = actualContent;
-                this.logger.log(
-                  `✅ [ArticlesService][findAll] 文章 ${article.id} 經修正 URL 後成功獲取內容 (${actualContent.length} 字符)`,
-                );
-              } else {
-                this.logger.error(
-                  `❌ [ArticlesService][findAll] 文章 ${article.id} 經修正 URL 仍失敗: ${response.status}`,
-                );
-              }
-            }
-          }
-        } catch (error) {
-          this.logger.error(
-            `❌ [ArticlesService][findAll] 文章 ${article.id} 獲取 Cloudinary 內容時發生錯誤:`,
-            error,
-          );
-        }
-      }
-    }
+    // 性能優化：移除同步 Cloudinary 內容載入
+    // 文章內容將在需要時異步載入，避免阻塞列表查詢
+    this.logger.log('🔍 [ArticlesService][findAll] 跳過 Cloudinary 內容同步載入以提升性能');
 
     // 額外查詢：檢查資料庫中所有文章（不考慮篩選）
     this.logger.log('🔍 [ArticlesService][findAll] 檢查資料庫中所有文章...');
@@ -389,6 +333,66 @@ export class ArticlesService {
     const jsonLd = this.generateJsonLdForArticle(article);
 
     return { ...article, jsonLd };
+  }
+
+  // 異步載入文章內容（用於單篇文章詳情頁面）
+  async loadArticleContent(articleId: number): Promise<string | null> {
+    try {
+      const article = await this.articleRepository.findOne({
+        where: { id: articleId },
+        select: ['id', 'content']
+      })
+
+      if (!article || !article.content) {
+        return null
+      }
+
+      // 如果內容是 Cloudinary URL，則異步載入
+      if (article.content.startsWith('https://res.cloudinary.com')) {
+        this.logger.log(`📥 [ArticlesService][loadArticleContent] 異步載入文章 ${articleId} 的 Cloudinary 內容`)
+        
+        const normalizeDuplicatedFolder = (url: string): string => {
+          return url.replace(
+            /(articles\/content\/)(?:articles\/content\/)+/g,
+            '$1',
+          )
+        }
+
+        try {
+          const originalUrl = article.content
+          let response = await fetch(originalUrl)
+          
+          if (response.ok) {
+            const actualContent = await response.text()
+            this.logger.log(`✅ [ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入成功 (${actualContent.length} 字符)`)
+            return actualContent
+          } else {
+            // 嘗試修正重複資料夾
+            const normalizedUrl = normalizeDuplicatedFolder(originalUrl)
+            if (normalizedUrl !== originalUrl) {
+              response = await fetch(normalizedUrl)
+              if (response.ok) {
+                const actualContent = await response.text()
+                this.logger.log(`✅ [ArticlesService][loadArticleContent] 文章 ${articleId} 經修正 URL 後內容載入成功 (${actualContent.length} 字符)`)
+                return actualContent
+              }
+            }
+            
+            this.logger.error(`❌ [ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入失敗: ${response.status}`)
+            return null
+          }
+        } catch (error) {
+          this.logger.error(`❌ [ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入時發生錯誤:`, error)
+          return null
+        }
+      }
+
+      // 如果內容不是 Cloudinary URL，直接返回
+      return article.content
+    } catch (error) {
+      this.logger.error(`❌ [ArticlesService][loadArticleContent] 載入文章 ${articleId} 內容時發生錯誤:`, error)
+      return null
+    }
   }
 
   async update(

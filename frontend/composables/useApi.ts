@@ -73,6 +73,7 @@ export function useApi() {
     },
 
     getArticle: (id: number) => publicApi(`/articles/${id}`),
+    getArticleContent: (id: number) => publicApi(`/articles/${id}/content`),
     
     // 媒體相關 API
     getPhoto: (id: string) => publicApi(`/photos/${id}`),

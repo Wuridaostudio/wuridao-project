@@ -23,6 +23,7 @@ import { ArticlesService } from './articles.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { FileUploadGuard } from '../common/guards/file-upload.guard';
 import { instanceToPlain } from 'class-transformer';
 import { Logger } from 'nestjs-pino';
 
@@ -42,7 +43,7 @@ export class ArticlesController {
 
   @ApiOperation({ summary: '創建文章 (管理員)' })
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, FileUploadGuard)
   @Post()
   @UseInterceptors(FileInterceptor('coverImage'))
   create(
@@ -133,7 +134,7 @@ export class ArticlesController {
 
   @ApiOperation({ summary: '更新文章 (管理員)' })
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, FileUploadGuard)
   @Patch(':id')
   @UseInterceptors(FileInterceptor('coverImage'))
   update(

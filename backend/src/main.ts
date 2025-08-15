@@ -32,6 +32,12 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useLogger(app.get(Logger));
 
+  // 安全修復：生產環境移除調試資訊
+  if (process.env.NODE_ENV === 'production') {
+    console.log = () => {};
+    console.error = () => {};
+  }
+
   // 加入 JSON body parser 中間件，設定 UTF-8 編碼
   app.use(express.json({ limit: '10mb' }));
 
@@ -119,28 +125,30 @@ async function bootstrap() {
     }),
   );
 
-  // Swagger 配置
-  const config = new DocumentBuilder()
-    .setTitle('WURIDAO 智慧家 API')
-    .setDescription('WURIDAO 智慧家內容管理系統 API 文檔')
-    .setVersion('1.0')
-    .addTag('認證', '用戶認證相關接口')
-    .addTag('文章', '文章管理接口')
-    .addTag('影片', '影片管理接口')
-    .addTag('照片', '照片管理接口')
-    .addTag('分類', '分類管理接口')
-    .addTag('標籤', '標籤管理接口')
-    .addTag('Unsplash', 'Unsplash 圖片搜尋接口')
-    .addTag('數據分析', '網站數據分析接口')
-    .addTag('SEO', 'SEO 相關接口')
-    .addBearerAuth()
-    .addServer('http://localhost:3000', '本地開發環境')
-    .addServer('https://wuridao-api.onrender.com', '生產環境')
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api-docs', app, document, {
-    swaggerOptions: { persistAuthorization: true },
-  });
+  // Swagger 配置 - 只在開發環境啟用
+  if (process.env.NODE_ENV !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('WURIDAO 智慧家 API')
+      .setDescription('WURIDAO 智慧家內容管理系統 API 文檔')
+      .setVersion('1.0')
+      .addTag('認證', '用戶認證相關接口')
+      .addTag('文章', '文章管理接口')
+      .addTag('影片', '影片管理接口')
+      .addTag('照片', '照片管理接口')
+      .addTag('分類', '分類管理接口')
+      .addTag('標籤', '標籤管理接口')
+      .addTag('Unsplash', 'Unsplash 圖片搜尋接口')
+      .addTag('數據分析', '網站數據分析接口')
+      .addTag('SEO', 'SEO 相關接口')
+      .addBearerAuth()
+      .addServer('http://localhost:3000', '本地開發環境')
+      .addServer('https://wuridao-api.onrender.com', '生產環境')
+      .build();
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api-docs', app, document, {
+      swaggerOptions: { persistAuthorization: true },
+    });
+  }
 
   const port = process.env.PORT || 3000;
   await app.listen(port, '0.0.0.0');

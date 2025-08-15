@@ -5,8 +5,8 @@ export function validateEmail(email: string): boolean {
 }
 
 export function validatePassword(password: string): { valid: boolean, message?: string } {
-  if (password.length < 8) {
-    return { valid: false, message: '密碼至少需要 8 個字元' }
+  if (password.length < 12) {
+    return { valid: false, message: '密碼至少需要 12 個字元' }
   }
   if (!/[A-Z]/.test(password)) {
     return { valid: false, message: '密碼需要包含至少一個大寫字母' }
@@ -16,6 +16,9 @@ export function validatePassword(password: string): { valid: boolean, message?: 
   }
   if (!/\d/.test(password)) {
     return { valid: false, message: '密碼需要包含至少一個數字' }
+  }
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    return { valid: false, message: '密碼需要包含至少一個特殊字符' }
   }
   return { valid: true }
 }

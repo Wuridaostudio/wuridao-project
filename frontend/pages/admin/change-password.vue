@@ -1,6 +1,7 @@
 <!-- pages/admin/change-password.vue -->
 <script setup lang="ts">
 import LoadingSpinner from '~/components/common/LoadingSpinner.vue'
+import ErrorMessage from '~/components/common/ErrorMessage.vue'
 
 definePageMeta({
   layout: 'admin',
@@ -109,7 +110,7 @@ async function handleChangePassword() {
           >
         </div>
 
-        <ErrorMessage v-if="error" :message="error" />
+        <ErrorMessage v-if="error" :messages="[error]" />
 
         <div
           v-if="success"

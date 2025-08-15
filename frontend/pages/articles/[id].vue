@@ -6,7 +6,7 @@ import ArticleSkeleton from '~/components/common/ArticleSkeleton.vue'
 import { useCategoriesStore } from '~/stores/categories'
 import { useTagsStore } from '~/stores/tags'
 
-const { $gsap, $ScrollTrigger } = useNuxtApp()
+const { $gsap } = useNuxtApp()
 const route = useRoute()
 const api = useApi()
 const { success } = useToast()
@@ -17,7 +17,10 @@ const titleContainer = ref()
 const contentContainer = ref()
 
 // 狀態
-const articleId = computed(() => Number.parseInt(route.params.id as string))
+const articleId = computed(() => {
+  const id = route.params.id as string
+  return id ? Number.parseInt(id) : 0
+})
 const copyButtonText = ref('複製連結')
 const viewCount = ref(0)
 const relatedArticles = ref([])
@@ -27,20 +30,30 @@ const {
   data: article,
   pending,
   error,
-} = await useAsyncData(`article-${articleId.value}`, () =>
-  api.getArticle(articleId.value))
+} = await useAsyncData(`article-${articleId.value}`, () => {
+  if (articleId.value > 0) {
+    return api.getArticle(articleId.value)
+  }
+  return null
+})
 
 // 格式化日期
 function formatDate(date: string) {
-  return new Date(date).toLocaleDateString('zh-TW', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  if (!date) return ''
+  try {
+    return new Date(date).toLocaleDateString('zh-TW', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  } catch (err) {
+    return date
+  }
 }
 
 // 去除 Markdown 標記
 function stripMarkdown(markdown: string) {
+  if (!markdown) return ''
   return (
     `${markdown
       .replace(/[#*`_~[\]()]/g, '')
@@ -52,14 +65,14 @@ function stripMarkdown(markdown: string) {
 
 // 分享功能
 function shareToFacebook() {
-  if (process.client) {
+  if (process.client && window.open) {
     const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`
     window.open(url, '_blank', 'width=600,height=400')
   }
 }
 
 function shareToTwitter() {
-  if (process.client) {
+  if (process.client && window.open) {
     const text = encodeURIComponent(`${article.value?.title} - WURIDAO 智慧家`)
     const url = `https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(window.location.href)}`
     window.open(url, '_blank', 'width=600,height=400')
@@ -67,7 +80,7 @@ function shareToTwitter() {
 }
 
 async function copyLink() {
-  if (process.client) {
+  if (process.client && navigator.clipboard) {
     try {
       await navigator.clipboard.writeText(window.location.href)
       copyButtonText.value = '已複製！'
@@ -89,9 +102,11 @@ async function loadRelatedArticles() {
     const response = await api.getArticles(false)
     // 後端返回的是 { data: Article[], total: number } 格式
     const articles = response.data || response
-    relatedArticles.value = articles
-      .filter(a => a.id !== articleId.value && !a.isDraft)
-      .slice(0, 3)
+    if (Array.isArray(articles)) {
+      relatedArticles.value = articles
+        .filter(a => a && a.id !== articleId.value && !a.isDraft)
+        .slice(0, 3)
+    }
   }
   catch (err) {
     logger.error('載入相關文章失敗:', err)
@@ -100,71 +115,75 @@ async function loadRelatedArticles() {
 
 // 更新瀏覽次數
 function updateViewCount() {
-  // 模擬瀏覽次數
-  viewCount.value = Math.floor(Math.random() * 1000) + 100
+  if (process.client) {
+    // 模擬瀏覽次數
+    viewCount.value = Math.floor(Math.random() * 1000) + 100
+  }
 }
 
 // SEO 設定
-if (article.value) {
-  useHead({
-    title: article.value.title,
-    meta: [
-      { name: 'description', content: stripMarkdown(article.value.content) },
-      { property: 'og:title', content: article.value.title },
-      {
-        property: 'og:description',
-        content: stripMarkdown(article.value.content),
-      },
-      { property: 'og:type', content: 'article' },
-      {
-        property: 'og:image',
-        content:
-          article.value.coverImageUrl || 'https://wuridao.com/og-image.jpg',
-      },
-      { property: 'article:published_time', content: article.value.createdAt },
-      { property: 'article:modified_time', content: article.value.updatedAt },
-      { property: 'article:author', content: 'WURIDAO Team' },
-      {
-        property: 'article:section',
-        content: article.value.category?.name || '智慧家居',
-      },
-    ],
-    script: [
-      {
-        type: 'application/ld+json',
-        innerHTML: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'Article',
-          'headline': article.value.title,
-          'description': stripMarkdown(article.value.content),
-          'image': article.value.coverImageUrl,
-          'datePublished': article.value.createdAt,
-          'dateModified': article.value.updatedAt,
-          'author': {
-            '@type': 'Organization',
-            'name': 'WURIDAO 智慧家',
-          },
-          'publisher': {
-            '@type': 'Organization',
-            'name': 'WURIDAO 智慧家',
-            'logo': {
-              '@type': 'ImageObject',
-              'url': 'https://wuridao.com/logo.png',
+watch(article, (newArticle) => {
+  if (newArticle) {
+        useHead({
+      title: newArticle.title,
+      meta: [
+        { name: 'description', content: stripMarkdown(newArticle.content) },
+        { property: 'og:title', content: newArticle.title },
+        {
+          property: 'og:description',
+          content: stripMarkdown(newArticle.content),
+        },
+        { property: 'og:type', content: 'article' },
+        {
+          property: 'og:image',
+          content:
+            newArticle.coverImageUrl || 'https://wuridao.com/og-image.jpg',
+        },
+        { property: 'article:published_time', content: newArticle.createdAt },
+        { property: 'article:modified_time', content: newArticle.updatedAt },
+        { property: 'article:author', content: 'WURIDAO Team' },
+        {
+          property: 'article:section',
+          content: newArticle.category?.name || '智慧家居',
+        },
+      ],
+      script: [
+        {
+          type: 'application/ld+json',
+          innerHTML: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            'headline': newArticle.title,
+            'description': stripMarkdown(newArticle.content),
+            'image': newArticle.coverImageUrl,
+            'datePublished': newArticle.createdAt,
+            'dateModified': newArticle.updatedAt,
+            'author': {
+              '@type': 'Organization',
+              'name': 'WURIDAO 智慧家',
             },
-          },
-          'mainEntityOfPage': {
-            '@type': 'WebPage',
-            '@id': `https://wuridao.com/articles/${article.value.id}`,
-          },
-        }),
-      },
-    ],
-  })
-}
+            'publisher': {
+              '@type': 'Organization',
+              'name': 'WURIDAO 智慧家',
+              'logo': {
+                '@type': 'ImageObject',
+                'url': 'https://wuridao.com/logo.png',
+              },
+            },
+            'mainEntityOfPage': {
+              '@type': 'WebPage',
+              '@id': `https://wuridao.com/articles/${newArticle.id}`,
+            },
+          }),
+        },
+      ],
+    })
+  }
+})
 
 // 動畫效果
 onMounted(() => {
-  if (!article.value)
+  if (!article.value || !process.client)
     return
 
   // 標題動畫
@@ -188,16 +207,18 @@ onMounted(() => {
   }
 
   // 視差滾動
-  $gsap.to(heroSection.value, {
-    yPercent: 30,
-    ease: 'none',
-    scrollTrigger: {
-      trigger: heroSection.value,
-      start: 'top top',
-      end: 'bottom top',
-      scrub: true,
-    },
-  })
+  if ($gsap && heroSection.value) {
+    $gsap.to(heroSection.value, {
+      yPercent: 30,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: heroSection.value,
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true,
+      },
+    })
+  }
 
   // 載入相關文章和更新瀏覽次數
   loadRelatedArticles()
@@ -219,19 +240,22 @@ const tags = computed(() => tagsStore.tags)
 watch(
   article,
   (val) => {
-    logger.log('文章資料:', val)
+    if (val) {
+      logger.log('文章資料:', val)
+    }
   },
   { immediate: true },
 )
 
 function cleanContent(html) {
+  if (!html) return ''
   // 只移除 <p> 標籤開頭的全形空白（U+3000）
   return html.replace(/<p>\u3000+/g, '<p>')
 }
 
 // 去除 HTML 標籤
 function stripHtml(html) {
-  if (!html)
+  if (!html || !process.client)
     return ''
   const div = document.createElement('div')
   div.innerHTML = html
@@ -239,6 +263,7 @@ function stripHtml(html) {
 }
 
 function sanitizeHtml(html: string) {
+  if (!html) return ''
   // 簡單的 HTML 清理，移除危險標籤
   return html
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')

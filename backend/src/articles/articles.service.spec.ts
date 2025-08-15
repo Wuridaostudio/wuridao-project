@@ -48,7 +48,7 @@ describe('ArticlesService', () => {
     checkResourceExists: jest.fn(),
     uploadBuffer: jest.fn(),
   };
-  
+
   const mockTagRepository = {
     findBy: jest.fn(),
   };
@@ -126,7 +126,10 @@ describe('ArticlesService', () => {
 
       const result = await service.create(createArticleDto, mockFile);
 
-      expect(cloudinaryService.uploadImage).toHaveBeenCalledWith(mockFile, 'articles');
+      expect(cloudinaryService.uploadImage).toHaveBeenCalledWith(
+        mockFile,
+        'articles',
+      );
       expect(articleRepository.create).toHaveBeenCalledWith(expect.any(Object));
       expect(articleRepository.save).toHaveBeenCalledWith(mockArticle);
       expect(result).toEqual(mockArticle);
@@ -144,7 +147,7 @@ describe('ArticlesService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      
+
       const mockUploadResult = {
         secure_url: 'https://res.cloudinary.com/test/image/upload/test.jpg',
         public_id: 'test_public_id',
@@ -171,7 +174,10 @@ describe('ArticlesService', () => {
         { id: 2, title: 'Article 2', content: 'Content 2' },
       ];
 
-      mockQueryBuilder.getManyAndCount.mockResolvedValue([mockArticles, mockArticles.length]);
+      mockQueryBuilder.getManyAndCount.mockResolvedValue([
+        mockArticles,
+        mockArticles.length,
+      ]);
       mockArticleRepository.find.mockResolvedValue(mockArticles);
 
       const result = await service.findAll();

@@ -41,16 +41,16 @@ export class MediaController {
         this.logger.log(`[MEDIA] 找到照片 ID: ${id}`);
         return { ...photo, type: 'photo' };
       }
-      
+
       // 如果照片不存在，嘗試影片
       this.logger.log(`[MEDIA] 照片 ID ${id} 不存在，嘗試影片`);
       const video = await this.videosService.findOne(+id);
       if (video) {
         return video;
       }
-      
+
       this.logger.log(`[MEDIA] 影片 ID ${id} 不存在`);
-      
+
       // 嘗試從 Cloudinary 獲取
       try {
         const cloudinaryResource = await this.cloudinaryService.getResource(id);
@@ -60,13 +60,13 @@ export class MediaController {
       } catch (cloudinaryError) {
         this.logger.log(`[MEDIA] Cloudinary 資源 ${id} 不存在`);
       }
-      
+
       throw new NotFoundException(`Media with ID ${id} not found`);
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      
+
       this.logger.error(`[MEDIA] 獲取媒體時發生錯誤: ${error.message}`);
       throw new NotFoundException(`Media with ID ${id} not found`);
     }

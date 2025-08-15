@@ -6,9 +6,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 export class StatisticsService {
   private readonly logger = new Logger(StatisticsService.name);
 
-  constructor(
-    @InjectDataSource() private dataSource: DataSource,
-  ) {}
+  constructor(@InjectDataSource() private dataSource: DataSource) {}
 
   async getSystemStatistics() {
     try {
@@ -74,9 +72,9 @@ export class StatisticsService {
   async getDetailedStatistics() {
     try {
       this.logger.log('📊 [StatisticsService] 開始獲取詳細統計數據');
-      
+
       const basicStats = await this.getSystemStatistics();
-      
+
       // 獲取最近7天的文章統計
       const recentArticles = await this.dataSource.query(`
         SELECT DATE(created_at) as date, COUNT(*) as count

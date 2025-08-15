@@ -35,7 +35,7 @@ export class ArticleUploadService {
     }
 
     this.logger.log('📤 [ArticleUploadService] 上傳內容到 Cloudinary...');
-    
+
     // 將文章內容轉換為 Buffer
     const contentBuffer = Buffer.from(content, 'utf-8');
 
@@ -55,7 +55,10 @@ export class ArticleUploadService {
     return uploadResult;
   }
 
-  async checkExistingCoverImage(coverImageUrl: string, coverImagePublicId: string) {
+  async checkExistingCoverImage(
+    coverImageUrl: string,
+    coverImagePublicId: string,
+  ) {
     this.logger.log('🔍 [ArticleUploadService] 檢查現有封面圖片...');
     this.logger.log('🔍 [ArticleUploadService] 檢查信息:', {
       coverImageUrl,
@@ -82,15 +85,20 @@ export class ArticleUploadService {
     };
   }
 
-  async cleanupFailedUpload(publicId: string, resourceType: 'image' | 'raw' = 'image') {
+  async cleanupFailedUpload(
+    publicId: string,
+    resourceType: 'image' | 'raw' = 'image',
+  ) {
     if (!publicId) return;
 
     try {
       await this.cloudinaryService.safelyDeleteResource(publicId, resourceType);
       this.logger.log(`✅ [ArticleUploadService] 清理失敗的上傳: ${publicId}`);
     } catch (error) {
-      this.logger.error(`❌ [ArticleUploadService] 清理失敗: ${publicId}`, error);
+      this.logger.error(
+        `❌ [ArticleUploadService] 清理失敗: ${publicId}`,
+        error,
+      );
     }
   }
 }
-

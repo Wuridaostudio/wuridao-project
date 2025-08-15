@@ -56,7 +56,9 @@ export class PhotosService {
     } else if (createPhotoDto.url && !createPhotoDto.publicId) {
       // 後備方案：若前端未傳 publicId，嘗試自 URL 解析出 publicId
       // 期望格式：.../image/upload/v<version>/<folder...>/<filename>.<ext>
-      const match = createPhotoDto.url.match(/\/upload\/v\d+\/([^.?]+)(?:\.[^/?#]+)?$/);
+      const match = createPhotoDto.url.match(
+        /\/upload\/v\d+\/([^.?]+)(?:\.[^/?#]+)?$/,
+      );
       const derivedPublicId = match?.[1];
       if (!derivedPublicId) {
         throw new BadRequestException(
@@ -67,7 +69,8 @@ export class PhotosService {
         derivedPublicId,
         'image',
       );
-      if (!exists) throw new BadRequestException('Cloudinary resource not found');
+      if (!exists)
+        throw new BadRequestException('Cloudinary resource not found');
       const duplicate = await this.photoRepository.findOne({
         where: { publicId: derivedPublicId },
       });

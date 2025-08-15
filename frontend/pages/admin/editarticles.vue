@@ -6,6 +6,10 @@ import MediaUploader from '~/components/admin/MediaUploader.vue'
 import TiptapEditor from '~/components/admin/TiptapEditor.vue'
 import UnsplashModal from '~/components/admin/UnsplashModal.vue'
 import LoadingSpinner from '~/components/common/LoadingSpinner.vue'
+import AIWritingAssistant from '~/components/admin/AIWritingAssistant.vue'
+import QuickInsertToolbar from '~/components/admin/QuickInsertToolbar.vue'
+import ArticleOutlineNavigator from '~/components/admin/ArticleOutlineNavigator.vue'
+import EmojiPicker from '~/components/admin/EmojiPicker.vue'
 import { useToast } from '~/composables/useToast'
 import { useUpload } from '~/composables/useUpload'
 import { useArticlesStore } from '~/stores/articles'
@@ -369,6 +373,41 @@ function insertMarkdown(before: string, after: string) {
     // 更新 v-model
     articleForm.content = textarea.value
   }
+}
+
+// 插入文字到編輯器
+function insertTextToEditor(text: string) {
+  if (process.client) {
+    const textarea = contentTextarea.value
+    if (!textarea) {
+      // 如果沒有 textarea，直接添加到內容末尾
+      articleForm.content += '\n\n' + text
+      return
+    }
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    
+    // 在游標位置插入文字
+    const before = textarea.value.substring(0, start)
+    const after = textarea.value.substring(end)
+    const newContent = before + text + after
+    
+    textarea.value = newContent
+    articleForm.content = newContent
+    
+    // 重新聚焦並設置游標位置
+    textarea.focus()
+    const newCursorPos = start + text.length
+    textarea.setSelectionRange(newCursorPos, newCursorPos)
+  }
+}
+
+// 滾動到標題
+function scrollToHeading(headingId: string) {
+  // 這裡可以實現滾動到特定標題的功能
+  // 暫時使用 console.log 記錄
+  console.log('滾動到標題:', headingId)
 }
 
 async function handleCoverImageUpload(file: File) {
@@ -936,6 +975,22 @@ onUnmounted(() => {
             class="mt-4 max-w-xs rounded-lg border border-gray-700"
           >
         </div>
+        
+        <!-- 智能寫作助手 -->
+        <div class="mb-6">
+          <AIWritingAssistant
+            :title="articleForm.title"
+            :content="articleForm.content"
+            :category="selectedCategoryName"
+            @insert-text="insertTextToEditor"
+          />
+        </div>
+        
+        <!-- 快速插入工具列 -->
+        <div class="mb-4">
+          <QuickInsertToolbar @insert-text="insertTextToEditor" />
+        </div>
+        
         <!-- 工具列（黑底白字） -->
         <div class="flex gap-2 mb-4">
           <button class="toolbar-btn" @click="showUnsplash = true">
@@ -1006,6 +1061,12 @@ onUnmounted(() => {
     <aside
       class="sidebar w-1/4 min-w-[260px] max-w-[400px] flex flex-col gap-4"
     >
+      <!-- 文章大綱導航器 -->
+      <ArticleOutlineNavigator
+        :content="articleForm.content"
+        @insert-text="insertTextToEditor"
+        @scroll-to-heading="scrollToHeading"
+      />
       <div class="bg-white p-4 rounded border">
         <!-- 狀態/發佈按鈕... -->
         <label class="block text-sm font-medium mb-2">文章狀態</label>

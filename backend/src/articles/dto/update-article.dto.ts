@@ -88,13 +88,14 @@ export class UpdateArticleDto extends PartialType(CreateArticleDto) {
       }
     }
     if (!Array.isArray(value)) return [];
-    return value.filter((item) =>
-      item &&
-      typeof item === 'object' &&
-      typeof item.question === 'string' &&
-      typeof item.answer === 'string' &&
-      item.question.trim() !== '' &&
-      item.answer.trim() !== '',
+    return value.filter(
+      (item) =>
+        item &&
+        typeof item === 'object' &&
+        typeof item.question === 'string' &&
+        typeof item.answer === 'string' &&
+        item.question.trim() !== '' &&
+        item.answer.trim() !== '',
     );
   })
   aeoFaq?: any[];

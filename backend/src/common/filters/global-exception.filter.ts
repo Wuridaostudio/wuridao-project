@@ -36,7 +36,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
-      
+
       if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
         message = (exceptionResponse as any).message || exception.message;
       } else {
@@ -61,7 +61,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // 在開發環境中提供更詳細的錯誤資訊
     const isDevelopment = process.env.NODE_ENV === 'development';
-    
+
     const errorResponse = {
       statusCode: status,
       message: message,
@@ -81,5 +81,3 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     return `ERR_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 }
-
-

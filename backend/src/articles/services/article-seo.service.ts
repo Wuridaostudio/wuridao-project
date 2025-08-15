@@ -8,32 +8,32 @@ export class ArticleSeoService {
 
   processSeoData(createArticleDto: CreateArticleDto | UpdateArticleDto) {
     this.logger.log('🔍 [ArticleSeoService] 處理 SEO 欄位...');
-    
+
     const seoData = {
       seoTitle: createArticleDto.seoTitle,
       seoDescription: createArticleDto.seoDescription,
       seoKeywords: createArticleDto.seoKeywords,
     };
-    
+
     this.logger.log('📊 [ArticleSeoService] SEO 數據:', seoData);
     return seoData;
   }
 
   processAeoData(createArticleDto: CreateArticleDto | UpdateArticleDto) {
     this.logger.log('🔍 [ArticleSeoService] 處理 AEO 欄位...');
-    
+
     const aeoData = {
       aeoFaq: createArticleDto.aeoFaq || [],
       aeoFeaturedSnippet: createArticleDto.aeoFeaturedSnippet || '',
     };
-    
+
     this.logger.log('📊 [ArticleSeoService] AEO 數據:', aeoData);
     return aeoData;
   }
 
   processGeoData(createArticleDto: CreateArticleDto | UpdateArticleDto) {
     this.logger.log('🔍 [ArticleSeoService] 處理 GEO 欄位...');
-    
+
     const geoData = {
       geoLatitude: createArticleDto.geoLatitude,
       geoLongitude: createArticleDto.geoLongitude,
@@ -41,7 +41,7 @@ export class ArticleSeoService {
       geoCity: createArticleDto.geoCity,
       geoPostalCode: createArticleDto.geoPostalCode,
     };
-    
+
     this.logger.log('📊 [ArticleSeoService] GEO 數據:', geoData);
     return geoData;
   }
@@ -69,12 +69,16 @@ export class ArticleSeoService {
     return title.length > 60 ? title.substring(0, 57) + '...' : title;
   }
 
-  generateSeoDescription(content: string, customSeoDescription?: string): string {
+  generateSeoDescription(
+    content: string,
+    customSeoDescription?: string,
+  ): string {
     if (customSeoDescription) return customSeoDescription;
-    
+
     // 移除 HTML 標籤並截取前 160 個字符
     const plainText = content.replace(/<[^>]*>/g, '');
-    return plainText.length > 160 ? plainText.substring(0, 157) + '...' : plainText;
+    return plainText.length > 160
+      ? plainText.substring(0, 157) + '...'
+      : plainText;
   }
 }
-

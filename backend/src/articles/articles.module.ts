@@ -16,11 +16,7 @@ import { Category } from '../categories/entities/category.entity';
     CloudinaryModule,
   ],
   controllers: [ArticlesController],
-  providers: [
-    ArticlesService,
-    ArticleUploadService,
-    ArticleSeoService,
-  ],
+  providers: [ArticlesService, ArticleUploadService, ArticleSeoService],
   exports: [ArticlesService],
 })
 export class ArticlesModule {}

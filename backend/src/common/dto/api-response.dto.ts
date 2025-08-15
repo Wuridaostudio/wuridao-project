@@ -48,4 +48,3 @@ export class PaginatedResponseDto<T = any> {
   @ApiProperty({ description: '總頁數', example: 5 })
   totalPages: number;
 }
-

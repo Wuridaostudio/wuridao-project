@@ -123,7 +123,10 @@ export class CloudinaryService {
 
       // 僅對 image / video 設定轉換；raw 檔案不做轉換
       if (resourceType === 'image') {
-        options.transformation = [{ quality: 'auto' }, { fetch_format: 'auto' }];
+        options.transformation = [
+          { quality: 'auto' },
+          { fetch_format: 'auto' },
+        ];
       } else if (resourceType === 'video') {
         options.transformation = [{ quality: 'auto' }, { format: 'mp4' }];
       }
@@ -139,14 +142,21 @@ export class CloudinaryService {
           const uploadStream = cloudinary.uploader.upload_stream(
             options,
             (error: UploadApiErrorResponse, res: UploadApiResponse) => {
-              if (error) return reject(new BadRequestException(`Cloudinary 上傳錯誤: ${error.message}`));
+              if (error)
+                return reject(
+                  new BadRequestException(
+                    `Cloudinary 上傳錯誤: ${error.message}`,
+                  ),
+                );
               resolve(res);
             },
           );
           uploadStream.end((file as any).buffer);
         });
       } else {
-        throw new BadRequestException('File must have either path or buffer property');
+        throw new BadRequestException(
+          'File must have either path or buffer property',
+        );
       }
 
       this.logger.log('[CLOUDINARY SDK RESULT]', { result, folder, publicId });
@@ -243,7 +253,8 @@ export class CloudinaryService {
   // ✅ [新增] 專為公開網站設計的安全方法
   async getPublicResources(resourceType: 'image' | 'video' = 'image') {
     // 僅取用正式的公開資料夾
-    const folder = resourceType === 'image' ? 'wuridao/photos' : 'wuridao/videos';
+    const folder =
+      resourceType === 'image' ? 'wuridao/photos' : 'wuridao/videos';
 
     this.logger.log(
       `[PUBLIC ACCESS] Fetching public resources from folder: ${folder}`,

@@ -53,13 +53,18 @@ export class ArticlesService {
     try {
       // 處理封面圖片上傳
       if (coverImage) {
-        coverImageUploadResult = await this.articleUploadService.uploadCoverImage(coverImage);
-      } else if (createArticleDto.coverImageUrl && createArticleDto.coverImagePublicId) {
-        coverImageUploadResult = await this.articleUploadService.checkExistingCoverImage(
-          createArticleDto.coverImageUrl,
-          createArticleDto.coverImagePublicId,
-        );
-        
+        coverImageUploadResult =
+          await this.articleUploadService.uploadCoverImage(coverImage);
+      } else if (
+        createArticleDto.coverImageUrl &&
+        createArticleDto.coverImagePublicId
+      ) {
+        coverImageUploadResult =
+          await this.articleUploadService.checkExistingCoverImage(
+            createArticleDto.coverImageUrl,
+            createArticleDto.coverImagePublicId,
+          );
+
         if (!coverImageUploadResult) {
           throw new BadRequestException('Cloudinary resource not found');
         }
@@ -76,7 +81,9 @@ export class ArticlesService {
 
       // 處理內容上傳
       if (createArticleDto.content) {
-        contentUploadResult = await this.articleUploadService.uploadContent(createArticleDto.content);
+        contentUploadResult = await this.articleUploadService.uploadContent(
+          createArticleDto.content,
+        );
       }
 
       // 處理標籤
@@ -91,8 +98,11 @@ export class ArticlesService {
       const article = this.articleRepository.create({
         title: createArticleDto.title,
         content: createArticleDto.content,
-        coverImageUrl: coverImageUploadResult?.secure_url || createArticleDto.coverImageUrl,
-        coverImagePublicId: coverImageUploadResult?.public_id || createArticleDto.coverImagePublicId,
+        coverImageUrl:
+          coverImageUploadResult?.secure_url || createArticleDto.coverImageUrl,
+        coverImagePublicId:
+          coverImageUploadResult?.public_id ||
+          createArticleDto.coverImagePublicId,
         contentPublicId: contentUploadResult?.public_id,
         isDraft: createArticleDto.isDraft,
         categoryId: createArticleDto.categoryId,
@@ -103,17 +113,22 @@ export class ArticlesService {
       });
 
       const savedArticle = await this.articleRepository.save(article);
-      
+
       this.logger.log('✅ [ArticlesService] 文章創建成功:', savedArticle.id);
       return savedArticle;
-
     } catch (error) {
       // 清理失敗的上傳
       if (coverImageUploadResult?.public_id) {
-        await this.articleUploadService.cleanupFailedUpload(coverImageUploadResult.public_id, 'image');
+        await this.articleUploadService.cleanupFailedUpload(
+          coverImageUploadResult.public_id,
+          'image',
+        );
       }
       if (contentUploadResult?.public_id) {
-        await this.articleUploadService.cleanupFailedUpload(contentUploadResult.public_id, 'raw');
+        await this.articleUploadService.cleanupFailedUpload(
+          contentUploadResult.public_id,
+          'raw',
+        );
       }
 
       this.logger.error('❌ [ArticlesService] 文章創建失敗:', error);
@@ -145,10 +160,7 @@ export class ArticlesService {
       limit,
     });
 
-    this.logger.log(
-      '🔍 [ArticlesService][findAll] 處理後的 isDraft:',
-      isDraft,
-    );
+    this.logger.log('🔍 [ArticlesService][findAll] 處理後的 isDraft:', isDraft);
 
     const skip = (page - 1) * limit;
     const query = this.articleRepository
@@ -189,7 +201,9 @@ export class ArticlesService {
 
     // 性能優化：移除同步 Cloudinary 內容載入
     // 文章內容將在需要時異步載入，避免阻塞列表查詢
-    this.logger.log('🔍 [ArticlesService][findAll] 跳過 Cloudinary 內容同步載入以提升性能');
+    this.logger.log(
+      '🔍 [ArticlesService][findAll] 跳過 Cloudinary 內容同步載入以提升性能',
+    );
 
     // 額外查詢：檢查資料庫中所有文章（不考慮篩選）
     this.logger.log('🔍 [ArticlesService][findAll] 檢查資料庫中所有文章...');
@@ -340,58 +354,72 @@ export class ArticlesService {
     try {
       const article = await this.articleRepository.findOne({
         where: { id: articleId },
-        select: ['id', 'content']
-      })
+        select: ['id', 'content'],
+      });
 
       if (!article || !article.content) {
-        return null
+        return null;
       }
 
       // 如果內容是 Cloudinary URL，則異步載入
       if (article.content.startsWith('https://res.cloudinary.com')) {
-        this.logger.log(`📥 [ArticlesService][loadArticleContent] 異步載入文章 ${articleId} 的 Cloudinary 內容`)
-        
+        this.logger.log(
+          `📥 [ArticlesService][loadArticleContent] 異步載入文章 ${articleId} 的 Cloudinary 內容`,
+        );
+
         const normalizeDuplicatedFolder = (url: string): string => {
           return url.replace(
             /(articles\/content\/)(?:articles\/content\/)+/g,
             '$1',
-          )
-        }
+          );
+        };
 
         try {
-          const originalUrl = article.content
-          let response = await fetch(originalUrl)
-          
+          const originalUrl = article.content;
+          let response = await fetch(originalUrl);
+
           if (response.ok) {
-            const actualContent = await response.text()
-            this.logger.log(`✅ [ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入成功 (${actualContent.length} 字符)`)
-            return actualContent
+            const actualContent = await response.text();
+            this.logger.log(
+              `✅ [ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入成功 (${actualContent.length} 字符)`,
+            );
+            return actualContent;
           } else {
             // 嘗試修正重複資料夾
-            const normalizedUrl = normalizeDuplicatedFolder(originalUrl)
+            const normalizedUrl = normalizeDuplicatedFolder(originalUrl);
             if (normalizedUrl !== originalUrl) {
-              response = await fetch(normalizedUrl)
+              response = await fetch(normalizedUrl);
               if (response.ok) {
-                const actualContent = await response.text()
-                this.logger.log(`✅ [ArticlesService][loadArticleContent] 文章 ${articleId} 經修正 URL 後內容載入成功 (${actualContent.length} 字符)`)
-                return actualContent
+                const actualContent = await response.text();
+                this.logger.log(
+                  `✅ [ArticlesService][loadArticleContent] 文章 ${articleId} 經修正 URL 後內容載入成功 (${actualContent.length} 字符)`,
+                );
+                return actualContent;
               }
             }
-            
-            this.logger.error(`❌ [ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入失敗: ${response.status}`)
-            return null
+
+            this.logger.error(
+              `❌ [ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入失敗: ${response.status}`,
+            );
+            return null;
           }
         } catch (error) {
-          this.logger.error(`❌ [ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入時發生錯誤:`, error)
-          return null
+          this.logger.error(
+            `❌ [ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入時發生錯誤:`,
+            error,
+          );
+          return null;
         }
       }
 
       // 如果內容不是 Cloudinary URL，直接返回
-      return article.content
+      return article.content;
     } catch (error) {
-      this.logger.error(`❌ [ArticlesService][loadArticleContent] 載入文章 ${articleId} 內容時發生錯誤:`, error)
-      return null
+      this.logger.error(
+        `❌ [ArticlesService][loadArticleContent] 載入文章 ${articleId} 內容時發生錯誤:`,
+        error,
+      );
+      return null;
     }
   }
 

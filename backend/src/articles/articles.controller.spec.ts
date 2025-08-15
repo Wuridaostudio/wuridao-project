@@ -160,7 +160,11 @@ describe('ArticlesController', () => {
       );
 
       expect(result).toEqual(mockArticle);
-      expect(service.update).toHaveBeenCalledWith(1, updateArticleDto, undefined);
+      expect(service.update).toHaveBeenCalledWith(
+        1,
+        updateArticleDto,
+        undefined,
+      );
     });
 
     it('should update an article with cover image', async () => {
@@ -187,7 +191,11 @@ describe('ArticlesController', () => {
       );
 
       expect(result).toEqual(mockArticle);
-      expect(service.update).toHaveBeenCalledWith(1, updateArticleDto, mockFile);
+      expect(service.update).toHaveBeenCalledWith(
+        1,
+        updateArticleDto,
+        mockFile,
+      );
     });
   });
 

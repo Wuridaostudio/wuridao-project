@@ -10,7 +10,7 @@ export class PerformanceMonitorService {
   private getMonitoringInterval(): string {
     const env = process.env.NODE_ENV || 'development';
     const isFreeTier = process.env.FREE_TIER === 'true';
-    
+
     if (isFreeTier) {
       return '0 */30 * * * *'; // 每30分鐘
     } else if (env === 'production') {
@@ -24,25 +24,30 @@ export class PerformanceMonitorService {
   async monitorSystemHealth() {
     const env = process.env.NODE_ENV || 'development';
     const isFreeTier = process.env.FREE_TIER === 'true';
-    
+
     // 免費服務環境減少監控頻率
-    if (isFreeTier && Math.random() > 0.17) { // 約每30分鐘執行一次
+    if (isFreeTier && Math.random() > 0.17) {
+      // 約每30分鐘執行一次
       return;
     }
-    
+
     // 生產環境減少監控頻率
-    if (env === 'production' && Math.random() > 0.33) { // 約每15分鐘執行一次
+    if (env === 'production' && Math.random() > 0.33) {
+      // 約每15分鐘執行一次
       return;
     }
 
     const memoryUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
-    
+
     // 計算記憶體使用百分比
     const totalMemory = require('os').totalmem();
     const freeMemory = require('os').freemem();
-    const memoryUsagePercent = ((totalMemory - freeMemory) / totalMemory * 100).toFixed(1);
-    
+    const memoryUsagePercent = (
+      ((totalMemory - freeMemory) / totalMemory) *
+      100
+    ).toFixed(1);
+
     this.logger.log('📊 [PerformanceMonitor] 系統效能監控', {
       memory: {
         heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
@@ -66,10 +71,11 @@ export class PerformanceMonitorService {
     if (memoryUsage.heapUsed > memoryConfig.thresholds.heapUsed) {
       this.logger.warn('⚠️ [PerformanceMonitor] 記憶體使用量過高', {
         heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
-        threshold: Math.round(memoryConfig.thresholds.heapUsed / 1024 / 1024) + ' MB',
+        threshold:
+          Math.round(memoryConfig.thresholds.heapUsed / 1024 / 1024) + ' MB',
         suggestion: '考慮重啟服務或檢查記憶體洩漏',
       });
-      
+
       // 如果超過強制垃圾回收閾值，執行垃圾回收
       if (memoryUsage.heapUsed > memoryConfig.gc.forceGCThreshold) {
         this.logger.log('🔄 [PerformanceMonitor] 執行強制垃圾回收');
@@ -83,7 +89,8 @@ export class PerformanceMonitorService {
     if (memoryUsage.rss > memoryConfig.thresholds.rss) {
       this.logger.warn('⚠️ [PerformanceMonitor] RSS 記憶體使用量過高', {
         rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
-        threshold: Math.round(memoryConfig.thresholds.rss / 1024 / 1024) + ' MB',
+        threshold:
+          Math.round(memoryConfig.thresholds.rss / 1024 / 1024) + ' MB',
         suggestion: '檢查是否有記憶體洩漏或考慮增加系統記憶體',
       });
     }
@@ -114,7 +121,12 @@ export class PerformanceMonitorService {
     }
   }
 
-  async monitorApiResponse(path: string, method: string, duration: number, statusCode: number) {
+  async monitorApiResponse(
+    path: string,
+    method: string,
+    duration: number,
+    statusCode: number,
+  ) {
     if (duration > 2000) {
       this.logger.warn('🐌 [PerformanceMonitor] API 響應時間過長', {
         path,
@@ -134,17 +146,23 @@ export class PerformanceMonitorService {
     }
   }
 
-  async monitorFileUpload(fileSize: number, fileType: string, duration: number) {
+  async monitorFileUpload(
+    fileSize: number,
+    fileType: string,
+    duration: number,
+  ) {
     this.logger.log('📁 [PerformanceMonitor] 檔案上傳監控', {
-      fileSize: Math.round(fileSize / 1024 / 1024 * 100) / 100 + ' MB',
+      fileSize: Math.round((fileSize / 1024 / 1024) * 100) / 100 + ' MB',
       fileType,
       duration: duration + 'ms',
-      speed: Math.round((fileSize / 1024 / 1024) / (duration / 1000) * 100) / 100 + ' MB/s',
+      speed:
+        Math.round((fileSize / 1024 / 1024 / (duration / 1000)) * 100) / 100 +
+        ' MB/s',
     });
 
     if (duration > 10000) {
       this.logger.warn('⚠️ [PerformanceMonitor] 檔案上傳時間過長', {
-        fileSize: Math.round(fileSize / 1024 / 1024 * 100) / 100 + ' MB',
+        fileSize: Math.round((fileSize / 1024 / 1024) * 100) / 100 + ' MB',
         duration: duration + 'ms',
       });
     }
@@ -153,7 +171,7 @@ export class PerformanceMonitorService {
   getSystemMetrics() {
     const memoryUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
-    
+
     return {
       memory: {
         heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024),

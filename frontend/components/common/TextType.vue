@@ -3,14 +3,6 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 
 // 只在客戶端導入 GSAP
 let gsap: any = null
-if (process.client) {
-  try {
-    const gsapModule = await import('gsap')
-    gsap = gsapModule.gsap
-  } catch (err) {
-    console.warn('GSAP not available:', err)
-  }
-}
 
 const props = defineProps({
   text: { type: Array, required: true },
@@ -62,7 +54,17 @@ const shouldHideCursor = computed(() =>
   && (currentCharIndex.value < textArray[currentTextIndex.value].length || isDeleting.value),
 )
 
-onMounted(() => {
+onMounted(async () => {
+  // 動態導入 GSAP
+  if (process.client && !gsap) {
+    try {
+      const gsapModule = await import('gsap')
+      gsap = gsapModule.gsap
+    } catch (err) {
+      console.warn('GSAP not available:', err)
+    }
+  }
+
   if (process.client && props.showCursor && cursorRef.value && gsap && gsap.set && gsap.to) {
     gsap.set(cursorRef.value, { opacity: 1 })
     gsap.to(cursorRef.value, {

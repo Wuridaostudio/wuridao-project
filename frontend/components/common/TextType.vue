@@ -1,6 +1,16 @@
 <script setup lang="ts">
-import { gsap } from 'gsap'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+
+// 只在客戶端導入 GSAP
+let gsap: any = null
+if (process.client) {
+  try {
+    const gsapModule = await import('gsap')
+    gsap = gsapModule.gsap
+  } catch (err) {
+    console.warn('GSAP not available:', err)
+  }
+}
 
 const props = defineProps({
   text: { type: Array, required: true },
@@ -53,7 +63,7 @@ const shouldHideCursor = computed(() =>
 )
 
 onMounted(() => {
-  if (props.showCursor && cursorRef.value) {
+  if (process.client && props.showCursor && cursorRef.value && gsap && gsap.set && gsap.to) {
     gsap.set(cursorRef.value, { opacity: 1 })
     gsap.to(cursorRef.value, {
       opacity: 0,
@@ -63,7 +73,7 @@ onMounted(() => {
       ease: 'power2.inOut',
     })
   }
-  if (props.startOnVisible && containerRef.value) {
+  if (process.client && props.startOnVisible && containerRef.value && typeof window !== 'undefined' && window.IntersectionObserver) {
     observer.value = new window.IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {

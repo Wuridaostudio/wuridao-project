@@ -16,7 +16,7 @@ import TextType from '../components/common/TextType.vue'
           '截至2025年 規劃過超過100個智慧家庭系統\n落地超過50個家庭',
         ]"
         as="h1"
-        class-name="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold mb-4 sm:mb-6 md:mb-8 tracking-tight text-white leading-relaxed md:leading-loose max-w-full"
+        :class-name="'text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold mb-4 sm:mb-6 md:mb-8 tracking-tight text-white leading-relaxed md:leading-loose max-w-full'"
         :typing-speed="75"
         :pause-duration="1500"
         :show-cursor="true"

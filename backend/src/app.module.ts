@@ -63,6 +63,7 @@ import { databaseConfig } from './config/database.config';
                   errorLikeObjectKeys: ['err', 'error'],
                   ignore: 'pid,hostname',
                   translateTime: 'SYS:standard',
+                  messageFormat: '{msg}',
                 },
               }
             : undefined,

@@ -15,6 +15,7 @@ import {
   ParseIntPipe,
   ParseBoolPipe,
   Request,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -103,23 +104,8 @@ export class ArticlesController {
 
   @ApiOperation({ summary: '獲取文章列表 (公開)' })
   @Get()
-  findAll(
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('limit', new DefaultValuePipe(15), ParseIntPipe) limit: number,
-    @Query('draft') isDraft?: string,
-  ) {
-    // 手動處理布林值轉換
-    let isDraftBoolean: boolean | undefined = undefined;
-
-    if (isDraft !== undefined && isDraft !== '') {
-      if (isDraft === 'true' || isDraft === '1') {
-        isDraftBoolean = true;
-      } else if (isDraft === 'false' || isDraft === '0') {
-        isDraftBoolean = false;
-      }
-    }
-
-    return this.articlesService.findAll(isDraftBoolean, page, limit);
+  findAll(@Query() query: any, @Req() request: any) {
+    return this.articlesService.findAll(query, request);
   }
 
   @ApiOperation({ summary: '獲取單篇文章 (公開)' })

@@ -29,7 +29,11 @@ export class ArticlesService {
     private cloudinaryService: CloudinaryService,
     private articleUploadService: ArticleUploadService,
     private articleSeoService: ArticleSeoService,
-  ) {}
+  ) {
+    // 設定日誌編碼為 UTF-8
+    process.env.LANG = 'zh_TW.UTF-8';
+    process.env.LC_ALL = 'zh_TW.UTF-8';
+  }
 
   async create(
     createArticleDto: CreateArticleDto,
@@ -148,99 +152,127 @@ export class ArticlesService {
     return tags;
   }
 
-  async findAll(
-    isDraft?: boolean,
-    page = 1,
-    limit = 15,
-  ): Promise<{ data: Article[]; total: number }> {
-    this.logger.log('🔍 [ArticlesService][findAll] 開始查詢文章列表');
-    this.logger.log('📋 [ArticlesService][findAll] 查詢參數:', {
-      isDraft,
-      page,
-      limit,
-    });
+  async findAll(query: any = {}, request?: any) {
+    this.logger.log('🔍 [ArticlesService] 開始查詢文章列表');
+    this.logger.log('🔍 [ArticlesService] 查詢參數:', query);
 
-    this.logger.log('🔍 [ArticlesService][findAll] 處理後的 isDraft:', isDraft);
+    // 定義常量，避免硬編碼
+    const PUBLISHED_STATUS = false;
+    const DRAFT_STATUS = true;
 
-    const skip = (page - 1) * limit;
-    const query = this.articleRepository
-      .createQueryBuilder('article')
-      .leftJoinAndSelect('article.category', 'category')
-      .leftJoinAndSelect('article.tags', 'tags')
-      .orderBy('article.createdAt', 'DESC')
-      .take(limit)
-      .skip(skip);
+    try {
+      const queryBuilder = this.articleRepository
+        .createQueryBuilder('article')
+        .leftJoinAndSelect('article.category', 'category')
+        .leftJoinAndSelect('article.tags', 'tags')
+        .orderBy('article.createdAt', 'DESC');
 
-    if (isDraft !== undefined) {
-      query.where('article.isDraft = :isDraft', { isDraft });
-      this.logger.log(
-        '🔍 [ArticlesService][findAll] 應用 isDraft 篩選:',
-        isDraft,
+      // 檢查是否有 Authorization 標頭（表示可能是管理員請求）
+      const hasAuthHeader = request?.headers?.authorization && 
+                           request.headers.authorization.startsWith('Bearer ');
+      this.logger.log('🔍 [ArticlesService] 認證標頭檢查:', { 
+        hasAuthHeader, 
+        authHeader: hasAuthHeader ? 'Bearer ***' : '無'
+      });
+
+      // 處理草稿狀態篩選
+      if (query.isDraft !== undefined) {
+        const isDraft = query.isDraft === 'true' || query.isDraft === true;
+        queryBuilder.andWhere('article.isDraft = :isDraft', { isDraft });
+        this.logger.log('🔍 [ArticlesService] 使用指定的 isDraft 參數:', isDraft);
+      } else {
+        // 根據是否有認證標頭決定是否顯示草稿文章
+        if (hasAuthHeader) {
+          // 有認證標頭的請求（可能是管理員）可以看到所有文章
+          this.logger.log('🔍 [ArticlesService] 檢測到認證標頭，返回所有文章（包括草稿）');
+        } else {
+          // 沒有認證標頭的請求（公開訪問）只能看到已發布的文章
+          queryBuilder.andWhere('article.isDraft = :isDraft', { isDraft: PUBLISHED_STATUS });
+          this.logger.log('🔍 [ArticlesService] 公開訪問，只返回已發布文章');
+        }
+      }
+
+      // 處理分頁
+      const page = parseInt(query.page) || 1;
+      const limit = parseInt(query.limit) || 10;
+      const offset = (page - 1) * limit;
+
+      queryBuilder.skip(offset).take(limit);
+
+      // 處理分類篩選
+      if (query.categoryId) {
+        queryBuilder.andWhere('category.id = :categoryId', {
+          categoryId: query.categoryId,
+        });
+      }
+
+      // 處理標籤篩選
+      if (query.tagIds) {
+        const tagIds = Array.isArray(query.tagIds)
+          ? query.tagIds
+          : query.tagIds.split(',').map((id: string) => parseInt(id.trim()));
+        queryBuilder.andWhere('tags.id IN (:...tagIds)', { tagIds });
+      }
+
+      // 處理搜尋
+      if (query.search) {
+        queryBuilder.andWhere(
+          '(article.title ILIKE :search OR article.content ILIKE :search)',
+          { search: `%${query.search}%` },
+        );
+      }
+
+      const [data, total] = await queryBuilder.getManyAndCount();
+
+      // 驗證並處理封面圖片
+      const processedData = await Promise.all(
+        data.map(async (article) => {
+          if (article.coverImageUrl) {
+            const validation = await this.cloudinaryService.validateImageUrl(
+              article.coverImageUrl,
+              article.category?.name
+            );
+            
+            if (!validation.isValid && validation.fallbackUrl) {
+              this.logger.warn('[ArticlesService] 使用備用圖片', {
+                articleId: article.id,
+                originalUrl: article.coverImageUrl,
+                fallbackUrl: validation.fallbackUrl
+              });
+              article.coverImageUrl = validation.fallbackUrl;
+            }
+          }
+          return article;
+        })
       );
-    } else {
-      this.logger.log('🔍 [ArticlesService][findAll] 未應用 isDraft 篩選');
-    }
 
-    // 輸出 SQL 查詢語句
-    const sql = query.getSql();
-    this.logger.log('🔍 [ArticlesService][findAll] SQL 查詢:', sql);
-    this.logger.log(
-      '🔍 [ArticlesService][findAll] SQL 參數:',
-      query.getParameters ? query.getParameters() : '無法獲取參數',
-    );
+      this.logger.log('✅ [ArticlesService] 文章列表查詢成功');
+      this.logger.log('📊 [ArticlesService] 查詢結果統計:', {
+        total,
+        page,
+        limit,
+        returnedCount: processedData.length,
+        hasAuthHeader,
+      });
 
-    const [data, total] = await query.getManyAndCount();
-    this.logger.log('📊 [ArticlesService][findAll] 查詢結果統計:', {
-      total: total,
-      returned: data.length,
-      isDraft: isDraft,
-      page: page,
-      limit: limit,
-      skip: skip,
-    });
-
-    // 性能優化：移除同步 Cloudinary 內容載入
-    // 文章內容將在需要時異步載入，避免阻塞列表查詢
-    this.logger.log(
-      '🔍 [ArticlesService][findAll] 跳過 Cloudinary 內容同步載入以提升性能',
-    );
-
-    // 額外查詢：檢查資料庫中所有文章（不考慮篩選）
-    this.logger.log('🔍 [ArticlesService][findAll] 檢查資料庫中所有文章...');
-    const allArticles = await this.articleRepository.find({
-      relations: ['category', 'tags'],
-    });
-    this.logger.log(
-      '📊 [ArticlesService][findAll] 資料庫中所有文章:',
-      allArticles.map((a) => ({
-        id: a.id,
-        title: a.title,
-        isDraft: a.isDraft,
-        createdAt: a.createdAt,
-      })),
-    );
-
-    this.logger.log('📋 [ArticlesService][findAll] 文章列表詳情:');
-    data.forEach((article, index) => {
-      this.logger.log(
-        `  ${index + 1}. ID: ${article.id}, 標題: ${article.title}, isDraft: ${article.isDraft}, 創建時間: ${article.createdAt}, 內容長度: ${article.content?.length || 0}`,
-      );
-    });
-
-    // 新增：檢查是否有文章被意外篩選掉
-    if (isDraft !== undefined && data.length === 0 && allArticles.length > 0) {
-      this.logger.warn(
-        '⚠️ [ArticlesService][findAll] 警告：查詢結果為空，但資料庫中有文章',
-      );
-      this.logger.log('🔍 [ArticlesService][findAll] 檢查可能的原因：');
-      allArticles.forEach((article) => {
+      // 記錄每篇文章的詳細信息
+      processedData.forEach((article, index) => {
         this.logger.log(
-          `  - 文章 ID ${article.id}: isDraft=${article.isDraft}, 標題="${article.title}"`,
+          `  ${index + 1}. ID: ${article.id}, 標題: ${article.title}, isDraft: ${article.isDraft}, 創建時間: ${article.createdAt}, 內容長度: ${article.content?.length || 0}, 封面圖片: ${article.coverImageUrl || '無'}, coverImagePublicId: ${article.coverImagePublicId || '無'}`,
         );
       });
-    }
 
-    return { data, total };
+      return {
+        data: processedData,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    } catch (error) {
+      this.logger.error('❌ [ArticlesService] 文章列表查詢失敗:', error);
+      throw error;
+    }
   }
 
   generateJsonLdForArticle(article: Article): any {
@@ -428,7 +460,22 @@ export class ArticlesService {
     updateArticleDto: UpdateArticleDto,
     coverImage?: Express.Multer.File,
   ) {
+    this.logger.log('🔄 [ArticlesService] ===== 文章更新服務開始 =====');
+    this.logger.log('📋 [ArticlesService] 更新參數:', {
+      id,
+      isDraft: updateArticleDto.isDraft,
+      title: updateArticleDto.title,
+      contentLength: updateArticleDto.content?.length || 0,
+      dtoKeys: Object.keys(updateArticleDto),
+    });
+
     const article = await this.findOne(id);
+    
+    this.logger.log('📋 [ArticlesService] 原始文章狀態:', {
+      id: article.id,
+      title: article.title,
+      isDraft: article.isDraft,
+    });
 
     const oldCoverImagePublicId = article.coverImagePublicId;
     const oldContentPublicId = article.contentPublicId;
@@ -514,7 +561,22 @@ export class ArticlesService {
     if (updateArticleDto.geoPostalCode)
       article.geoPostalCode = updateArticleDto.geoPostalCode;
 
-    Object.assign(article, updateArticleDto);
+    // 處理 isDraft 欄位 - 確保不會被 Object.assign 覆蓋
+    if (updateArticleDto.isDraft !== undefined) {
+      article.isDraft = updateArticleDto.isDraft;
+      this.logger.log('[ArticleService][update] 設定 isDraft:', updateArticleDto.isDraft);
+    }
+
+    // 創建一個不包含已處理欄位的 DTO 副本，避免 Object.assign 覆蓋
+    const { 
+      seoTitle, seoDescription, seoKeywords, 
+      aeoFaq, 
+      geoLatitude, geoLongitude, geoAddress, geoCity, geoPostalCode,
+      isDraft,
+      ...remainingDto 
+    } = updateArticleDto;
+
+    Object.assign(article, remainingDto);
 
     try {
       // 根據規則 #1：儲存資料庫
@@ -523,6 +585,14 @@ export class ArticlesService {
         id: updatedArticle.id,
         coverImageUrl: updatedArticle.coverImageUrl,
         content: updatedArticle.content,
+        isDraft: updatedArticle.isDraft,
+      });
+      
+      this.logger.log('✅ [ArticlesService] ===== 文章更新服務完成 =====');
+      this.logger.log('📋 [ArticlesService] 更新後文章狀態:', {
+        id: updatedArticle.id,
+        title: updatedArticle.title,
+        isDraft: updatedArticle.isDraft,
       });
 
       // 根據規則 #1：如果資料庫儲存成功，才清理舊檔案

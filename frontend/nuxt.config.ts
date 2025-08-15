@@ -1,6 +1,9 @@
 // @ts-nocheck
 // nuxt.config.ts - 支援開發和生產環境
 export default defineNuxtConfig({
+  // 兼容性日期
+  compatibilityDate: '2025-08-16',
+  
   // 開發工具
   devtools: { enabled: true },
 

@@ -131,4 +131,8 @@ config/secrets.json
 
 # Local development files
 local/
-dev/ 
+dev/
+
+# Documentation files
+*.md
+!README.md 

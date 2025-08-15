@@ -57,9 +57,24 @@ export function useApi() {
   })
 
   return {
-    // Articles - 使用公開 API
+    // Articles - 使用認證 API（管理員可以看到所有文章包括草稿）
     getArticles: (params = {}) => {
       logger.debug('Fetching articles', { params })
+
+      // 過濾掉 undefined 和 null 值，避免發送空參數
+      const processedParams = { ...params }
+      Object.keys(processedParams).forEach((key) => {
+        if (processedParams[key] === undefined || processedParams[key] === null) {
+          delete processedParams[key]
+        }
+      })
+
+      return api('/articles', { params: processedParams })
+    },
+
+    // 公開文章 API - 不需要認證，只顯示已發布文章
+    getPublicArticles: (params = {}) => {
+      logger.debug('Fetching public articles', { params })
 
       // 過濾掉 undefined 和 null 值，避免發送空參數
       const processedParams = { ...params }

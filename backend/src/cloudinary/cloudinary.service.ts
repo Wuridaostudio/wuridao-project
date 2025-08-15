@@ -302,18 +302,76 @@ export class CloudinaryService {
   async checkResourceExists(
     publicId: string,
     resourceType: 'image' | 'video' | 'raw' = 'image',
-  ) {
+  ): Promise<boolean> {
     try {
+      this.logger.log('[CLOUDINARY CHECK] Checking resource existence', {
+        publicId,
+        resourceType,
+      });
+
       const result = await cloudinary.api.resource(publicId, {
         resource_type: resourceType,
       });
+
+      this.logger.log('[CLOUDINARY CHECK] Resource exists', result);
       return !!result;
-    } catch (error) {
-      if (error.http_code === 404) {
-        return false;
-      }
-      throw error;
+    } catch (error: any) {
+      this.logger.warn('[CLOUDINARY CHECK] Resource not found', {
+        publicId,
+        resourceType,
+        error: error.message,
+      });
+      return false;
     }
+  }
+
+  /**
+   * 檢查圖片 URL 是否有效，如果無效則返回備用 URL
+   */
+  async validateImageUrl(imageUrl: string, categoryName?: string): Promise<{ isValid: boolean; fallbackUrl?: string }> {
+    if (!imageUrl) {
+      return { isValid: false, fallbackUrl: this.getFallbackImageUrl(categoryName) }
+    }
+
+    // 檢查是否為 Cloudinary 圖片
+    if (imageUrl.includes('res.cloudinary.com')) {
+      try {
+        // 嘗試從 URL 提取 public_id
+        const urlParts = imageUrl.split('/')
+        const uploadIndex = urlParts.findIndex(part => part === 'upload')
+        if (uploadIndex !== -1 && uploadIndex + 2 < urlParts.length) {
+          const publicId = urlParts.slice(uploadIndex + 2).join('/').split('.')[0]
+          
+          const exists = await this.checkResourceExists(publicId, 'image')
+          if (!exists) {
+            this.logger.warn('[CLOUDINARY VALIDATE] Image not found in Cloudinary', { imageUrl, publicId })
+            return { isValid: false, fallbackUrl: this.getFallbackImageUrl(categoryName) }
+          }
+        }
+      } catch (error) {
+        this.logger.error('[CLOUDINARY VALIDATE] Error checking Cloudinary image', { imageUrl, error })
+        return { isValid: false, fallbackUrl: this.getFallbackImageUrl(categoryName) }
+      }
+    }
+
+    return { isValid: true }
+  }
+
+  /**
+   * 根據類別獲取備用圖片 URL
+   */
+  private getFallbackImageUrl(categoryName?: string): string {
+    const category = categoryName?.toLowerCase() || ''
+    
+    if (category.includes('智慧家庭') || category.includes('homekit') || category.includes('google home')) {
+      return 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTQ3NTd8MHwxfHNlYXJjaHwxfHxzbWFydCUyMGhvbWV8ZW58MHx8fHwxNzU1MjIzMDAwfDA&ixlib=rb-4.1.0&q=80&w=1080'
+    }
+    
+    if (category.includes('科技') || category.includes('technology') || category.includes('matter')) {
+      return 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTQ3NTd8MHwxfHNlYXJjaHwxfHx0ZWNobm9sb2d5fGVufDB8fHx8MTc1NTIyMzAwMHww&ixlib=rb-4.1.0&q=80&w=1080'
+    }
+    
+    return 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTQ3NTd8MHwxfHNlYXJjaHwxfHx0ZWNofGVufDB8fHx8MTc1NTIyMzAwMHww&ixlib=rb-4.1.0&q=80&w=1080'
   }
 
   async getResource(

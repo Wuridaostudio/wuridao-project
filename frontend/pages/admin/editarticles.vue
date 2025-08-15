@@ -596,7 +596,7 @@ async function saveArticle() {
     // 強制重新載入文章列表，確保新文章立即出現
     logger.log('🔄 [EditArticles] 重新載入文章列表...')
     try {
-      await articlesStore.fetchArticles({ isDraft: undefined, page: 1, limit: 50 }) // 顯示所有文章（包括草稿）
+      await articlesStore.fetchArticles({ page: 1, limit: 50 }) // 顯示所有文章（包括草稿）
       logger.log('✅ [EditArticles] 文章列表重新載入成功')
     }
     catch (error) {
@@ -871,7 +871,7 @@ onMounted(async () => {
 
     await Promise.all([
       articlesStore
-        .fetchArticles({ isDraft: undefined, page: 1, limit: 50 }) // 顯示所有文章（包括草稿）
+        .fetchArticles({ page: 1, limit: 50 }) // 顯示所有文章（包括草稿）- 不傳 isDraft 參數，讓後端返回所有文章
         .then(() => {
           logger.log('[LOG] articles fetched')
           logger.log(

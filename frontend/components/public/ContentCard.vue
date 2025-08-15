@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { logger } from '~/utils/logger'
+import { isCloudinaryImage, handleImageError as getFallbackImage } from '~/utils/imageFallback'
 
 // ===== Props 定義 =====
 interface Props {
@@ -23,6 +24,8 @@ const videoElement = ref<HTMLVideoElement>()
 // ===== 響應式狀態 =====
 const isPlaying = ref(false)
 const isHovered = ref(false)
+const imageLoadError = ref(false) // New reactive state
+const fallbackImageUrl = ref<string | null>(null)
 
 // ===== 計算屬性 =====
 // 從 publicId 中提取簡單的 ID
@@ -148,6 +151,34 @@ function logItem(item: any) {
   }
   return ''
 }
+
+// 圖片載入成功
+function handleImageLoad(event: Event) {
+  const img = event.target as HTMLImageElement
+  logger.log('[ContentCard] 圖片載入成功:', img.src)
+  imageLoadError.value = false // Reset error on successful load
+  fallbackImageUrl.value = null // Clear fallback
+}
+
+// 圖片載入失敗
+function handleImageError(event: Event) {
+  const img = event.target as HTMLImageElement
+  const imgSrc = img.src
+  
+  // 檢查是否為 Cloudinary 圖片
+  const isCloudinary = isCloudinaryImage(imgSrc)
+  
+  if (isCloudinary) {
+    logger.error('[ContentCard] Cloudinary 圖片載入失敗 (可能是圖片已被刪除):', imgSrc)
+    // 獲取備用圖片
+    fallbackImageUrl.value = getFallbackImage(imgSrc, props.item.category?.name)
+  } else {
+    logger.error('[ContentCard] 圖片載入失敗:', imgSrc)
+    fallbackImageUrl.value = getFallbackImage(imgSrc, props.item.category?.name)
+  }
+  
+  imageLoadError.value = true // Set error state
+}
 </script>
 
 <template>
@@ -162,19 +193,38 @@ function logItem(item: any) {
     >
       <!-- 文章卡片 -->
       <template v-if="type === 'article'">
-        <div v-if="true">
-          {{ logItem(item) }}
-        </div>
         <div class="relative overflow-hidden aspect-[16/9]">
           <img
-            v-if="item.coverImageUrl"
+            v-if="item.coverImageUrl && !imageLoadError"
             :src="item.coverImageUrl"
             :alt="item.title"
             class="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110"
             loading="lazy"
+            @load="handleImageLoad"
+            @error="handleImageError"
           >
+          <!-- 備用圖片 -->
+          <img
+            v-else-if="fallbackImageUrl"
+            :src="fallbackImageUrl"
+            :alt="item.title"
+            class="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-110"
+            loading="lazy"
+          >
+          <!-- 圖片載入失敗時的佔位符 -->
           <div
-            v-if="item.coverImageUrl"
+            v-else
+            class="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center"
+          >
+            <div class="text-center">
+              <svg class="w-16 h-16 text-gray-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p class="text-gray-500 text-sm">{{ item.coverImageUrl ? '圖片載入失敗' : '暫無封面圖片' }}</p>
+            </div>
+          </div>
+          <div
+            v-if="item.coverImageUrl || fallbackImageUrl"
             class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-60 group-hover:opacity-80 transition-opacity"
           />
         </div>

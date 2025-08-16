@@ -64,6 +64,9 @@ import { databaseConfig } from './config/database.config';
                   ignore: 'pid,hostname',
                   translateTime: 'SYS:standard',
                   messageFormat: '{msg}',
+                  // 編碼設定
+                  encoding: 'utf8',
+                  charset: 'utf8',
                 },
               }
             : undefined,

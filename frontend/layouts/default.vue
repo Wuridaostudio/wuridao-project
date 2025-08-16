@@ -354,10 +354,10 @@ onUnmounted(() => {
 
     <!-- Footer -->
     <footer class="bg-gray-900 border-t border-gray-800 mt-20">
-      <div class="container mx-auto px-4 py-12">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div class="container mx-auto px-4 md:px-6 lg:px-8 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
           <!-- 公司資訊 -->
-          <div class="col-span-1 md:col-span-2">
+          <div class="col-span-1">
             <div class="flex items-center gap-3 mb-4">
               <svg
                 class="w-8 h-8 text-blue-400"

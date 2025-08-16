@@ -58,21 +58,12 @@ import { databaseConfig } from './config/database.config';
             ? {
                 target: 'pino-pretty',
                 options: {
-                  colorize: process.platform !== 'win32', // Windows 下禁用顏色
+                  colorize: true,
                   crlf: true,
                   errorLikeObjectKeys: ['err', 'error'],
                   ignore: 'pid,hostname',
                   translateTime: 'SYS:standard',
                   messageFormat: '{msg}',
-                  // 編碼設定
-                  encoding: 'utf8',
-                  charset: 'utf8',
-                  // Windows 環境特殊處理
-                  ...(process.platform === 'win32' && {
-                    colorize: false,
-                    levelFirst: true,
-                    translateTime: 'yyyy-mm-dd HH:MM:ss',
-                  }),
                 },
               }
             : undefined,

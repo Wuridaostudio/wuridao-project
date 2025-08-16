@@ -39,8 +39,8 @@ export class ArticlesService {
     createArticleDto: CreateArticleDto,
     coverImage?: Express.Multer.File,
   ) {
-    this.logger.log('[ArticlesService] ===== 文章創建服務開始 =====');
-    this.logger.log('[ArticlesService] 接收到的數據:', {
+    this.logger.log('🚀 [ArticlesService] ===== 文章創建服務開始 =====');
+    this.logger.log('📋 [ArticlesService] 接收到的數據:', {
       title: createArticleDto.title,
       contentLength: createArticleDto.content?.length || 0,
       coverImageUrl: createArticleDto.coverImageUrl,
@@ -118,7 +118,7 @@ export class ArticlesService {
 
       const savedArticle = await this.articleRepository.save(article);
 
-      this.logger.log('[ArticlesService] 文章創建成功:', savedArticle.id);
+      this.logger.log('✅ [ArticlesService] 文章創建成功:', savedArticle.id);
       return savedArticle;
     } catch (error) {
       // 清理失敗的上傳
@@ -135,7 +135,7 @@ export class ArticlesService {
         );
       }
 
-      this.logger.error('[ArticlesService] 文章創建失敗:', error);
+      this.logger.error('❌ [ArticlesService] 文章創建失敗:', error);
       throw error;
     }
   }
@@ -146,15 +146,15 @@ export class ArticlesService {
       return [];
     }
 
-    this.logger.log('[ArticlesService] 查找標籤 IDs:', tagIds);
+    this.logger.log('🏷️ [ArticlesService] 查找標籤 IDs:', tagIds);
     const tags = await this.tagRepository.findBy({ id: In(tagIds) });
-    this.logger.log('[ArticlesService] 找到標籤數量:', tags.length);
+    this.logger.log('✅ [ArticlesService] 找到標籤數量:', tags.length);
     return tags;
   }
 
   async findAll(query: any = {}, request?: any) {
-    this.logger.log('[ArticlesService] 開始查詢文章列表');
-    this.logger.log('[ArticlesService] 查詢參數:', query);
+    this.logger.log('🔍 [ArticlesService] 開始查詢文章列表');
+    this.logger.log('🔍 [ArticlesService] 查詢參數:', query);
 
     // 定義常量，避免硬編碼
     const PUBLISHED_STATUS = false;
@@ -162,15 +162,15 @@ export class ArticlesService {
 
     try {
       const queryBuilder = this.articleRepository
-        .createQueryBuilder('article')
-        .leftJoinAndSelect('article.category', 'category')
-        .leftJoinAndSelect('article.tags', 'tags')
+      .createQueryBuilder('article')
+      .leftJoinAndSelect('article.category', 'category')
+      .leftJoinAndSelect('article.tags', 'tags')
         .orderBy('article.createdAt', 'DESC');
 
       // 檢查是否有 Authorization 標頭（表示可能是管理員請求）
       const hasAuthHeader = request?.headers?.authorization && 
                            request.headers.authorization.startsWith('Bearer ');
-      this.logger.log('[ArticlesService] 認證標頭檢查:', { 
+      this.logger.log('🔍 [ArticlesService] 認證標頭檢查:', { 
         hasAuthHeader, 
         authHeader: hasAuthHeader ? 'Bearer ***' : '無'
       });
@@ -179,16 +179,16 @@ export class ArticlesService {
       if (query.isDraft !== undefined) {
         const isDraft = query.isDraft === 'true' || query.isDraft === true;
         queryBuilder.andWhere('article.isDraft = :isDraft', { isDraft });
-        this.logger.log('[ArticlesService] 使用指定的 isDraft 參數:', isDraft);
+        this.logger.log('🔍 [ArticlesService] 使用指定的 isDraft 參數:', isDraft);
       } else {
         // 根據是否有認證標頭決定是否顯示草稿文章
         if (hasAuthHeader) {
           // 有認證標頭的請求（可能是管理員）可以看到所有文章
-          this.logger.log('[ArticlesService] 檢測到認證標頭，返回所有文章（包括草稿）');
-        } else {
+          this.logger.log('🔍 [ArticlesService] 檢測到認證標頭，返回所有文章（包括草稿）');
+    } else {
           // 沒有認證標頭的請求（公開訪問）只能看到已發布的文章
           queryBuilder.andWhere('article.isDraft = :isDraft', { isDraft: PUBLISHED_STATUS });
-          this.logger.log('[ArticlesService] 公開訪問，只返回已發布文章');
+          this.logger.log('🔍 [ArticlesService] 公開訪問，只返回已發布文章');
         }
       }
 
@@ -246,8 +246,8 @@ export class ArticlesService {
         })
       );
 
-      this.logger.log('[ArticlesService] 文章列表查詢成功');
-      this.logger.log('[ArticlesService] 查詢結果統計:', {
+      this.logger.log('✅ [ArticlesService] 文章列表查詢成功');
+      this.logger.log('📊 [ArticlesService] 查詢結果統計:', {
         total,
         page,
         limit,
@@ -270,7 +270,7 @@ export class ArticlesService {
         totalPages: Math.ceil(total / limit),
       };
     } catch (error) {
-      this.logger.error('[ArticlesService] 文章列表查詢失敗:', error);
+      this.logger.error('❌ [ArticlesService] 文章列表查詢失敗:', error);
       throw error;
     }
   }
@@ -413,7 +413,7 @@ export class ArticlesService {
           if (response.ok) {
             const actualContent = await response.text();
             this.logger.log(
-              `[ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入成功 (${actualContent.length} 字符)`,
+              `✅ [ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入成功 (${actualContent.length} 字符)`,
             );
             return actualContent;
           } else {
@@ -424,20 +424,20 @@ export class ArticlesService {
               if (response.ok) {
                 const actualContent = await response.text();
                 this.logger.log(
-                  `[ArticlesService][loadArticleContent] 文章 ${articleId} 經修正 URL 後內容載入成功 (${actualContent.length} 字符)`,
+                  `✅ [ArticlesService][loadArticleContent] 文章 ${articleId} 經修正 URL 後內容載入成功 (${actualContent.length} 字符)`,
                 );
                 return actualContent;
               }
             }
 
             this.logger.error(
-              `[ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入失敗: ${response.status}`,
+              `❌ [ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入失敗: ${response.status}`,
             );
             return null;
           }
         } catch (error) {
           this.logger.error(
-            `[ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入時發生錯誤:`,
+            `❌ [ArticlesService][loadArticleContent] 文章 ${articleId} 內容載入時發生錯誤:`,
             error,
           );
           return null;
@@ -448,7 +448,7 @@ export class ArticlesService {
       return article.content;
     } catch (error) {
       this.logger.error(
-        `[ArticlesService][loadArticleContent] 載入文章 ${articleId} 內容時發生錯誤:`,
+        `❌ [ArticlesService][loadArticleContent] 載入文章 ${articleId} 內容時發生錯誤:`,
         error,
       );
       return null;
@@ -460,8 +460,8 @@ export class ArticlesService {
     updateArticleDto: UpdateArticleDto,
     coverImage?: Express.Multer.File,
   ) {
-    this.logger.log('[ArticlesService] ===== 文章更新服務開始 =====');
-    this.logger.log('[ArticlesService] 更新參數:', {
+    this.logger.log('🔄 [ArticlesService] ===== 文章更新服務開始 =====');
+    this.logger.log('📋 [ArticlesService] 更新參數:', {
       id,
       isDraft: updateArticleDto.isDraft,
       title: updateArticleDto.title,
@@ -471,7 +471,7 @@ export class ArticlesService {
 
     const article = await this.findOne(id);
     
-    this.logger.log('[ArticlesService] 原始文章狀態:', {
+    this.logger.log('📋 [ArticlesService] 原始文章狀態:', {
       id: article.id,
       title: article.title,
       isDraft: article.isDraft,
@@ -588,8 +588,8 @@ export class ArticlesService {
         isDraft: updatedArticle.isDraft,
       });
       
-      this.logger.log('[ArticlesService] ===== 文章更新服務完成 =====');
-      this.logger.log('[ArticlesService] 更新後文章狀態:', {
+      this.logger.log('✅ [ArticlesService] ===== 文章更新服務完成 =====');
+      this.logger.log('📋 [ArticlesService] 更新後文章狀態:', {
         id: updatedArticle.id,
         title: updatedArticle.title,
         isDraft: updatedArticle.isDraft,

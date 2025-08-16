@@ -4,10 +4,6 @@ export const databaseConfig = {
   type: 'postgres' as const,
   url: process.env.DATABASE_URL,
   ssl: process.env.USE_SSL === 'true' ? { rejectUnauthorized: false } : false,
-  
-  // 編碼配置
-  charset: 'utf8',
-  collation: 'utf8_unicode_ci',
 
   // 同步配置 - 始終使用遷移
   synchronize: false,

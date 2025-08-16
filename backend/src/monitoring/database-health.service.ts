@@ -19,7 +19,7 @@ export class DatabaseHealthService {
       const isConnected = this.dataSource.isInitialized;
 
       if (!isConnected) {
-        this.logger.error('[DatabaseHealth] 資料庫連接失敗');
+        this.logger.error('❌ [DatabaseHealth] 資料庫連接失敗');
         return;
       }
 
@@ -27,9 +27,9 @@ export class DatabaseHealthService {
       const result = await this.dataSource.query('SELECT 1 as health_check');
 
       if (result && result[0]?.health_check === 1) {
-        this.logger.log('[DatabaseHealth] 資料庫連接正常');
+        this.logger.log('✅ [DatabaseHealth] 資料庫連接正常');
       } else {
-        this.logger.warn('[DatabaseHealth] 資料庫響應異常');
+        this.logger.warn('⚠️ [DatabaseHealth] 資料庫響應異常');
       }
 
       // 檢查連接池狀態
@@ -41,16 +41,16 @@ export class DatabaseHealthService {
           waiting: pool.waiting,
         };
 
-        this.logger.log('[DatabaseHealth] 連接池狀態', poolStats);
+        this.logger.log('📊 [DatabaseHealth] 連接池狀態', poolStats);
 
         // 檢查連接池健康狀況
         if (pool.waiting > 5) {
-          this.logger.warn('[DatabaseHealth] 連接池等待連接過多', poolStats);
+          this.logger.warn('⚠️ [DatabaseHealth] 連接池等待連接過多', poolStats);
         }
       }
     } catch (error) {
       this.logger.error(
-        '[DatabaseHealth] 資料庫健康檢查失敗',
+        '🚨 [DatabaseHealth] 資料庫健康檢查失敗',
         error.message,
       );
     }
@@ -92,10 +92,10 @@ export class DatabaseHealthService {
   async testConnection() {
     try {
       await this.dataSource.query('SELECT 1');
-      this.logger.log('[DatabaseHealth] 資料庫連接正常');
+      this.logger.log('✅ [DatabaseHealth] 資料庫連接正常');
       return { status: 'healthy', message: 'Database connection is healthy' };
     } catch (error) {
-      this.logger.error('[DatabaseHealth] 資料庫連接失敗:', error);
+      this.logger.error('❌ [DatabaseHealth] 資料庫連接失敗:', error);
       return {
         status: 'unhealthy',
         message: 'Database connection failed',

@@ -390,7 +390,7 @@ onUnmounted(() => {
           </div>
 
           <!-- 快速連結 -->
-          <div>
+          <div class="md:-ml-4 lg:-ml-8">
             <h3 class="font-semibold mb-4">
               快速連結
             </h3>

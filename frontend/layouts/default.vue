@@ -354,7 +354,7 @@ onUnmounted(() => {
 
     <!-- Footer -->
     <footer class="bg-gray-900 border-t border-gray-800 mt-20">
-      <div class="container mx-auto px-4 md:px-6 lg:px-8 py-12">
+      <div class="container mx-auto px-8 md:px-12 lg:px-16 py-12">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
           <!-- 公司資訊 -->
           <div class="col-span-1">

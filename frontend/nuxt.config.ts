@@ -109,7 +109,7 @@ export default defineNuxtConfig({
       // API 配置
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL
         || (process.env.NODE_ENV === 'production'
-          ? 'https://wuridaostudio.com'
+          ? 'https://wuridao-backend.onrender.com'
           : 'http://localhost:3000'),
 
       // 動態網站 URL 配置

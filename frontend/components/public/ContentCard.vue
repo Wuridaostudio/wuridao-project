@@ -230,11 +230,11 @@ function handleImageError(event: Event) {
         </div>
 
         <!-- 內容 -->
-        <div class="p-6">
+        <div class="p-3 sm:p-6">
           <!-- 分類標籤 -->
           <div v-if="item.category" class="mb-3">
             <span
-              class="inline-block bg-blue-500/20 text-blue-400 text-xs px-3 py-1 rounded-full"
+              class="inline-block bg-blue-500/20 text-blue-400 text-sm sm:text-xs px-3 py-1 rounded-full"
             >
               {{ item.category.name }}
             </span>
@@ -242,18 +242,18 @@ function handleImageError(event: Event) {
 
           <!-- 標題 -->
           <h3
-            class="font-bold text-xl mb-3 group-hover:text-blue-400 transition-colors line-clamp-2"
+            class="font-bold text-lg sm:text-xl mb-3 group-hover:text-blue-400 transition-colors line-clamp-2 leading-tight"
           >
             {{ item.title }}
           </h3>
 
           <!-- 摘要 -->
-          <p class="text-gray-400 text-sm line-clamp-3 mb-4">
+          <p class="text-gray-400 text-base sm:text-sm line-clamp-3 mb-4 leading-relaxed">
             {{ stripHtml(item.content) }}
           </p>
 
           <!-- 底部資訊 -->
-          <div class="flex items-center justify-between text-xs text-gray-500">
+          <div class="flex items-center justify-between text-sm sm:text-xs text-gray-500">
             <time :datetime="item.createdAt">
               {{ formatDate(item.createdAt) }}
             </time>
@@ -286,7 +286,7 @@ function handleImageError(event: Event) {
             <span
               v-for="tag in item.tags.slice(0, 3)"
               :key="tag.id"
-              class="text-xs text-gray-500"
+              class="text-sm sm:text-xs text-gray-500"
             >
               #{{ tag.name }}
             </span>

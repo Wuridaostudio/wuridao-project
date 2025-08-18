@@ -29,8 +29,9 @@ onMounted(async () => {
       logger.log('📊 [Dashboard] 開始載入統計數據...')
       
       // 從後端統計 API 獲取實際的資料庫數量
-      const response = await $fetch('/api/health/api/statistics', {
-        baseURL: 'http://localhost:3000',
+      const config = useRuntimeConfig()
+      const response = await $fetch('/health/api/statistics', {
+        baseURL: config.public.apiBaseUrl,
       })
       
       logger.log('✅ [Dashboard] 統計數據載入成功:', response)

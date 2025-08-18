@@ -1,15 +1,27 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 
+// 手機優化：使用較小的圖片
+const isMobile = ref(false)
+
 const images = [
-  'https://res.cloudinary.com/dg17dovan/image/upload/v1750927580/wuridao%E6%99%BA%E6%85%A7%E9%9C%80%E6%B1%82%E8%A1%A8_hmjgco.png',
-  'https://res.cloudinary.com/dg17dovan/image/upload/v1750984379/20250626_1718_%E6%9D%B1%E6%96%B9%E9%9D%A2%E5%AD%94%E7%94%B7%E5%AD%90_remix_01jynrc0xef8wv8bdbpd03sq28_1_kmmyez.png',
+  // 手機優化：使用較小的圖片尺寸
+  'https://res.cloudinary.com/dg17dovan/image/upload/f_auto,q_auto,w_800/v1750927580/wuridao%E6%99%BA%E6%85%A7%E9%9C%80%E6%B1%82%E8%A1%A8_hmjgco.png',
+  'https://res.cloudinary.com/dg17dovan/image/upload/f_auto,q_auto,w_800/v1750984379/20250626_1718_%E6%9D%B1%E6%96%B9%E9%9D%A2%E5%AD%94%E7%94%B7%E5%AD%90_remix_01jynrc0xef8wv8bdbpd03sq28_1_kmmyez.png',
 ]
+
 const link = 'https://76a8vw1q07o.typeform.com/to/nERCiK95'
 const currentIndex = ref(0)
 const isTransitioning = ref(false)
 const rippleCanvas = ref(null)
 let intervalId = null
+
+// 檢測設備類型
+function detectDevice() {
+  if (process.client) {
+    isMobile.value = window.innerWidth < 768
+  }
+}
 
 function playRipple(nextIndex) {
   const canvas = rippleCanvas.value
@@ -44,40 +56,52 @@ function playRipple(nextIndex) {
 }
 
 function startLoop() {
+  // 手機優化：延長切換間隔
+  const interval = isMobile.value ? 6000 : 4000
   intervalId = setInterval(() => {
     isTransitioning.value = true
     const next = (currentIndex.value + 1) % images.length
     playRipple(next)
-  }, 4000)
+  }, interval)
 }
 
 onMounted(() => {
+  detectDevice()
+  
+  // 手機優化：延遲啟動輪播
+  const delay = isMobile.value ? 3000 : 1800
   setTimeout(() => {
     startLoop()
-  }, 1800)
+  }, delay)
 })
 </script>
 
 <template>
   <div
-    class="w-full h-[80vh] flex flex-col md:flex-row items-stretch overflow-hidden bg-white relative"
+    class="w-full h-[60vh] md:h-[80vh] flex flex-col md:flex-row items-stretch overflow-hidden bg-white relative"
   >
     <!-- 左側黑色區塊，內容置中 -->
     <div
-      class="flex-1 bg-black flex flex-col justify-center items-center py-8 md:py-0"
+      class="flex-1 bg-black flex flex-col justify-center items-center py-6 md:py-8 px-4"
     >
       <div
-        class="text-2xl md:text-[2vw] font-bold text-white leading-tight mb-6 text-center"
+        class="text-xl md:text-2xl lg:text-[2vw] font-bold text-white leading-tight mb-4 md:mb-6 text-center"
       >
         線上填寫智慧需求表
       </div>
-      <a :href="link" target="_blank" rel="noopener" class="shadow-btn">
+      <a 
+        :href="link" 
+        target="_blank" 
+        rel="noopener" 
+        class="shadow-btn text-sm md:text-base px-6 py-3 md:px-8 md:py-4"
+      >
         前往填寫
       </a>
     </div>
-    <!-- 右側圖片區 -->
+    
+    <!-- 右側圖片區 - 手機優化 -->
     <div
-      class="relative w-full md:w-[55vw] min-w-0 h-64 md:h-full flex items-center justify-center"
+      class="relative w-full md:w-[55vw] min-w-0 h-48 md:h-64 lg:h-full flex items-center justify-center"
     >
       <img
         v-for="(img, idx) in images"
@@ -88,6 +112,9 @@ onMounted(() => {
           'opacity-100': currentIndex === idx && !isTransitioning,
           'opacity-0': currentIndex !== idx || isTransitioning,
         }"
+        loading="lazy"
+        decoding="async"
+        :alt="`智慧需求表範例 ${idx + 1}`"
       >
       <!-- 水波紋 canvas -->
       <canvas

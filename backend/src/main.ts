@@ -93,10 +93,16 @@ async function bootstrap() {
 
   // CORS 配置
   app.enableCors({
-    origin: [process.env.FRONTEND_URL || 'https://wuridaostudio.com'],
-    credentials: true,
+    origin: [
+      process.env.FRONTEND_URL || 'https://wuridao-project.onrender.com',
+      'http://localhost:3001', // 開發環境
+      'https://wuridao-project.onrender.com', // 生產環境前端
+      'https://wuridaostudio.com', // 主要域名
+    ],
+    credentials: true, // ✅ 重要：允許跨域請求攜帶 credentials
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'], // 允許 Cookie 標頭
+    exposedHeaders: ['Set-Cookie'], // 允許前端讀取 Set-Cookie 標頭
   });
 
   // 設定全域 API 前綴

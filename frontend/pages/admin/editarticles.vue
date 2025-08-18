@@ -858,8 +858,13 @@ function sanitizeHtml(html: string) {
 }
 
 const SeoAnalyzer = defineAsyncComponent({
-  loader: () => import('~/components/admin/SeoAnalyzer.vue'),
-  // Optional: add delay or timeout if needed
+  loader: () => import('@/components/admin/SeoAnalyzer.vue'),
+  loadingComponent: LoadingSpinner,
+  delay: 200,
+  timeout: 10000,
+  onError: (error) => {
+    logger.error('[EditArticles] SeoAnalyzer 載入失敗:', error)
+  }
 })
 
 onMounted(async () => {

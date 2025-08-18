@@ -15,11 +15,13 @@ export function useApi() {
   // 公開 API 實例 - 不需要認證
   const publicApi = $fetch.create({
     baseURL: config.public.apiBaseUrl,
+    credentials: 'include', // ✅ 確保跨域請求攜帶 Cookie
   })
 
   const api = $fetch.create({
     // 設定 API 的基本 URL
     baseURL: config.public.apiBaseUrl,
+    credentials: 'include', // ✅ 確保跨域請求攜帶 Cookie
 
     // [關鍵] 請求攔截器：在每個請求發送前自動附加 Authorization 標頭
     onRequest({ options }) {

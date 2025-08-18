@@ -27,18 +27,49 @@ export class AuthController {
   ) {
     const result = await this.authService.login(loginDto);
 
-    // 設定 Cookie（暫時移除 httpOnly 進行測試）
+    // ✅ [重要] 設置多個 Cookie Domain 以支援跨域登入
+    const cookieDomain = process.env.AUTH_COOKIE_DOMAIN || 
+      (process.env.NODE_ENV === 'production' 
+        ? (process.env.FRONTEND_URL?.includes('wuridaostudio.com') 
+            ? '.wuridaostudio.com'  // 如果前端是 wuridaostudio.com
+            : '.onrender.com')       // 否則使用 onrender.com
+        : undefined);
+
+    // 主要 Cookie - 根據環境自動選擇 Domain
     response.cookie('auth-token', result.access_token, {
-      httpOnly: false, // 暫時設為 false 進行測試
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      httpOnly: false, // 允許前端 JavaScript 讀取
+      secure: process.env.NODE_ENV === 'production', // 生產環境強制 HTTPS
+      sameSite: 'lax', // 防止 CSRF 攻擊
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 天
       path: '/',
-      domain:
-        process.env.NODE_ENV === 'production'
-          ? '.wuridaostudio.com'
-          : 'localhost',
+      domain: cookieDomain, // 設置跨域 domain
     });
+
+    // ✅ 同時設置備用 Cookie 以支援多域名
+    if (process.env.NODE_ENV === 'production' && process.env.ENABLE_MULTI_DOMAIN_COOKIES === 'true') {
+      // 如果主要 Domain 是 .onrender.com，也設置 .wuridaostudio.com 的備用 Cookie
+      if (cookieDomain === '.onrender.com') {
+        response.cookie('auth-token-backup', result.access_token, {
+          httpOnly: false,
+          secure: true,
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+          path: '/',
+          domain: '.wuridaostudio.com',
+        });
+      }
+      // 如果主要 Domain 是 .wuridaostudio.com，也設置 .onrender.com 的備用 Cookie
+      else if (cookieDomain === '.wuridaostudio.com') {
+        response.cookie('auth-token-backup', result.access_token, {
+          httpOnly: false,
+          secure: true,
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+          path: '/',
+          domain: '.onrender.com',
+        });
+      }
+    }
 
     return result;
   }

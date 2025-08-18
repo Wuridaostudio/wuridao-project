@@ -24,8 +24,8 @@ onMounted(async () => {
 
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-    <div class="max-w-6xl mx-auto px-4">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">
+    <div class="max-w-6xl mx-auto px-1 sm:px-4">
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-6 sm:mb-8">
         文章列表
       </h1>
       
@@ -33,7 +33,7 @@ onMounted(async () => {
       <div v-else-if="articles.length === 0" class="text-center py-12">
         <p class="text-gray-500 dark:text-gray-400">暫無文章</p>
       </div>
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
         <ArticleCard 
           v-for="article in articles" 
           :key="article.id" 

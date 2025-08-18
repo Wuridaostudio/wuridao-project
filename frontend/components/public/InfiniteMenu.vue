@@ -17,6 +17,9 @@ const props = defineProps({
   backgroundColor: { type: [String, Number], default: 0x271E37 },
   colorCycleInterval: { type: Number, default: 3000 },
   supersample: { type: Number, default: 1 },
+  // 手機優化：添加效能控制參數
+  isMobile: { type: Boolean, default: false },
+  enableComplexEffects: { type: Boolean, default: true },
 })
 
 const isClient
@@ -233,18 +236,36 @@ function disposeAll() {
 onMounted(async () => {
   if (!isClient || !containerRef.value)
     return
+    
+  // 手機優化：檢測設備類型
+  const isMobileDevice = window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  
   let w = containerRef.value.clientWidth
   let h = containerRef.value.clientHeight
+  
+  // 手機優化：降低渲染品質
+  const pixelRatio = isMobileDevice ? Math.min(window.devicePixelRatio || 1, 1.5) : window.devicePixelRatio || 1
+  const antialias = !isMobileDevice
+  
   renderer = new THREE.WebGLRenderer({
-    antialias: false,
+    antialias: antialias,
     powerPreference: 'high-performance',
+    // 手機優化：減少記憶體使用
+    alpha: false,
+    stencil: false,
+    depth: false,
   })
+  
   renderer.setClearColor(new THREE.Color(props.backgroundColor), 1)
-  renderer.setPixelRatio(window.devicePixelRatio || 1)
-  renderer.setSize(w * 0.7, h * 0.7)
+  renderer.setPixelRatio(pixelRatio)
+  
+  // 手機優化：降低解析度
+  const scale = isMobileDevice ? 0.5 : 0.7
+  renderer.setSize(w * scale, h * scale)
   renderer.domElement.style.width = `${w}px`
   renderer.domElement.style.height = `${h}px`
-  renderer.domElement.style.transform = 'scale(1.43)'
+  renderer.domElement.style.transform = `scale(${1/scale})`
+  
   containerRef.value.appendChild(renderer.domElement)
   scene = new THREE.Scene()
   fluidScene = new THREE.Scene()
@@ -339,28 +360,40 @@ onMounted(async () => {
     { threshold: 0.01 },
   )
   intersectionObserver.observe(containerRef.value)
-  // 動畫循環（降幀率）
+  // 動畫循環（手機優化：降低幀率）
   let lastTime = 0
+  const targetFPS = isMobileDevice ? 20 : 30 // 手機降低到 20fps
+  const frameInterval = 1000 / targetFPS
+  
   function animate(now) {
     if (!animationActive || !isVisible)
       return
     now = now || performance.now()
-    if (now - lastTime > 33) {
-      // 30fps
+    if (now - lastTime > frameInterval) {
       const dt = clock.getDelta()
-      if (props.animateColor && !props.textColor) {
+      
+      // 手機優化：簡化顏色動畫
+      if (props.animateColor && !props.textColor && !isMobileDevice) {
         for (let i = 0; i < 3; i++)
           persistColor[i] += (targetColor[i] - persistColor[i]) * dt
       }
-      const speed = dt * 5
+      
+      const speed = dt * (isMobileDevice ? 3 : 5) // 手機降低動畫速度
       mouse[0] += (target[0] - mouse[0]) * speed
       mouse[1] += (target[1] - mouse[1]) * speed
+      
       quadMat.uniforms.mousePos.value.set(mouse[0], mouse[1])
       quadMat.uniforms.sampler.value = rt1.texture
       quadMat.uniforms.time.value = clock.getElapsedTime()
-      quadMat.uniforms.noiseFactor.value = props.noiseFactor
-      quadMat.uniforms.noiseScale.value = props.noiseScale
+      
+      // 手機優化：降低特效強度
+      const noiseFactor = isMobileDevice ? props.noiseFactor * 0.5 : props.noiseFactor
+      const noiseScale = isMobileDevice ? props.noiseScale * 0.5 : props.noiseScale
+      
+      quadMat.uniforms.noiseFactor.value = noiseFactor
+      quadMat.uniforms.noiseScale.value = noiseScale
       labelMat.uniforms.color.value.set(...persistColor)
+      
       if (renderer) {
         renderer.autoClearColor = false
         renderer.setRenderTarget(rt0)

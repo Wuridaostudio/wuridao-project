@@ -160,12 +160,12 @@ catch (e) {
   </div>
 
   <!-- 功能介紹區塊 -->
-  <section ref="featuresSection" class="py-12 md:py-20 px-4 md:px-8">
+  <section ref="featuresSection" class="py-12 md:py-20 px-1 sm:px-4 md:px-8">
     <div class="w-full max-w-7xl mx-auto">
       <h2 ref="featuresTitle" class="text-2xl md:text-3xl lg:text-4xl font-bold text-center mb-8 md:mb-12" style="opacity: 0;">
         智慧生活，從這裡開始
       </h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 max-w-6xl mx-auto px-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 md:gap-8 max-w-6xl mx-auto px-1 sm:px-4">
         <ThreeDCard ref="featureCard1">
           <div class="emoji-icon mb-4">
             🏠
@@ -205,7 +205,7 @@ catch (e) {
 
   <!-- CTA 區塊 -->
   <section ref="ctaSection" class="py-12 md:py-20 bg-gradient-to-r from-primary to-secondary text-white">
-    <div class="w-full max-w-4xl mx-auto text-center px-4 md:px-8">
+    <div class="w-full max-w-4xl mx-auto text-center px-1 sm:px-4 md:px-8">
       <h2 ref="ctaTitle" class="text-2xl md:text-3xl lg:text-4xl font-bold mb-4 md:mb-6" style="opacity: 0;">
         準備好迎接智慧生活了嗎？
       </h2>

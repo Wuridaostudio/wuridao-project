@@ -23,19 +23,24 @@ export const useAuthStore = defineStore('auth', {
             method: 'POST',
             body: credentials,
             baseURL: config.public.apiBaseUrl,
-            credentials: 'include', // 確保帶上 Cookie
+            credentials: 'include', // ✅ 重要：確保跨域請求攜帶 Cookie
           },
         )
 
         if (response.access_token) {
-          // 1. 設定 User 狀態（Token 由後端 Cookie 管理）
+          // 1. 設定 User 狀態
           this.user = response.user
+          
+          // 2. 手動設定 token 到 cookie（確保跨域一致性）
+          const { setToken } = useAuthToken()
+          setToken(response.access_token)
 
-          // 2. ✅ 使用 external: true 進行強制頁面重新載入
-          //    這會清除所有客戶端時序問題和狀態不一致，確保一個乾淨的跳轉。
-          await navigateTo('/admin', { external: true })
+          // 3. 等待一下讓 cookie 設定完成
+          await new Promise(resolve => setTimeout(resolve, 100))
+
+          // 4. 跳轉到管理後台
+          await navigateTo('/admin')
         }
-        // 注意：因為上面已經跳轉，所以 return 在正常流程中不會被執行
         return response
       }
       catch (e: any) {

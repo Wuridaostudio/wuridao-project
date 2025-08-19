@@ -1,12 +1,13 @@
 // frontend/composables/useAuthToken.ts
 import { computed } from 'vue'
 import { useCookie } from '#imports'
+import { logger } from '~/utils/logger'
 
 export function useAuthToken() {
   const config = useRuntimeConfig()
   
-  console.log('🍪 [useAuthToken] 初始化認證 Token 組合')
-  console.log('🍪 [useAuthToken] 環境資訊:', {
+  logger.auth('初始化認證 Token 組合')
+  logger.auth('環境資訊', {
     environment: process.env.NODE_ENV,
     isProduction: process.env.NODE_ENV === 'production',
     isDevelopment: process.env.NODE_ENV === 'development',
@@ -30,7 +31,7 @@ export function useAuthToken() {
       : undefined,       // 開發環境使用預設
   })
 
-  console.log('🍪 [useAuthToken] Cookie 配置:', {
+  logger.cookie('Cookie 配置', {
     name: 'auth-token',
     path: '/',
     maxAge: 60 * 60 * 24 * 7,
@@ -43,7 +44,7 @@ export function useAuthToken() {
   // Nuxt 的 useCookie 會在伺服器端和客戶端之間同步這個狀態
   const isAuthenticated = computed(() => {
     const authenticated = !!token.value
-    console.log('🍪 [useAuthToken] 認證狀態檢查:', {
+    logger.auth('認證狀態檢查', {
       hasToken: !!token.value,
       tokenLength: token.value?.length,
       isAuthenticated: authenticated,
@@ -54,7 +55,7 @@ export function useAuthToken() {
 
   // setToken 函式只需更新 useCookie 的 ref 即可
   const setToken = (newToken: string | null) => {
-    console.log('🍪 [useAuthToken] setToken 被調用:', {
+    logger.auth('setToken 被調用', {
       hasNewToken: !!newToken,
       newTokenLength: newToken?.length,
       newTokenPreview: newToken ? `${newToken.substring(0, 20)}...` : 'null',
@@ -66,7 +67,7 @@ export function useAuthToken() {
     
     token.value = newToken
     
-    console.log('🍪 [useAuthToken] ✅ Token 已更新:', {
+    logger.auth('Token 已更新', {
       hasToken: !!token.value,
       tokenLength: token.value?.length,
       isAuthenticated: isAuthenticated.value,

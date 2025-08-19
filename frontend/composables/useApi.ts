@@ -25,7 +25,7 @@ export function useApi() {
 
     // [關鍵] 請求攔截器：在每個請求發送前自動附加 Authorization 標頭
     onRequest({ options }) {
-      console.log('🌐 [useApi] 請求攔截器觸發:', {
+      logger.api('請求攔截器觸發', {
         url: options.url,
         method: options.method,
         baseURL: config.public.apiBaseUrl,
@@ -36,7 +36,7 @@ export function useApi() {
       // 從 useAuthToken 中獲取當前的 token
       const currentToken = token.value
       
-      console.log('🌐 [useApi] Token 狀態:', {
+      logger.api('Token 狀態', {
         hasToken: !!currentToken,
         tokenLength: currentToken?.length,
         tokenPreview: currentToken ? `${currentToken.substring(0, 20)}...` : 'null',
@@ -48,12 +48,12 @@ export function useApi() {
           ...options.headers,
           Authorization: `Bearer ${currentToken}`,
         }
-        console.log('🌐 [useApi] ✅ Authorization 標頭已設置')
+        logger.api('Authorization 標頭已設置')
       } else {
-        console.log('🌐 [useApi] ⚠️ 沒有 Token，跳過 Authorization 標頭')
+        logger.api('沒有 Token，跳過 Authorization 標頭')
       }
       
-      console.log('🌐 [useApi] 最終請求標頭:', {
+      logger.api('最終請求標頭', {
         authorization: options.headers?.Authorization ? '已設置' : '未設置',
         contentType: options.headers?.['Content-Type'],
         userAgent: options.headers?.['User-Agent'],
@@ -62,7 +62,7 @@ export function useApi() {
 
     // 回應錯誤攔截器：可選但強烈建議，用於處理 token 過期等情況
     async onResponseError({ response }) {
-      console.error('🌐 [useApi] 回應錯誤攔截器觸發:', {
+      logger.error('回應錯誤攔截器觸發', {
         status: response.status,
         statusText: response.statusText,
         url: response.url,
@@ -71,7 +71,7 @@ export function useApi() {
       
       // 如果後端回傳 401 未授權錯誤
       if (response.status === 401) {
-        console.error('🌐 [useApi] 收到 401 未授權錯誤，準備登出')
+        logger.error('收到 401 未授權錯誤，準備登出')
         // 目前的簡單做法是：如果 token 失效，直接登出
         logger.error('API request returned 401. Logging out.')
         
@@ -82,17 +82,17 @@ export function useApi() {
         // 清除用戶狀態
         authStore.user = null
         
-        console.log('🌐 [useApi] ✅ 認證狀態已清除')
+        logger.api('認證狀態已清除')
       }
       
       // 統一處理 400 驗證錯誤
       if (response.status === 400) {
-        logger.warn('Validation error:', response._data)
+        logger.warn('Validation error', response._data)
       }
       
       // 統一處理 500 伺服器錯誤
       if (response.status >= 500) {
-        logger.error('Server error:', response._data)
+        logger.error('Server error', response._data)
       }
     },
   })

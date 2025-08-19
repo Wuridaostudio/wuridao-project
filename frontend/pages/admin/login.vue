@@ -17,19 +17,64 @@ const credentials = reactive({
   password: '',
 })
 
+// 頁面加載時的日誌
+onMounted(() => {
+  logger.route('登入頁面已加載', {
+    url: window.location.href,
+    userAgent: navigator.userAgent,
+    timestamp: new Date().toISOString(),
+  })
+})
+
 async function handleLogin() {
+  logger.auth('用戶點擊登入按鈕', {
+    username: credentials.username,
+    hasPassword: !!credentials.password,
+    passwordLength: credentials.password?.length,
+    timestamp: new Date().toISOString(),
+  })
+
   try {
+    logger.auth('開始執行登入流程')
     const result = await authStore.login(credentials)
 
     if (result && result.access_token) {
+      logger.auth('登入成功，準備跳轉到管理後台')
       await navigateTo('/admin')
+    } else {
+      logger.warn('登入回應中沒有 access_token')
     }
   }
   catch (error) {
-    logger.error('[LOGIN PAGE] ❌ Login failed:', error)
+    logger.error('登入頁面處理登入失敗', {
+      error: error,
+      message: error?.data?.message,
+      status: error?.status,
+      timestamp: new Date().toISOString(),
+    })
     // 錯誤已由 store 處理
   }
 }
+
+// 監聽認證狀態變化
+watch(() => authStore.user, (newUser, oldUser) => {
+  logger.auth('認證狀態變化', {
+    oldUser: oldUser ? { id: oldUser.id, username: oldUser.username } : null,
+    newUser: newUser ? { id: newUser.id, username: newUser.username } : null,
+    timestamp: new Date().toISOString(),
+  })
+})
+
+// 監聽錯誤狀態變化
+watch(() => authStore.error, (newError, oldError) => {
+  if (newError !== oldError) {
+    logger.error('認證錯誤狀態變化', {
+      oldError,
+      newError,
+      timestamp: new Date().toISOString(),
+    })
+  }
+})
 </script>
 
 <template>

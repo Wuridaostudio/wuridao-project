@@ -1,22 +1,171 @@
 // frontend/utils/logger.ts
 
-/**
- * 一個僅在開發環境中運行的中央日誌工具。
- * 在生產環境中，所有日誌方法都會被替換為空函數，
- * Vite/Nuxt 在打包時會利用 tree-shaking 將其完全移除。
- */
+interface LogEntry {
+  level: 'debug' | 'info' | 'warn' | 'error'
+  message: string
+  data?: any
+  timestamp: string
+  component: string
+  environment: string
+  userAgent?: string
+  url?: string
+}
 
-const isDevelopment = process.env.NODE_ENV === 'development';
+class FrontendLogger {
+  private isProduction = process.env.NODE_ENV === 'production'
+  private isDevelopment = process.env.NODE_ENV === 'development'
+  private logQueue: LogEntry[] = []
+  private maxQueueSize = 100
 
-// 為日誌添加一個統一的前綴，方便在控制台中過濾
-const LOG_PREFIX = '[WURIDAO]';
+  constructor() {
+    // 在頁面卸載前發送所有日誌
+    if (process.client) {
+      window.addEventListener('beforeunload', () => {
+        this.flushLogs()
+      })
+    }
+  }
 
-const noOp = () => {}; // 一個什麼都不做的空函數
+  private createLogEntry(
+    level: LogEntry['level'],
+    message: string,
+    data?: any,
+    component: string = 'Frontend'
+  ): LogEntry {
+    return {
+      level,
+      message,
+      data,
+      timestamp: new Date().toISOString(),
+      component,
+      environment: process.env.NODE_ENV || 'unknown',
+      userAgent: process.client ? navigator.userAgent : undefined,
+      url: process.client ? window.location.href : undefined,
+    }
+  }
 
-export const logger = {
-  log: isDevelopment ? console.log.bind(console, LOG_PREFIX) : noOp,
-  warn: isDevelopment ? console.warn.bind(console, LOG_PREFIX) : noOp,
-  error: isDevelopment ? console.error.bind(console, LOG_PREFIX) : noOp,
-  info: isDevelopment ? console.info.bind(console, LOG_PREFIX) : noOp,
-  debug: isDevelopment ? console.debug.bind(console, LOG_PREFIX) : noOp,
-};
+  private async sendLogToBackend(logEntry: LogEntry) {
+    try {
+      const config = useRuntimeConfig()
+      await $fetch('/api/logs/frontend', {
+        method: 'POST',
+        baseURL: config.public.apiBaseUrl,
+        body: logEntry,
+        credentials: 'include',
+      })
+    } catch (error) {
+      // 如果發送失敗，只在開發環境顯示錯誤
+      if (this.isDevelopment) {
+        console.error('Failed to send log to backend:', error)
+      }
+    }
+  }
+
+  private async flushLogs() {
+    if (this.logQueue.length === 0) return
+
+    try {
+      const config = useRuntimeConfig()
+      await $fetch('/api/logs/frontend/batch', {
+        method: 'POST',
+        baseURL: config.public.apiBaseUrl,
+        body: { logs: this.logQueue },
+        credentials: 'include',
+      })
+      this.logQueue = []
+    } catch (error) {
+      if (this.isDevelopment) {
+        console.error('Failed to flush logs to backend:', error)
+      }
+    }
+  }
+
+  private addToQueue(logEntry: LogEntry) {
+    this.logQueue.push(logEntry)
+    
+    // 如果隊列太長，移除最舊的日誌
+    if (this.logQueue.length > this.maxQueueSize) {
+      this.logQueue.shift()
+    }
+
+    // 在生產環境中，立即發送重要日誌
+    if (this.isProduction && (logEntry.level === 'error' || logEntry.level === 'warn')) {
+      this.sendLogToBackend(logEntry)
+    }
+  }
+
+  debug(message: string, data?: any, component?: string) {
+    const logEntry = this.createLogEntry('debug', message, data, component)
+    
+    // 開發環境顯示詳細日誌
+    if (this.isDevelopment) {
+      console.log(`🔍 [${component || 'Frontend'}] ${message}`, data || '')
+    }
+    
+    this.addToQueue(logEntry)
+  }
+
+  info(message: string, data?: any, component?: string) {
+    const logEntry = this.createLogEntry('info', message, data, component)
+    
+    // 開發環境顯示信息日誌
+    if (this.isDevelopment) {
+      console.log(`ℹ️ [${component || 'Frontend'}] ${message}`, data || '')
+    }
+    
+    this.addToQueue(logEntry)
+  }
+
+  warn(message: string, data?: any, component?: string) {
+    const logEntry = this.createLogEntry('warn', message, data, component)
+    
+    // 開發環境顯示警告日誌
+    if (this.isDevelopment) {
+      console.warn(`⚠️ [${component || 'Frontend'}] ${message}`, data || '')
+    }
+    
+    this.addToQueue(logEntry)
+  }
+
+  error(message: string, data?: any, component?: string) {
+    const logEntry = this.createLogEntry('error', message, data, component)
+    
+    // 開發環境顯示錯誤日誌
+    if (this.isDevelopment) {
+      console.error(`❌ [${component || 'Frontend'}] ${message}`, data || '')
+    }
+    
+    this.addToQueue(logEntry)
+  }
+
+  // 專門用於認證相關的日誌
+  auth(message: string, data?: any) {
+    this.info(message, data, 'Auth')
+  }
+
+  // 專門用於 API 請求的日誌
+  api(message: string, data?: any) {
+    this.info(message, data, 'API')
+  }
+
+  // 專門用於 Cookie 相關的日誌
+  cookie(message: string, data?: any) {
+    this.info(message, data, 'Cookie')
+  }
+
+  // 專門用於路由相關的日誌
+  route(message: string, data?: any) {
+    this.info(message, data, 'Route')
+  }
+
+  // 強制發送所有日誌到後端
+  async flush() {
+    await this.flushLogs()
+  }
+}
+
+// 創建全局日誌實例
+export const logger = new FrontendLogger()
+
+// 導出類型
+export type { LogEntry }

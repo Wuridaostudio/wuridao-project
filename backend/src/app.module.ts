@@ -27,6 +27,7 @@ import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
+import { LogsModule } from './logs/logs.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 // 實體
@@ -158,6 +159,7 @@ import { databaseConfig } from './config/database.config';
     HealthModule,
     StatisticsModule,
     MonitoringModule,
+    LogsModule,
   ],
   controllers: [AppController],
   providers: [

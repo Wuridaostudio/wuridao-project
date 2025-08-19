@@ -7,8 +7,8 @@ export default defineNuxtConfig({
   // 開發工具
   devtools: { enabled: true },
 
-  // 強制 SPA 模式 - 解決生產端路由問題
-  ssr: false,
+  // SPA 模式配置
+  ssr: true,
   
   // 靜態生成配置
   nitro: {
@@ -83,10 +83,15 @@ export default defineNuxtConfig({
 
   // ✅ 改善路由規則 - 更好的程式碼分割
   routeRules: {
-    // 所有路由都使用 SPA 模式
-    '/**': { 
+    // 管理後台路由使用 SPA 模式
+    '/admin/**': { 
       ssr: false,
       prerender: false,
+    },
+    // 其他路由使用 SSR
+    '/': { 
+      ssr: true,
+      prerender: true,
     },
   },
 

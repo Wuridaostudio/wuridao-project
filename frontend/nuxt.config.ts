@@ -16,6 +16,11 @@ export default defineNuxtConfig({
     prerender: {
       // 預渲染首頁
       routes: ['/']
+    },
+    // 確保靜態文件服務配置
+    static: {
+      // 設置靜態文件目錄
+      dirs: ['public']
     }
   },
 

@@ -8,8 +8,13 @@
         // 檢查當前路徑
         const path = window.location.pathname;
         
-        // 如果是管理後台路由，讓 Nuxt 的客戶端路由處理
-        if (path.startsWith('/admin')) {
+        // 如果是登入頁面，直接載入主應用
+        if (path === '/admin/login') {
+            // 載入主應用，讓 Nuxt 路由處理登入頁面
+            window.location.href = '/';
+        }
+        // 如果是其他管理後台路由，也載入主應用
+        else if (path.startsWith('/admin')) {
             // 載入主應用，讓 Nuxt 路由處理
             window.location.href = '/';
         } else {

@@ -30,9 +30,7 @@ export class AuthController {
     // ✅ [重要] 設置多個 Cookie Domain 以支援跨域登入
     const cookieDomain = process.env.AUTH_COOKIE_DOMAIN || 
       (process.env.NODE_ENV === 'production' 
-        ? (process.env.FRONTEND_URL?.includes('wuridaostudio.com') 
-            ? '.wuridaostudio.com'  // 如果前端是 wuridaostudio.com
-            : '.onrender.com')       // 否則使用 onrender.com
+        ? undefined  // 讓瀏覽器自動處理 domain
         : undefined);
 
     // 主要 Cookie - 根據環境自動選擇 Domain

@@ -103,13 +103,15 @@ export function useUpload() {
     // 檔案驗證
     validateFile(file, type)
 
-    logger.log('[useUpload] 開始後端代理上傳:', {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      folder,
-      resourceType: type,
-    })
+    if (process.client) {
+      logger.log('[useUpload] 開始後端代理上傳:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        folder,
+        resourceType: type,
+      })
+    }
 
     // 建立 FormData
     const formData = new FormData()
@@ -152,12 +154,16 @@ export function useUpload() {
           },
         )
 
-        logger.log('[useUpload] 後端代理上傳成功:', response.data)
+        if (process.client) {
+          logger.log('[useUpload] 後端代理上傳成功:', response.data)
+        }
 
         // 統一回傳欄位：優先使用 secure_url 與 public_id
         const mappedUrl = response.data.secure_url || response.data.url
         const mappedPublicId = response.data.publicId || response.data.public_id
-        logger.log('[useUpload] 映射後欄位:', { url: mappedUrl, publicId: mappedPublicId })
+        if (process.client) {
+          logger.log('[useUpload] 映射後欄位:', { url: mappedUrl, publicId: mappedPublicId })
+        }
 
         return {
           url: mappedUrl,
@@ -165,7 +171,9 @@ export function useUpload() {
         }
       }
       catch (error: any) {
-        logger.error('[useUpload] 後端代理上傳失敗:', error.response?.data || error.message)
+        if (process.client) {
+          logger.error('[useUpload] 後端代理上傳失敗:', error.response?.data || error.message)
+        }
 
         // 精細錯誤處理
         let errorMessage = '上傳失敗，請稍後再試'

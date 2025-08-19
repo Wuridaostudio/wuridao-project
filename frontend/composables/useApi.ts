@@ -156,10 +156,12 @@ export function useApi() {
     getVideo: (id: string) => publicApi(`/videos/${id}`),
 
     createArticle: (article: Partial<Article>, coverImageFile?: File) => {
-      logger.log('Creating article', { 
-        title: article.title, 
-        hasCoverImage: !!coverImageFile 
-      })
+      if (process.client) {
+        logger.log('Creating article', { 
+          title: article.title, 
+          hasCoverImage: !!coverImageFile 
+        })
+      }
 
       if (coverImageFile) {
         const formData = new FormData()
@@ -191,11 +193,13 @@ export function useApi() {
     },
 
     updateArticle: (id: number, article: Partial<Article>, coverImageFile?: File) => {
-      logger.log('Updating article', { 
-        id, 
-        title: article.title, 
-        hasCoverImage: !!coverImageFile 
-      })
+      if (process.client) {
+        logger.log('Updating article', { 
+          id, 
+          title: article.title, 
+          hasCoverImage: !!coverImageFile 
+        })
+      }
 
       const url = `/articles/${id}`
 
@@ -250,7 +254,9 @@ export function useApi() {
     getPhotos: () => api('/photos'),
 
     createPhoto: (photo: Partial<Photo>) => {
-      logger.log('[useApi] Creating photo with authentication')
+      if (process.client) {
+        logger.log('[useApi] Creating photo with authentication')
+      }
       return api('/photos', { method: 'POST', body: photo })
     },
 

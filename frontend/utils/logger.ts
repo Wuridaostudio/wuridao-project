@@ -114,6 +114,11 @@ class FrontendLogger {
     this.addToQueue(logEntry)
   }
 
+  log(message: string, data?: any, component?: string) {
+    // log 方法作為 info 的別名
+    this.info(message, data, component)
+  }
+
   info(message: string, data?: any, component?: string) {
     const logEntry = this.createLogEntry('info', message, data, component)
     

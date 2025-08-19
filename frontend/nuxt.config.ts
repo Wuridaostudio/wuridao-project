@@ -7,12 +7,12 @@ export default defineNuxtConfig({
   // 開發工具
   devtools: { enabled: true },
 
-  // SPA 模式配置
+  // SSR 模式配置
   ssr: true,
   
   // 靜態生成配置
   nitro: {
-    // 簡化配置，專注於 SPA 模式
+    // 簡化配置
     prerender: {
       // 預渲染首頁
       routes: ['/']
@@ -21,10 +21,6 @@ export default defineNuxtConfig({
     static: {
       // 設置靜態文件目錄
       dirs: ['public']
-    },
-    // 添加 SPA 路由處理
-    experimental: {
-      wasm: true
     }
   },
 
@@ -206,9 +202,6 @@ export default defineNuxtConfig({
     // 改善程式碼分割
     inlineSSRStyles: false,
   },
-
-  // SSR 配置
-  ssr: true,
 
   // 水合配置
   hydration: {

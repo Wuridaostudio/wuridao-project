@@ -212,8 +212,8 @@ export default defineNuxtConfig({
     inlineSSRStyles: false,
   },
 
-  // SSR 配置
-  ssr: true,
+  // SSR 配置 - 由 routeRules 控制
+  // ssr: true, // 移除全域 SSR 配置，改由 routeRules 控制
 
   // 水合配置
   hydration: {

@@ -22,6 +22,16 @@ export class AuthService {
 
   // ✅ 登入：比對帳密、簽發 token
   async login(loginDto: LoginDto) {
+    this.logger.log(`🔐 [AUTH_SERVICE] 開始登入驗證`);
+    this.logger.log(`🔐 [AUTH_SERVICE] 登入資訊:`, {
+      username: loginDto.username,
+      hasPassword: !!loginDto.password,
+      passwordLength: loginDto.password?.length,
+      environment: process.env.NODE_ENV,
+    });
+
+    // 查找用戶
+    this.logger.log(`🔍 [AUTH_SERVICE] 查找用戶: ${loginDto.username}`);
     const user = await this.userRepository.findOne({
       where: { username: loginDto.username },
     });
@@ -31,19 +41,36 @@ export class AuthService {
       this.logger.warn(
         `[SECURITY] Failed login attempt for username: ${loginDto.username} - User not found`,
       );
+      this.logger.error(`❌ [AUTH_SERVICE] 用戶不存在: ${loginDto.username}`);
       throw new UnauthorizedException('帳號或密碼錯誤');
     }
 
+    this.logger.log(`✅ [AUTH_SERVICE] 用戶找到:`, {
+      userId: user.id,
+      username: user.username,
+      hasPassword: !!user.password,
+      passwordLength: user.password?.length,
+    });
+
+    // 驗證密碼
+    this.logger.log(`🔐 [AUTH_SERVICE] 開始密碼驗證`);
     const isPasswordValid = await bcrypt.compare(
       loginDto.password,
       user.password,
     );
+
+    this.logger.log(`🔐 [AUTH_SERVICE] 密碼驗證結果:`, {
+      isPasswordValid,
+      providedPasswordLength: loginDto.password?.length,
+      storedPasswordLength: user.password?.length,
+    });
 
     if (!isPasswordValid) {
       // 安全日誌：記錄失敗的登入嘗試
       this.logger.warn(
         `[SECURITY] Failed login attempt for username: ${loginDto.username} - Invalid password`,
       );
+      this.logger.error(`❌ [AUTH_SERVICE] 密碼驗證失敗: ${loginDto.username}`);
       throw new UnauthorizedException('帳號或密碼錯誤');
     }
 
@@ -52,11 +79,33 @@ export class AuthService {
       `[SECURITY] Successful login for username: ${loginDto.username} (User ID: ${user.id})`,
     );
 
+    // 生成 JWT Token
+    this.logger.log(`🎫 [AUTH_SERVICE] 開始生成 JWT Token`);
     const payload = { sub: user.id, username: user.username };
+    
+    this.logger.log(`🎫 [AUTH_SERVICE] JWT Payload:`, {
+      sub: payload.sub,
+      username: payload.username,
+      jwtSecret: process.env.JWT_SECRET ? '已設置' : '未設置',
+      jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    });
+
+    const access_token = this.jwtService.sign(payload);
+    
+    this.logger.log(`🎫 [AUTH_SERVICE] JWT Token 生成成功:`, {
+      hasToken: !!access_token,
+      tokenLength: access_token?.length,
+      tokenPreview: access_token ? `${access_token.substring(0, 20)}...` : 'null',
+    });
+
+    this.logger.log(`✅ [AUTH_SERVICE] 登入成功，返回結果`);
     return {
-      access_token: this.jwtService.sign(payload),
-      refresh_token: this.jwtService.sign(payload, { expiresIn: '365d' }), // 1年 refresh token
-      user: { id: user.id, username: user.username },
+      access_token,
+      user: {
+        id: user.id,
+        username: user.username,
+        // 不返回密碼等敏感資訊
+      },
     };
   }
 

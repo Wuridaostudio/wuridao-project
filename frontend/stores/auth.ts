@@ -105,7 +105,7 @@ export const useAuthStore = defineStore('auth', {
 
             // 4. 跳轉到管理後台
             logger.auth('準備跳轉到管理後台')
-            await navigateTo('/admin')
+            await navigateTo('/admin', { replace: true })
             logger.auth('跳轉完成')
           }
         } else {

@@ -52,12 +52,67 @@ class FrontendLogger {
 
     try {
       const config = useRuntimeConfig()
-      await $fetch('/logs/frontend', {
-        method: 'POST',
-        baseURL: config.public.apiBaseUrl,
-        body: logEntry,
-        credentials: 'include',
-      })
+      
+      // 在生產環境中，增加重試機制
+      const maxRetries = this.isProduction ? 3 : 1
+      let lastError = null
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          await $fetch('/logs/frontend', {
+            method: 'POST',
+            baseURL: config.public.apiBaseUrl,
+            body: logEntry,
+            credentials: 'include',
+            timeout: 5000, // 5秒超時
+          })
+          
+          // 成功發送，跳出重試循環
+          if (this.isProduction) {
+            console.log(`✅ [FrontendLogger] 日誌已發送到後端 (嘗試 ${attempt}/${maxRetries})`)
+          }
+          return
+          
+        } catch (error) {
+          lastError = error
+          
+          if (this.isProduction) {
+            console.warn(`⚠️ [FrontendLogger] 發送日誌失敗 (嘗試 ${attempt}/${maxRetries}):`, {
+              error: error.message,
+              status: error.status,
+              statusCode: error.statusCode,
+              url: `${config.public.apiBaseUrl}/logs/frontend`,
+              logEntry: {
+                level: logEntry.level,
+                message: logEntry.message,
+                component: logEntry.component,
+                timestamp: logEntry.timestamp
+              }
+            })
+          }
+          
+          // 如果不是最後一次嘗試，等待一下再重試
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+          }
+        }
+      }
+      
+      // 所有重試都失敗了
+      if (this.isProduction) {
+        console.error('❌ [FrontendLogger] 所有重試都失敗，無法發送日誌到後端:', {
+          error: lastError?.message,
+          status: lastError?.status,
+          statusCode: lastError?.statusCode,
+          logEntry: {
+            level: logEntry.level,
+            message: logEntry.message,
+            component: logEntry.component,
+            timestamp: logEntry.timestamp
+          }
+        })
+      }
+      
     } catch (error) {
       // 如果發送失敗，只在開發環境顯示錯誤
       if (this.isDevelopment) {
@@ -96,8 +151,8 @@ class FrontendLogger {
         this.logQueue.shift()
       }
 
-      // 在生產環境中，立即發送重要日誌
-      if (this.isProduction && (logEntry.level === 'error' || logEntry.level === 'warn')) {
+      // 在生產環境中，立即發送所有日誌到後端
+      if (this.isProduction) {
         this.sendLogToBackend(logEntry)
       }
     }

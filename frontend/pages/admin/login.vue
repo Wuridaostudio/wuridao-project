@@ -49,8 +49,7 @@ async function handleLogin() {
 
     if (result && result.access_token) {
       if (process.client) {
-        logger.auth('登入成功，準備跳轉到管理後台')
-        await navigateTo('/admin')
+        logger.auth('登入成功，auth store 會自動處理跳轉')
       }
     } else {
       if (process.client) {

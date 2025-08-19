@@ -47,7 +47,7 @@ export default defineNuxtRouteMiddleware((to) => {
         reason: '已認證用戶訪問登入頁',
       })
     }
-    return navigateTo('/admin')
+    return navigateTo('/admin', { replace: true })
   }
 
   if (process.client) {

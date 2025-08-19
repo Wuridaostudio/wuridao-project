@@ -9,6 +9,15 @@ export default defineNuxtConfig({
 
   // 強制 SPA 模式 - 解決生產端路由問題
   ssr: false,
+  
+  // 靜態生成配置
+  nitro: {
+    // 簡化配置，專注於 SPA 模式
+    prerender: {
+      // 預渲染首頁
+      routes: ['/']
+    }
+  },
 
   // 應用程式配置
   app: {
@@ -72,10 +81,7 @@ export default defineNuxtConfig({
     },
   },
 
-  // SPA 配置
-  nitro: {
-    // 簡化配置，專注於 SPA 模式
-  },
+
 
   // 執行時配置 - 支援開發和生產環境
   runtimeConfig: {

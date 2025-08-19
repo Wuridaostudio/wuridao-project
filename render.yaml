@@ -1,0 +1,48 @@
+services:
+  # 前端服務
+  - type: web
+    name: wuridao-frontend
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/.output/public
+    routes:
+      - type: rewrite
+        source: /admin/*
+        destination: /index.html
+      - type: rewrite
+        source: /admin
+        destination: /index.html
+      - type: rewrite
+        source: /articles/*
+        destination: /index.html
+      - type: rewrite
+        source: /media/*
+        destination: /index.html
+      - type: rewrite
+        source: /about
+        destination: /index.html
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NUXT_PUBLIC_API_BASE_URL
+        value: https://wuridao-backend.onrender.com/api
+      - key: NUXT_PUBLIC_SITE_URL
+        value: https://wuridao-project.onrender.com
+
+  # 後端服務
+  - type: web
+    name: wuridao-backend
+    env: node
+    buildCommand: cd backend && npm install && npm run build
+    startCommand: cd backend && npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: FRONTEND_URL
+        value: https://wuridao-project.onrender.com
+      - key: AUTH_COOKIE_DOMAIN
+        value: .onrender.com
+      - key: ENABLE_MULTI_DOMAIN_COOKIES
+        value: true

@@ -6,7 +6,11 @@
 # Handle other dynamic routes
 /articles/* /index.html   200
 /media/*    /index.html   200
+/about      /index.html   200
 
 # Static assets
 /_nuxt/*    /_nuxt/:splat  200
 /favicon.ico /favicon.ico  200
+
+# Catch all - redirect everything else to index.html for SPA
+/*    /index.html   200

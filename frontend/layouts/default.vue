@@ -29,7 +29,9 @@ const mobileNavLinks: Array<{ path: string, label: string }> = [
 // 確保數組始終可用且安全
 const safeNavLinks = computed(() => {
   if (!navLinks || !Array.isArray(navLinks)) {
-    logger.warn('navLinks is not properly defined, using fallback')
+    if (process.client) {
+      logger.warn('navLinks is not properly defined, using fallback')
+    }
     return [
       { path: '/', label: '首頁' },
       { path: '/articles/news', label: '最新消息' },
@@ -42,7 +44,9 @@ const safeNavLinks = computed(() => {
 // 移動端導航連結安全檢查
 const safeMobileNavLinks = computed(() => {
   if (!mobileNavLinks || !Array.isArray(mobileNavLinks)) {
-    logger.warn('mobileNavLinks is not properly defined, using fallback')
+    if (process.client) {
+      logger.warn('mobileNavLinks is not properly defined, using fallback')
+    }
     return [
       { path: '/', label: '首頁' },
       { path: '/plan', label: '規劃服務' },
@@ -63,7 +67,9 @@ const footerLinks: Array<{ path: string, label: string }> = [
 // 確保數組始終可用且安全
 const safeFooterLinks = computed(() => {
   if (!footerLinks || !Array.isArray(footerLinks)) {
-    logger.warn('footerLinks is not properly defined, using fallback')
+    if (process.client) {
+      logger.warn('footerLinks is not properly defined, using fallback')
+    }
     return [
       { path: '/', label: '首頁' },
       { path: '/articles/news', label: '最新消息' },
@@ -88,8 +94,11 @@ const currentYear = new Date().getFullYear()
 // const safeNavLinks = computed(() => navLinks || [])
 // const safeFooterLinks = computed(() => footerLinks || [])
 
+// 只在客戶端記錄日誌
+if (process.client) {
   logger.log('navLinks:', navLinks)
   logger.log('footerLinks:', footerLinks)
+}
 
 // 社群連結
 const socialLinks = [
@@ -124,21 +133,31 @@ function handleHomeClick(e) {
 }
 
 function handleNavClick(path: string, label: string) {
-  logger.log('[NavClick] 點擊連結:', label, 'path:', path)
+  if (process.client) {
+    logger.log('[NavClick] 點擊連結:', label, 'path:', path)
+  }
+  
   if (route.path === path) {
-          logger.log('[NavClick] 已在該頁，不跳轉')
+    if (process.client) {
+      logger.log('[NavClick] 已在該頁，不跳轉')
+    }
     return
   }
+  
   router
     .push(path)
     .then(() => {
-      logger.log(
-        '[NavClick] router.push 完成，當前路由:',
-        router.currentRoute.value.fullPath,
-      )
+      if (process.client) {
+        logger.log(
+          '[NavClick] router.push 完成，當前路由:',
+          router.currentRoute.value.fullPath,
+        )
+      }
     })
     .catch((err) => {
-      logger.error('[NavClick] router.push 發生錯誤:', err)
+      if (process.client) {
+        logger.error('[NavClick] router.push 發生錯誤:', err)
+      }
     })
 }
 
@@ -196,7 +215,9 @@ onMounted(() => {
       navbar.value.style.opacity = '1'
     }
     catch (error) {
-      logger.error('Animation error:', error)
+      if (process.client) {
+        logger.error('Animation error:', error)
+      }
     }
   }
 })

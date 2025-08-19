@@ -1,5 +1,5 @@
 import { storeToRefs } from 'pinia'
-// frontend/plugins/auth-loader.client.ts
+// frontend/plugins/auth-loader.ts
 import { useAuthToken } from '~/composables/useAuthToken'
 import { useAuthStore } from '~/stores/auth'
 
@@ -27,11 +27,17 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   // 在伺服器端，這會阻塞頁面渲染，直到資料返回，從而避免了渲染錯誤。
   // 在客戶端，它處理了從其他頁面跳轉過來的邊界情況。
   try {
-    logger.log(`[Auth Loader] 偵測到已驗證的工作階段，正在恢復使用者資訊... (執行環境: ${process.server ? '伺服器' : '客戶端'})`)
+    // 只在客戶端記錄日誌
+    if (process.client) {
+      logger.log(`[Auth Loader] 偵測到已驗證的工作階段，正在恢復使用者資訊... (執行環境: ${process.server ? '伺服器' : '客戶端'})`)
+    }
     await authStore.fetchUser()
   }
   catch (error) {
-    logger.error('[Auth Loader] 恢復使用者資訊失敗:', error)
+    // 只在客戶端記錄日誌
+    if (process.client) {
+      logger.error('[Auth Loader] 恢復使用者資訊失敗:', error)
+    }
     // 如果獲取失敗，可以選擇在這裡處理，例如清除 token
     // const { setToken } = useAuthToken();
     // setToken(null);

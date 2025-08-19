@@ -20,6 +20,9 @@ export default defineNuxtRouteMiddleware(() => {
     })
   }
   catch (error) {
-    logger.error('Loading middleware error:', error)
+    // 只在客戶端記錄日誌
+    if (process.client) {
+      logger.error('Loading middleware error:', error)
+    }
   }
 })

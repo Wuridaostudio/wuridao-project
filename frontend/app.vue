@@ -29,8 +29,10 @@ const route = useRoute()
 watch(
   () => route.fullPath,
   (newPath) => {
-    // 可以在這裡加入分析追蹤
-    logger.log('Page view:', newPath)
+    // 只在客戶端記錄日誌
+    if (process.client) {
+      logger.log('Page view:', newPath)
+    }
   },
 )
 </script>

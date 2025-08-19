@@ -116,7 +116,7 @@ export default defineNuxtConfig({
       // 動態網站 URL 配置
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL
         || (process.env.NODE_ENV === 'production'
-          ? 'https://wuridao-project.onrender.com'
+          ? 'https://wuridaostudio.com'
           : 'http://localhost:3001'),
 
       // ✅ [安全修復] 只保留絕對公開的資訊

@@ -7,6 +7,9 @@ export default defineNuxtConfig({
   // 開發工具
   devtools: { enabled: true },
 
+  // 強制 SPA 模式 - 解決生產端路由問題
+  ssr: false,
+
   // 應用程式配置
   app: {
     // 確保 SPA 模式下的路由正常工作
@@ -62,45 +65,16 @@ export default defineNuxtConfig({
 
   // ✅ 改善路由規則 - 更好的程式碼分割
   routeRules: {
-    // 管理後台 - 客戶端渲染，但允許服務器端路由處理
-    '/admin/**': { 
+    // 所有路由都使用 SPA 模式
+    '/**': { 
       ssr: false,
       prerender: false,
-      // 添加 fallback 處理
-    },
-    
-    // 靜態頁面 - 預渲染
-    '/': { 
-      prerender: true,
-      ssr: true,
-    },
-    '/about': { 
-      prerender: true,
-      ssr: true,
-    },
-    '/plan': { 
-      prerender: true,
-      ssr: true,
-    },
-    
-    // 動態內容 - 伺服器端渲染
-    '/articles/**': { 
-      ssr: true, 
-      prerender: false,
-      swr: 3600, // 1小時快取
-    },
-    '/media/**': { 
-      ssr: true, 
-      prerender: false,
-      swr: 1800, // 30分鐘快取
     },
   },
 
-  // SPA fallback 配置 - 確保客戶端路由正常工作
+  // SPA 配置
   nitro: {
-    prerender: {
-      routes: ['/admin', '/admin/login']
-    }
+    // 簡化配置，專注於 SPA 模式
   },
 
   // 執行時配置 - 支援開發和生產環境

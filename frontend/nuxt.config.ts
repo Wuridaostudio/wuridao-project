@@ -58,15 +58,15 @@ export default defineNuxtConfig({
 
   // ✅ 改善路由規則 - 更好的程式碼分割
   routeRules: {
-    // 其他管理後台頁面 - 完全客戶端渲染
-    '/admin/**': { 
-      ssr: false,
+    // 管理後台登入頁面 - 伺服器端渲染以支援直接訪問
+    '/admin/login': { 
+      ssr: true,
       prerender: false,
     },
     
-    // 管理後台登入頁面 - 伺服器端渲染以支援直接訪問 (覆蓋上面的規則)
-    '/admin/login': { 
-      ssr: true,
+    // 其他管理後台頁面 - 完全客戶端渲染
+    '/admin/**': { 
+      ssr: false,
       prerender: false,
     },
     

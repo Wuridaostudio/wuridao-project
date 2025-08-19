@@ -6,12 +6,15 @@ import { logger } from '~/utils/logger'
 export function useAuthToken() {
   const config = useRuntimeConfig()
   
-  logger.auth('初始化認證 Token 組合')
-  logger.auth('環境資訊', {
-    environment: process.env.NODE_ENV,
-    isProduction: process.env.NODE_ENV === 'production',
-    isDevelopment: process.env.NODE_ENV === 'development',
-  })
+  // 只在客戶端記錄日誌
+  if (process.client) {
+    logger.auth('初始化認證 Token 組合')
+    logger.auth('環境資訊', {
+      environment: process.env.NODE_ENV,
+      isProduction: process.env.NODE_ENV === 'production',
+      isDevelopment: process.env.NODE_ENV === 'development',
+    })
+  }
   
   const token = useCookie<string | null>('auth-token', {
     // 預設值為 null
@@ -31,47 +34,61 @@ export function useAuthToken() {
       : undefined,       // 開發環境使用預設
   })
 
-  logger.cookie('Cookie 配置', {
-    name: 'auth-token',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 7,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
-  })
+  // 只在客戶端記錄日誌
+  if (process.client) {
+    logger.cookie('Cookie 配置', {
+      name: 'auth-token',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
+    })
+  }
 
   // 登入狀態直接由 token 的存在與否決定
   // Nuxt 的 useCookie 會在伺服器端和客戶端之間同步這個狀態
   const isAuthenticated = computed(() => {
     const authenticated = !!token.value
-    logger.auth('認證狀態檢查', {
-      hasToken: !!token.value,
-      tokenLength: token.value?.length,
-      isAuthenticated: authenticated,
-      timestamp: new Date().toISOString(),
-    })
+    
+    // 只在客戶端記錄日誌
+    if (process.client) {
+      logger.auth('認證狀態檢查', {
+        hasToken: !!token.value,
+        tokenLength: token.value?.length,
+        isAuthenticated: authenticated,
+        timestamp: new Date().toISOString(),
+      })
+    }
+    
     return authenticated
   })
 
   // setToken 函式只需更新 useCookie 的 ref 即可
   const setToken = (newToken: string | null) => {
-    logger.auth('setToken 被調用', {
-      hasNewToken: !!newToken,
-      newTokenLength: newToken?.length,
-      newTokenPreview: newToken ? `${newToken.substring(0, 20)}...` : 'null',
-      oldTokenExists: !!token.value,
-      oldTokenLength: token.value?.length,
-      environment: process.env.NODE_ENV,
-      timestamp: new Date().toISOString(),
-    })
+    // 只在客戶端記錄日誌
+    if (process.client) {
+      logger.auth('setToken 被調用', {
+        hasNewToken: !!newToken,
+        newTokenLength: newToken?.length,
+        newTokenPreview: newToken ? `${newToken.substring(0, 20)}...` : 'null',
+        oldTokenExists: !!token.value,
+        oldTokenLength: token.value?.length,
+        environment: process.env.NODE_ENV,
+        timestamp: new Date().toISOString(),
+      })
+    }
     
     token.value = newToken
     
-    logger.auth('Token 已更新', {
-      hasToken: !!token.value,
-      tokenLength: token.value?.length,
-      isAuthenticated: isAuthenticated.value,
-    })
+    // 只在客戶端記錄日誌
+    if (process.client) {
+      logger.auth('Token 已更新', {
+        hasToken: !!token.value,
+        tokenLength: token.value?.length,
+        isAuthenticated: isAuthenticated.value,
+      })
+    }
   }
 
   return {

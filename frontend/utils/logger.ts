@@ -14,12 +14,14 @@ interface LogEntry {
 class FrontendLogger {
   private isProduction = process.env.NODE_ENV === 'production'
   private isDevelopment = process.env.NODE_ENV === 'development'
+  private isServer = process.server
+  private isClient = process.client
   private logQueue: LogEntry[] = []
   private maxQueueSize = 100
 
   constructor() {
-    // 在頁面卸載前發送所有日誌
-    if (process.client) {
+    // 只在客戶端添加頁面卸載事件監聽器
+    if (this.isClient) {
       window.addEventListener('beforeunload', () => {
         this.flushLogs()
       })
@@ -39,12 +41,15 @@ class FrontendLogger {
       timestamp: new Date().toISOString(),
       component,
       environment: process.env.NODE_ENV || 'unknown',
-      userAgent: process.client ? navigator.userAgent : undefined,
-      url: process.client ? window.location.href : undefined,
+      userAgent: this.isClient ? navigator.userAgent : undefined,
+      url: this.isClient ? window.location.href : undefined,
     }
   }
 
   private async sendLogToBackend(logEntry: LogEntry) {
+    // 只在客戶端發送日誌到後端
+    if (!this.isClient) return
+
     try {
       const config = useRuntimeConfig()
       await $fetch('/api/logs/frontend', {
@@ -62,7 +67,8 @@ class FrontendLogger {
   }
 
   private async flushLogs() {
-    if (this.logQueue.length === 0) return
+    // 只在客戶端執行
+    if (!this.isClient || this.logQueue.length === 0) return
 
     try {
       const config = useRuntimeConfig()
@@ -81,16 +87,19 @@ class FrontendLogger {
   }
 
   private addToQueue(logEntry: LogEntry) {
-    this.logQueue.push(logEntry)
-    
-    // 如果隊列太長，移除最舊的日誌
-    if (this.logQueue.length > this.maxQueueSize) {
-      this.logQueue.shift()
-    }
+    // 只在客戶端添加到隊列
+    if (this.isClient) {
+      this.logQueue.push(logEntry)
+      
+      // 如果隊列太長，移除最舊的日誌
+      if (this.logQueue.length > this.maxQueueSize) {
+        this.logQueue.shift()
+      }
 
-    // 在生產環境中，立即發送重要日誌
-    if (this.isProduction && (logEntry.level === 'error' || logEntry.level === 'warn')) {
-      this.sendLogToBackend(logEntry)
+      // 在生產環境中，立即發送重要日誌
+      if (this.isProduction && (logEntry.level === 'error' || logEntry.level === 'warn')) {
+        this.sendLogToBackend(logEntry)
+      }
     }
   }
 

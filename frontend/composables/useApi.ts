@@ -25,22 +25,28 @@ export function useApi() {
 
     // [關鍵] 請求攔截器：在每個請求發送前自動附加 Authorization 標頭
     onRequest({ options }) {
-      logger.api('請求攔截器觸發', {
-        url: options.url,
-        method: options.method,
-        baseURL: config.public.apiBaseUrl,
-        hasCredentials: options.credentials === 'include',
-        timestamp: new Date().toISOString(),
-      })
+      // 只在客戶端記錄日誌
+      if (process.client) {
+        logger.api('請求攔截器觸發', {
+          url: options.url,
+          method: options.method,
+          baseURL: config.public.apiBaseUrl,
+          hasCredentials: options.credentials === 'include',
+          timestamp: new Date().toISOString(),
+        })
+      }
       
       // 從 useAuthToken 中獲取當前的 token
       const currentToken = token.value
       
-      logger.api('Token 狀態', {
-        hasToken: !!currentToken,
-        tokenLength: currentToken?.length,
-        tokenPreview: currentToken ? `${currentToken.substring(0, 20)}...` : 'null',
-      })
+      // 只在客戶端記錄日誌
+      if (process.client) {
+        logger.api('Token 狀態', {
+          hasToken: !!currentToken,
+          tokenLength: currentToken?.length,
+          tokenPreview: currentToken ? `${currentToken.substring(0, 20)}...` : 'null',
+        })
+      }
 
       // 如果 token 存在，則將其加入到請求的 Authorization 標頭中
       if (currentToken) {
@@ -48,30 +54,42 @@ export function useApi() {
           ...options.headers,
           Authorization: `Bearer ${currentToken}`,
         }
-        logger.api('Authorization 標頭已設置')
+        if (process.client) {
+          logger.api('Authorization 標頭已設置')
+        }
       } else {
-        logger.api('沒有 Token，跳過 Authorization 標頭')
+        if (process.client) {
+          logger.api('沒有 Token，跳過 Authorization 標頭')
+        }
       }
       
-      logger.api('最終請求標頭', {
-        authorization: options.headers?.Authorization ? '已設置' : '未設置',
-        contentType: options.headers?.['Content-Type'],
-        userAgent: options.headers?.['User-Agent'],
-      })
+      // 只在客戶端記錄日誌
+      if (process.client) {
+        logger.api('最終請求標頭', {
+          authorization: options.headers?.Authorization ? '已設置' : '未設置',
+          contentType: options.headers?.['Content-Type'],
+          userAgent: options.headers?.['User-Agent'],
+        })
+      }
     },
 
     // 回應錯誤攔截器：可選但強烈建議，用於處理 token 過期等情況
     async onResponseError({ response }) {
-      logger.error('回應錯誤攔截器觸發', {
-        status: response.status,
-        statusText: response.statusText,
-        url: response.url,
-        timestamp: new Date().toISOString(),
-      })
+      // 只在客戶端記錄日誌
+      if (process.client) {
+        logger.error('回應錯誤攔截器觸發', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          timestamp: new Date().toISOString(),
+        })
+      }
       
       // 如果後端回傳 401 未授權錯誤
       if (response.status === 401) {
-        logger.error('收到 401 未授權錯誤，準備登出')
+        if (process.client) {
+          logger.error('收到 401 未授權錯誤，準備登出')
+        }
         // 目前的簡單做法是：如果 token 失效，直接登出
         logger.error('API request returned 401. Logging out.')
         
@@ -82,7 +100,9 @@ export function useApi() {
         // 清除用戶狀態
         authStore.user = null
         
-        logger.api('認證狀態已清除')
+        if (process.client) {
+          logger.api('認證狀態已清除')
+        }
       }
       
       // 統一處理 400 驗證錯誤

@@ -6,7 +6,8 @@ import LoadingSpinner from '~/components/common/LoadingSpinner.vue'
 
 definePageMeta({
   layout: false,
-  middleware: 'auth',
+  // 移除 middleware 以避免路由問題
+  // middleware: 'auth',
 })
 
 const authStore = useAuthStore()

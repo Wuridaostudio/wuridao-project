@@ -7,9 +7,9 @@
     <script>
         // 檢查是否為管理後台路由
         const path = window.location.pathname;
-        if (path.startsWith('/admin') && path !== '/admin/login') {
-            // 管理後台路由（除了登入頁面）：重定向到登入頁面
-            window.location.href = '/admin/login';
+        if (path.startsWith('/admin')) {
+            // 所有管理後台路由都載入主應用
+            window.location.href = '/';
         } else {
             // 其他路由：重定向到首頁
             window.location.href = '/';

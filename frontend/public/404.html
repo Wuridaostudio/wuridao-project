@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WURIDAO 智慧家</title>
     <script>
-        // 檢查是否為管理後台路由
+        // 檢查當前路徑
         const path = window.location.pathname;
+        
+        // 如果是管理後台路由，讓 Nuxt 的客戶端路由處理
         if (path.startsWith('/admin')) {
-            // 所有管理後台路由都載入主應用
+            // 載入主應用，讓 Nuxt 路由處理
             window.location.href = '/';
         } else {
             // 其他路由：重定向到首頁

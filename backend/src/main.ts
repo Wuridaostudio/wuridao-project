@@ -106,11 +106,6 @@ async function bootstrap() {
     exposedHeaders: ['Set-Cookie'], // ✅ 暴露 Set-Cookie 標頭
     preflightContinue: false,
     optionsSuccessStatus: 204,
-    ],
-    credentials: true, // ✅ 重要：允許跨域請求攜帶 credentials
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'], // 允許 Cookie 標頭
-    exposedHeaders: ['Set-Cookie'], // 允許前端讀取 Set-Cookie 標頭
   });
 
   // 設定全域 API 前綴

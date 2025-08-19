@@ -77,11 +77,11 @@ export default defineNuxtConfig({
   // 模組
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
 
-  // ✅ 簡化路由規則 - 確保所有路由都能正確處理
+  // ✅ 簡化路由規則 - 使用 SPA 模式確保所有路由都能正確處理
   routeRules: {
-    // 所有路由都使用 SSR，讓 Nuxt 處理路由
+    // 所有路由都使用 SPA 模式，確保客戶端路由正常工作
     '/**': {
-      ssr: true,
+      ssr: false,
       prerender: false,
     },
   },

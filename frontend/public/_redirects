@@ -7,6 +7,7 @@
 /articles/* /index.html   200
 /media/*    /index.html   200
 /about      /index.html   200
+/plan       /index.html   200
 
 # Static assets
 /_nuxt/*    /_nuxt/:splat  200

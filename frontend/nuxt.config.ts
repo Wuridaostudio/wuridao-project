@@ -21,6 +21,10 @@ export default defineNuxtConfig({
     static: {
       // 設置靜態文件目錄
       dirs: ['public']
+    },
+    // 添加 SPA 路由處理
+    experimental: {
+      wasm: true
     }
   },
 
@@ -106,13 +110,13 @@ export default defineNuxtConfig({
       // API 配置
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL
         || (process.env.NODE_ENV === 'production'
-          ? 'https://wuridao-backend.onrender.com'
-          : 'http://localhost:3000'),
+          ? 'https://wuridao-backend.onrender.com/api'
+          : 'http://localhost:3000/api'),
 
       // 動態網站 URL 配置
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL
         || (process.env.NODE_ENV === 'production'
-          ? 'https://wuridaostudio.com'
+          ? 'https://wuridao-project.onrender.com'
           : 'http://localhost:3001'),
 
       // ✅ [安全修復] 只保留絕對公開的資訊

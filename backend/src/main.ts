@@ -98,7 +98,6 @@ async function bootstrap() {
       'http://localhost:3001', // 開發環境
       'https://wuridao-project.onrender.com', // 生產環境前端
       'https://wuridaostudio.com', // 主要域名
-      'https://wuridao-project.onrender.com', // 確保完全匹配
     ],
     credentials: true, // ✅ 允許攜帶 Cookie
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

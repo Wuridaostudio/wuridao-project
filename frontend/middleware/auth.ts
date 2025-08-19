@@ -3,7 +3,7 @@ import { useAuthToken } from '~/composables/useAuthToken'
 import { logger } from '~/utils/logger'
 
 export default defineNuxtRouteMiddleware((to) => {
-  // 在中介軟體執行時，auth-loader plugin 應已完成初始化
+  // 在客戶端執行時，確保 auth-loader plugin 已完成初始化
   const { isAuthenticated } = useAuthToken()
 
   // 簡化日誌，避免序列化問題
@@ -21,6 +21,11 @@ export default defineNuxtRouteMiddleware((to) => {
   // 如果已登入，卻又想進入登入頁
   if (isAuthenticated.value && isLoginPage) {
     logger.log('[Auth Middleware] 已登入，從登入頁重導向至管理後台。')
-    return navigateTo('/admin')
+    // 在生產環境中使用 replace 避免歷史記錄問題
+    if (process.env.NODE_ENV === 'production') {
+      return navigateTo('/admin', { replace: true })
+    } else {
+      return navigateTo('/admin')
+    }
   }
 })

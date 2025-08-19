@@ -9,6 +9,10 @@ export default defineNuxtConfig({
 
   // 應用程式配置
   app: {
+    // 確保 SPA 模式下的路由正常工作
+    baseURL: '/',
+    buildAssetsDir: '/_nuxt/',
+    
     head: {
       title: 'WURIDAO 智慧家',
       meta: [
@@ -58,10 +62,11 @@ export default defineNuxtConfig({
 
   // ✅ 改善路由規則 - 更好的程式碼分割
   routeRules: {
-    // 管理後台 - 完全客戶端渲染
+    // 管理後台 - 客戶端渲染，但允許服務器端路由處理
     '/admin/**': { 
       ssr: false,
       prerender: false,
+      // 添加 fallback 處理
     },
     
     // 靜態頁面 - 預渲染
@@ -89,6 +94,13 @@ export default defineNuxtConfig({
       prerender: false,
       swr: 1800, // 30分鐘快取
     },
+  },
+
+  // SPA fallback 配置 - 確保客戶端路由正常工作
+  nitro: {
+    prerender: {
+      routes: ['/admin', '/admin/login']
+    }
   },
 
   // 執行時配置 - 支援開發和生產環境

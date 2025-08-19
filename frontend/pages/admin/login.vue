@@ -19,11 +19,8 @@ const credentials = reactive({
 
 async function handleLogin() {
   try {
-    const result = await authStore.login(credentials)
-
-    if (result && result.access_token) {
-      await navigateTo('/admin')
-    }
+    await authStore.login(credentials)
+    // 跳轉邏輯已在 store 中處理，這裡不需要重複跳轉
   }
   catch (error) {
     logger.error('[LOGIN PAGE] ❌ Login failed:', error)

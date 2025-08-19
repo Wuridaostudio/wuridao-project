@@ -35,11 +35,15 @@ export const useAuthStore = defineStore('auth', {
           const { setToken } = useAuthToken()
           setToken(response.access_token)
 
-          // 3. 等待一下讓 cookie 設定完成
-          await new Promise(resolve => setTimeout(resolve, 100))
+          // 3. 等待一下讓 cookie 設定完成並確保狀態更新
+          await new Promise(resolve => setTimeout(resolve, 200))
 
-          // 4. 跳轉到管理後台
-          await navigateTo('/admin')
+          // 4. 跳轉到管理後台（在生產環境中使用 replace 避免歷史記錄問題）
+          if (process.env.NODE_ENV === 'production') {
+            await navigateTo('/admin', { replace: true })
+          } else {
+            await navigateTo('/admin')
+          }
         }
         return response
       }

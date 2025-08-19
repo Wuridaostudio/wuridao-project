@@ -42,7 +42,19 @@ export function useAuthToken() {
   })
 
   // 登入狀態直接由 token 的存在與否決定
-  const isAuthenticated = computed(() => !!smartToken.value)
+  const isAuthenticated = computed(() => {
+    const hasToken = !!smartToken.value
+    // 在客戶端添加調試日誌（僅在開發環境）
+    if (process.client && process.env.NODE_ENV === 'development') {
+      console.log('[useAuthToken] Token 狀態:', {
+        primaryToken: !!token.value,
+        backupToken: !!backupToken.value,
+        smartToken: !!smartToken.value,
+        isAuthenticated: hasToken
+      })
+    }
+    return hasToken
+  })
 
   // setToken 函式同時設置兩個 Cookie
   const setToken = (newToken: string | null) => {

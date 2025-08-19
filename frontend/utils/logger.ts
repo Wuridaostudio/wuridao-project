@@ -52,7 +52,7 @@ class FrontendLogger {
 
     try {
       const config = useRuntimeConfig()
-      await $fetch('/api/logs/frontend', {
+      await $fetch('/logs/frontend', {
         method: 'POST',
         baseURL: config.public.apiBaseUrl,
         body: logEntry,
@@ -72,7 +72,7 @@ class FrontendLogger {
 
     try {
       const config = useRuntimeConfig()
-      await $fetch('/api/logs/frontend/batch', {
+      await $fetch('/logs/frontend/batch', {
         method: 'POST',
         baseURL: config.public.apiBaseUrl,
         body: { logs: this.logQueue },

@@ -151,8 +151,8 @@ class FrontendLogger {
         this.logQueue.shift()
       }
 
-      // 在生產環境中，立即發送所有日誌到後端
-      if (this.isProduction) {
+      // 在生產環境中，只發送重要日誌（warn 和 error）
+      if (this.isProduction && (logEntry.level === 'warn' || logEntry.level === 'error')) {
         this.sendLogToBackend(logEntry)
       }
     }

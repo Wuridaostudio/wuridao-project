@@ -20,6 +20,12 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const { isAuthenticated, token } = useAuthToken()
 
   // 添加調試信息
+  console.log('🛡️ [Auth Middleware] 路由守衛執行:', {
+    path: to.path,
+    hasToken: !!token.value,
+    isAuthenticated: isAuthenticated.value,
+    environment: process.env.NODE_ENV
+  })
   logger.log(`[Auth Middleware] 路由守衛: ${to.path}`)
   logger.log(`[Auth Middleware] Token 存在: ${!!token.value}`)
   logger.log(`[Auth Middleware] 已驗證: ${isAuthenticated.value}`)

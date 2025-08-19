@@ -18,11 +18,20 @@ const credentials = reactive({
 })
 
 async function handleLogin() {
+  console.log('🔐 [LOGIN PAGE] 開始登入流程...')
+  console.log('🔐 [LOGIN PAGE] 憑證:', { 
+    username: credentials.username, 
+    password: credentials.password ? '***' : 'empty' 
+  })
+  
   try {
+    console.log('🔐 [LOGIN PAGE] 調用 authStore.login...')
     await authStore.login(credentials)
+    console.log('🔐 [LOGIN PAGE] ✅ authStore.login 完成')
     // 跳轉邏輯已在 store 中處理，這裡不需要重複跳轉
   }
   catch (error) {
+    console.error('🔐 [LOGIN PAGE] ❌ Login failed:', error)
     logger.error('[LOGIN PAGE] ❌ Login failed:', error)
     // 錯誤已由 store 處理
   }

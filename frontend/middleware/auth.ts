@@ -3,7 +3,12 @@ import { useAuthToken } from '~/composables/useAuthToken'
 import { logger } from '~/utils/logger'
 
 export default defineNuxtRouteMiddleware((to) => {
-  // 在客戶端執行時，確保 auth-loader plugin 已完成初始化
+  // 只在客戶端執行，避免 SSR 時機問題
+  if (process.server) {
+    return
+  }
+
+  // 等待客戶端 hydration 完成
   const { isAuthenticated } = useAuthToken()
 
   // 簡化日誌，避免序列化問題

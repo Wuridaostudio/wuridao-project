@@ -91,13 +91,21 @@ async function bootstrap() {
   // 信任代理（Render 部署需要）
   app.set('trust proxy', 1);
 
-  // CORS 配置
+  // CORS 配置 - 修復跨域問題
   app.enableCors({
     origin: [
       process.env.FRONTEND_URL || 'https://wuridao-project.onrender.com',
       'http://localhost:3001', // 開發環境
       'https://wuridao-project.onrender.com', // 生產環境前端
       'https://wuridaostudio.com', // 主要域名
+      'https://wuridao-project.onrender.com', // 確保完全匹配
+    ],
+    credentials: true, // ✅ 允許攜帶 Cookie
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With'],
+    exposedHeaders: ['Set-Cookie'], // ✅ 暴露 Set-Cookie 標頭
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
     ],
     credentials: true, // ✅ 重要：允許跨域請求攜帶 credentials
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

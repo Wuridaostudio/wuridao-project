@@ -2,6 +2,7 @@
 # Redirect all admin routes to index.html for client-side routing
 /admin/*    /index.html   200
 /admin      /index.html   200
+/admin/login    /index.html   200
 
 # Handle other dynamic routes
 /articles/* /index.html   200

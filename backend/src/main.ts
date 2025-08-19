@@ -91,7 +91,7 @@ async function bootstrap() {
   // 信任代理（Render 部署需要）
   app.set('trust proxy', 1);
 
-  // CORS 配置 - 修復跨域問題
+  // CORS 配置
   app.enableCors({
     origin: [
       process.env.FRONTEND_URL || 'https://wuridao-project.onrender.com',
@@ -99,12 +99,10 @@ async function bootstrap() {
       'https://wuridao-project.onrender.com', // 生產環境前端
       'https://wuridaostudio.com', // 主要域名
     ],
-    credentials: true, // ✅ 允許攜帶 Cookie
+    credentials: true, // ✅ 重要：允許跨域請求攜帶 credentials
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With'],
-    exposedHeaders: ['Set-Cookie'], // ✅ 暴露 Set-Cookie 標頭
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'], // 允許 Cookie 標頭
+    exposedHeaders: ['Set-Cookie'], // 允許前端讀取 Set-Cookie 標頭
   });
 
   // 設定全域 API 前綴

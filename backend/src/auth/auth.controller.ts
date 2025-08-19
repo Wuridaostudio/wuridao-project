@@ -27,13 +27,11 @@ export class AuthController {
   ) {
     const result = await this.authService.login(loginDto);
 
-    // ✅ [重要] 設置多個 Cookie Domain 以支援跨域登入
-    const cookieDomain = process.env.AUTH_COOKIE_DOMAIN || 
-      (process.env.NODE_ENV === 'production' 
-        ? undefined  // 讓瀏覽器自動處理 domain
-        : undefined);
+    // ✅ [重要] 設置正確的 Cookie Domain 以支援跨域登入
+    const cookieDomain = process.env.NODE_ENV === 'production'
+      ? '.onrender.com'  // 支援所有 onrender.com 子域名
+      : undefined;       // 開發環境使用預設的 host-only cookie
 
-    // 主要 Cookie - 根據環境自動選擇 Domain
     response.cookie('auth-token', result.access_token, {
       httpOnly: false, // 允許前端 JavaScript 讀取
       secure: process.env.NODE_ENV === 'production', // 生產環境強制 HTTPS
@@ -42,32 +40,6 @@ export class AuthController {
       path: '/',
       domain: cookieDomain, // 設置跨域 domain
     });
-
-    // ✅ 同時設置備用 Cookie 以支援多域名
-    if (process.env.NODE_ENV === 'production' && process.env.ENABLE_MULTI_DOMAIN_COOKIES === 'true') {
-      // 如果主要 Domain 是 .onrender.com，也設置 .wuridaostudio.com 的備用 Cookie
-      if (cookieDomain === '.onrender.com') {
-        response.cookie('auth-token-backup', result.access_token, {
-          httpOnly: false,
-          secure: true,
-          sameSite: 'lax',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-          path: '/',
-          domain: '.wuridaostudio.com',
-        });
-      }
-      // 如果主要 Domain 是 .wuridaostudio.com，也設置 .onrender.com 的備用 Cookie
-      else if (cookieDomain === '.wuridaostudio.com') {
-        response.cookie('auth-token-backup', result.access_token, {
-          httpOnly: false,
-          secure: true,
-          sameSite: 'lax',
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-          path: '/',
-          domain: '.onrender.com',
-        });
-      }
-    }
 
     return result;
   }

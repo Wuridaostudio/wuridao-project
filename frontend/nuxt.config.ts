@@ -7,29 +7,8 @@ export default defineNuxtConfig({
   // 開發工具
   devtools: { enabled: true },
 
-  // SSR 模式配置
-  ssr: true,
-  
-  // 靜態生成配置
-  nitro: {
-    // 簡化配置
-    prerender: {
-      // 預渲染首頁
-      routes: ['/']
-    },
-    // 確保靜態文件服務配置
-    static: {
-      // 設置靜態文件目錄
-      dirs: ['public']
-    }
-  },
-
   // 應用程式配置
   app: {
-    // 確保 SPA 模式下的路由正常工作
-    baseURL: '/',
-    buildAssetsDir: '/_nuxt/',
-    
     head: {
       title: 'WURIDAO 智慧家',
       meta: [
@@ -77,16 +56,40 @@ export default defineNuxtConfig({
   // 模組
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt'],
 
-  // ✅ 簡化路由規則 - 使用 SPA 模式確保所有路由都能正確處理
+  // ✅ 改善路由規則 - 更好的程式碼分割
   routeRules: {
-    // 所有路由都使用 SPA 模式，確保客戶端路由正常工作
-    '/**': {
+    // 管理後台 - 完全客戶端渲染
+    '/admin/**': { 
       ssr: false,
       prerender: false,
     },
+    
+    // 靜態頁面 - 預渲染
+    '/': { 
+      prerender: true,
+      ssr: true,
+    },
+    '/about': { 
+      prerender: true,
+      ssr: true,
+    },
+    '/plan': { 
+      prerender: true,
+      ssr: true,
+    },
+    
+    // 動態內容 - 伺服器端渲染
+    '/articles/**': { 
+      ssr: true, 
+      prerender: false,
+      swr: 3600, // 1小時快取
+    },
+    '/media/**': { 
+      ssr: true, 
+      prerender: false,
+      swr: 1800, // 30分鐘快取
+    },
   },
-
-
 
   // 執行時配置 - 支援開發和生產環境
   runtimeConfig: {
@@ -106,8 +109,8 @@ export default defineNuxtConfig({
       // API 配置
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL
         || (process.env.NODE_ENV === 'production'
-          ? 'https://wuridao-backend.onrender.com/api'
-          : 'http://localhost:3000/api'),
+          ? 'https://wuridao-backend.onrender.com'
+          : 'http://localhost:3000'),
 
       // 動態網站 URL 配置
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL
@@ -202,6 +205,9 @@ export default defineNuxtConfig({
     // 改善程式碼分割
     inlineSSRStyles: false,
   },
+
+  // SSR 配置
+  ssr: true,
 
   // 水合配置
   hydration: {

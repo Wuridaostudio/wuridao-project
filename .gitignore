@@ -10,6 +10,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*
 
 # Build outputs
 dist/
@@ -17,15 +18,10 @@ build/
 .nuxt/
 .output/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
+# Database
+*.db
+*.sqlite
+*.sqlite3
 
 # Logs
 logs/
@@ -41,7 +37,7 @@ pids/
 coverage/
 
 # nyc test coverage
-.nyc_output/
+.nyc_output
 
 # Dependency directories
 jspm_packages/
@@ -89,24 +85,54 @@ jspm_packages/
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
 
-# Temporary folders
-tmp/
-temp/
+# IDE
+.vscode/
+.idea/
 
-# Database files
-*.db
-*.sqlite
-*.sqlite3
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Test files and reports
+test-*.js
+check-*.js
+*-test-report.md
+test-results/
+playwright-report/
+*.test.js
+*.spec.js
+*.e2e-spec.ts
+
+# Security and sensitive files
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials/
+config/secrets.json
 
 # Backup files
 *.bak
 *.backup
+*~
 
-# Test files with sensitive data
-test-*.js
-*test*.js
-!scripts/test-*.js
+# Cache and temporary directories
+.cache/
+.temp/
+.tmp/
 
-# Local configuration files
-config.local.js
-config.local.json 
+# TypeScript build info
+*.tsbuildinfo
+
+# Local development files
+local/
+dev/
+
+# Documentation files
+*.md
+!README.md 

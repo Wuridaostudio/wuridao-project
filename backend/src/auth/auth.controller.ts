@@ -14,6 +14,7 @@ import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { LogSanitizer } from '../common/utils/log-sanitizer.util';
 
 @ApiTags('認證')
 @Controller('auth')
@@ -29,9 +30,9 @@ export class AuthController {
     @Request() req,
     @Res({ passthrough: true }) response: any,
   ) {
-    // ✅ 詳細的登入請求日誌
+    // ✅ 詳細的登入請求日誌（已脫敏）
     this.logger.log(`🔐 [LOGIN] 開始處理登入請求`);
-    this.logger.log(`🔐 [LOGIN] 請求資訊:`, {
+    const sanitizedRequestInfo = LogSanitizer.sanitizeIfProduction({
       username: loginDto.username,
       hasPassword: !!loginDto.password,
       passwordLength: loginDto.password?.length,
@@ -41,29 +42,32 @@ export class AuthController {
       host: req.headers.host,
       environment: process.env.NODE_ENV,
     });
+    this.logger.log(`🔐 [LOGIN] 請求資訊:`, sanitizedRequestInfo);
 
     try {
       // 調用認證服務
       this.logger.log(`🔐 [LOGIN] 調用 AuthService.login()`);
       const result = await this.authService.login(loginDto);
       
-      this.logger.log(`🔐 [LOGIN] AuthService 返回結果:`, {
+      const sanitizedResult = LogSanitizer.sanitizeIfProduction({
         hasToken: !!result.access_token,
         tokenLength: result.access_token?.length,
         hasUser: !!result.user,
         userId: result.user?.id,
         username: result.user?.username,
       });
+      this.logger.log(`🔐 [LOGIN] AuthService 返回結果:`, sanitizedResult);
 
       // ✅ [重要] 暫時移除 domain 設定，讓瀏覽器自動處理
       const cookieDomain = undefined; // 讓瀏覽器自動設定 domain
 
-      this.logger.log(`🍪 [COOKIE] 準備設置 Cookie:`, {
+      const sanitizedCookieInfo = LogSanitizer.sanitizeIfProduction({
         cookieDomain,
         environment: process.env.NODE_ENV,
         hasToken: !!result.access_token,
         tokenLength: result.access_token?.length,
       });
+      this.logger.log(`🍪 [COOKIE] 準備設置 Cookie:`, sanitizedCookieInfo);
 
       const cookieOptions = {
         httpOnly: false, // 允許前端 JavaScript 讀取
@@ -74,30 +78,33 @@ export class AuthController {
         domain: cookieDomain, // 設置跨域 domain
       };
 
-      this.logger.log(`🍪 [COOKIE] Cookie 選項:`, cookieOptions);
+      const sanitizedCookieOptions = LogSanitizer.sanitizeIfProduction(cookieOptions);
+      this.logger.log(`🍪 [COOKIE] Cookie 選項:`, sanitizedCookieOptions);
 
       // 設置 Cookie
       response.cookie('auth-token', result.access_token, cookieOptions);
       
       this.logger.log(`🍪 [COOKIE] ✅ Cookie 已設置到響應中`);
 
-      // 記錄響應標頭
-      this.logger.log(`📋 [RESPONSE] 響應標頭:`, {
+      // 記錄響應標頭（已脫敏）
+      const sanitizedHeaders = LogSanitizer.sanitizeIfProduction({
         'set-cookie': response.getHeader('Set-Cookie'),
         'access-control-allow-origin': response.getHeader('Access-Control-Allow-Origin'),
         'access-control-allow-credentials': response.getHeader('Access-Control-Allow-Credentials'),
       });
+      this.logger.log(`📋 [RESPONSE] 響應標頭:`, sanitizedHeaders);
 
       this.logger.log(`✅ [LOGIN] 登入成功，返回結果`);
       return result;
 
     } catch (error) {
-      this.logger.error(`❌ [LOGIN] 登入失敗:`, {
+      const sanitizedError = LogSanitizer.sanitizeIfProduction({
         error: error.message,
         stack: error.stack,
         username: loginDto.username,
         environment: process.env.NODE_ENV,
       });
+      this.logger.error(`❌ [LOGIN] 登入失敗:`, sanitizedError);
       throw error;
     }
   }

@@ -9,6 +9,7 @@ import {
 import { Request, Response } from 'express';
 import { Logger } from 'nestjs-pino';
 import * as Sentry from '@sentry/node';
+import { LogSanitizer } from '../utils/log-sanitizer.util';
 
 @Catch(HttpException)
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -37,6 +38,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       }
     } catch (e) {}
 
+    // 統一錯誤回應格式，移除敏感資訊
     const errorResponse = {
       statusCode: status,
       timestamp: new Date().toISOString(),
@@ -48,14 +50,26 @@ export class HttpExceptionFilter implements ExceptionFilter {
         (exception.getResponse() as any).message
           ? (exception.getResponse() as any).message
           : exception.message || 'Internal server error',
+      // 只在開發環境顯示詳細錯誤資訊
       ...(process.env.NODE_ENV === 'development' && {
-        stack: exception.stack,
+        stack: LogSanitizer.sanitize(exception.stack),
+        details: LogSanitizer.sanitize(exception.getResponse()),
       }),
     };
 
+    // 記錄已脫敏的錯誤日誌
+    const sanitizedErrorInfo = LogSanitizer.sanitizeIfProduction({
+      method: request.method,
+      url: request.url,
+      status,
+      message: exception.message,
+      stack: exception.stack,
+      response: exception.getResponse(),
+    });
+    
     this.logger.error(
       `${request.method} ${request.url} - ${status} - ${exception.message}`,
-      exception.stack,
+      sanitizedErrorInfo,
     );
     Sentry.captureException(exception);
 

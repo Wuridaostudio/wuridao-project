@@ -55,10 +55,8 @@ export class AuthController {
         username: result.user?.username,
       });
 
-      // ✅ [重要] 設置正確的 Cookie Domain 以支援跨域登入
-      const cookieDomain = process.env.NODE_ENV === 'production'
-        ? '.onrender.com'  // 支援所有 onrender.com 子域名
-        : undefined;       // 開發環境使用預設的 host-only cookie
+      // ✅ [重要] 暫時移除 domain 設定，讓瀏覽器自動處理
+      const cookieDomain = undefined; // 讓瀏覽器自動設定 domain
 
       this.logger.log(`🍪 [COOKIE] 準備設置 Cookie:`, {
         cookieDomain,

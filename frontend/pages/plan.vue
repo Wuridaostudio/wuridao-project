@@ -1,59 +1,30 @@
 <script setup lang="ts">
 import { logger } from '~/utils/logger'
-import { defineAsyncComponent, ref, onMounted, nextTick, computed } from 'vue'
+import { defineAsyncComponent, ref, onMounted, nextTick } from 'vue'
 import ScrollStack from '@/components/common/ScrollStack.vue'
 import ScrollStackItem from '@/components/common/ScrollStackItem.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
-import { getPerformanceConfig, PerformanceMonitor } from '~/utils/performance'
 
 // 指定使用 plan layout
 definePageMeta({
   layout: 'plan',
 })
 
-// 性能配置
-const performanceConfig = getPerformanceConfig()
-const performanceMonitor = new PerformanceMonitor()
-
 // 載入狀態管理
 const isInfiniteMenuLoaded = ref(false)
 const isSmartFormLoaded = ref(false)
 const isScrollStackLoaded = ref(false)
-const isMobile = ref(performanceConfig.device.isMobile)
-const isLoading = ref(true)
-const loadStartTime = ref(0)
+const isMobile = ref(false)
 
-// 性能監控
-const loadTimes = ref({
-  infiniteMenu: 0,
-  smartForm: 0,
-  scrollStack: 0,
-  total: 0
-})
-
-// 手機優化：更激進的懶載入策略
-const shouldLoadComponent = computed(() => {
-  if (!isMobile.value) return true
-  // 手機上只載入關鍵組件，其他延遲載入
-  return isInfiniteMenuLoaded.value
-})
-
-// 優化的組件載入配置
+// 懶載入組件，添加載入狀態
 const InfiniteMenu = defineAsyncComponent({
-  loader: () => {
-    performanceMonitor.start('InfiniteMenu')
-    return import('@/components/public/InfiniteMenu.vue').then(module => {
-      performanceMonitor.end('InfiniteMenu')
-      loadTimes.value.infiniteMenu = performanceMonitor.getMetrics().InfiniteMenu || 0
-      return module
-    })
-  },
+  loader: () => import('@/components/public/InfiniteMenu.vue'),
   loadingComponent: LoadingSpinner,
-  delay: performanceConfig.loading.delay,
-  timeout: performanceConfig.loading.timeout,
+  delay: 200,
+  timeout: 10000,
   onLoad: () => {
     isInfiniteMenuLoaded.value = true
-    performanceMonitor.log('InfiniteMenu', { config: performanceConfig.device })
+    logger.log('[PLAN] InfiniteMenu 載入完成')
   },
   onError: (error) => {
     logger.error('[PLAN] InfiniteMenu 載入失敗:', error)
@@ -61,20 +32,13 @@ const InfiniteMenu = defineAsyncComponent({
 })
 
 const SmartFormSection = defineAsyncComponent({
-  loader: () => {
-    performanceMonitor.start('SmartFormSection')
-    return import('@/components/public/SmartFormSection.vue').then(module => {
-      performanceMonitor.end('SmartFormSection')
-      loadTimes.value.smartForm = performanceMonitor.getMetrics().SmartFormSection || 0
-      return module
-    })
-  },
+  loader: () => import('@/components/public/SmartFormSection.vue'),
   loadingComponent: LoadingSpinner,
-  delay: performanceConfig.loading.delay + 100, // 延遲載入
-  timeout: performanceConfig.loading.timeout,
+  delay: 200,
+  timeout: 10000,
   onLoad: () => {
     isSmartFormLoaded.value = true
-    performanceMonitor.log('SmartFormSection', { config: performanceConfig.device })
+    logger.log('[PLAN] SmartFormSection 載入完成')
   },
   onError: (error) => {
     logger.error('[PLAN] SmartFormSection 載入失敗:', error)
@@ -84,15 +48,8 @@ const SmartFormSection = defineAsyncComponent({
 // 檢測設備類型
 function detectDevice() {
   if (process.client) {
-    const config = getPerformanceConfig()
-    isMobile.value = config.device.isMobile
-    logger.log('[PLAN] 設備檢測:', { 
-      isMobile: isMobile.value, 
-      width: window.innerWidth,
-      userAgent: navigator.userAgent,
-      performanceLevel: config.performanceLevel,
-      networkSpeed: config.networkSpeed
-    })
+    isMobile.value = window.innerWidth < 768
+    logger.log('[PLAN] 設備檢測:', { isMobile: isMobile.value, width: window.innerWidth })
   }
 }
 
@@ -100,79 +57,43 @@ function handleStackComplete() {
   logger.log('Scroll stack animation completed!')
 }
 
-// 手機優化：分階段載入策略
-async function loadComponentsSequentially() {
-  performanceMonitor.start('TotalLoad')
+// 手機優化：延遲載入非關鍵組件
+onMounted(async () => {
+  detectDevice()
   
-  if (performanceConfig.loading.sequential) {
-    // 手機：分階段載入，優先載入關鍵組件
-    logger.log('[PLAN] 手機模式：開始分階段載入', performanceConfig)
-    
-    // 第一階段：只載入 InfiniteMenu
-    await new Promise(resolve => setTimeout(resolve, 100))
-    
-    // 第二階段：延遲載入 SmartFormSection
+  // 手機設備優化：延遲載入非關鍵組件
+  if (isMobile.value) {
+    // 延遲載入 SmartFormSection
     setTimeout(() => {
       isSmartFormLoaded.value = true
-    }, 1500)
+    }, 1000)
     
-    // 第三階段：延遲載入 ScrollStack
+    // 延遲載入 ScrollStack
     setTimeout(() => {
       isScrollStackLoaded.value = true
-    }, 3000)
-    
+    }, 2000)
   } else {
-    // 桌面：並行載入
-    logger.log('[PLAN] 桌面模式：並行載入')
+    // 桌面設備立即載入
     isSmartFormLoaded.value = true
     isScrollStackLoaded.value = true
   }
   
-  // 計算總載入時間
-  performanceMonitor.end('TotalLoad')
-  loadTimes.value.total = performanceMonitor.getMetrics().TotalLoad || 0
-  isLoading.value = false
-  
-  performanceMonitor.log('TotalLoad', { 
-    loadTimes: loadTimes.value,
-    config: performanceConfig
-  })
-}
-
-onMounted(async () => {
-  detectDevice()
-  await loadComponentsSequentially()
   await nextTick()
+  logger.log('[PLAN] 頁面載入完成')
 })
 </script>
 
 <template>
   <div class="relative bg-black min-h-screen">
-    <!-- 載入指示器 -->
-    <div v-if="isLoading" class="fixed inset-0 bg-black z-50 flex items-center justify-center">
-      <div class="text-center">
-        <LoadingSpinner class="mb-4" />
-        <p class="text-white text-sm">載入中...</p>
-        <p v-if="isMobile" class="text-gray-400 text-xs mt-2">手機模式優化載入中</p>
-      </div>
-    </div>
-
     <!-- Hero 區塊（InfiniteMenu）- 優先載入 -->
     <section style="height: 100vh; position: relative">
       <Suspense>
         <template #default>
-          <InfiniteMenu 
-            class="w-full h-full" 
-            :is-mobile="isMobile"
-            :enable-complex-effects="performanceConfig.animation.enableComplexEffects"
-          />
+          <InfiniteMenu class="w-full h-full" />
         </template>
         <template #fallback>
           <div class="w-full h-full flex items-center justify-center bg-black">
-            <div class="text-center">
-              <LoadingSpinner class="mb-4" />
-              <p class="text-white text-sm">載入 3D 動畫...</p>
-            </div>
+            <LoadingSpinner />
           </div>
         </template>
       </Suspense>
@@ -186,10 +107,7 @@ onMounted(async () => {
         </template>
         <template #fallback>
           <div class="w-full h-64 md:h-80 flex items-center justify-center bg-white">
-            <div class="text-center">
-              <LoadingSpinner class="mb-4" />
-              <p class="text-gray-600 text-sm">載入表單...</p>
-            </div>
+            <LoadingSpinner />
           </div>
         </template>
       </Suspense>
@@ -198,14 +116,14 @@ onMounted(async () => {
     <!-- 滾動堆疊區塊 - 手機延遲載入 -->
     <section v-if="isScrollStackLoaded" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
       <ScrollStack
-        :item-distance="performanceConfig.device.isMobile ? 60 : 100"
-        :item-scale="performanceConfig.device.isMobile ? 0.015 : 0.03"
-        :item-stack-distance="performanceConfig.device.isMobile ? 15 : 30"
+        :item-distance="isMobile ? 80 : 100"
+        :item-scale="isMobile ? 0.02 : 0.03"
+        :item-stack-distance="isMobile ? 20 : 30"
         stack-position="20%"
         scale-end-position="10%"
-        :base-scale="performanceConfig.device.isMobile ? 0.95 : 0.85"
+        :base-scale="isMobile ? 0.9 : 0.85"
         :rotation-amount="0"
-        :blur-amount="performanceConfig.device.isMobile ? 0.2 : 0.5"
+        :blur-amount="isMobile ? 0.3 : 0.5"
         @stack-complete="handleStackComplete"
         role="region"
         aria-label="智慧家庭服務流程"
@@ -323,17 +241,6 @@ onMounted(async () => {
     width: 300px;
     height: 200px;
     font-size: 1.5rem;
-  }
-  
-  /* 手機性能優化 */
-  * {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-  }
-  
-  /* 減少動畫複雜度 */
-  .scroll-stack-item {
-    will-change: transform;
   }
 }
 </style>

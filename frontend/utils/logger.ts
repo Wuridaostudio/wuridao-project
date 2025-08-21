@@ -65,9 +65,6 @@ class FrontendLogger {
             body: logEntry,
             credentials: 'include',
             timeout: 5000, // 5秒超時
-            // 增加重試和錯誤處理
-            retry: 1,
-            retryDelay: 1000,
           })
           
           // 成功發送，跳出重試循環
@@ -135,9 +132,6 @@ class FrontendLogger {
         baseURL: config.public.apiBaseUrl,
         body: { logs: this.logQueue },
         credentials: 'include',
-        timeout: 10000, // 10秒超時
-        retry: 1,
-        retryDelay: 1000,
       })
       this.logQueue = []
     } catch (error) {

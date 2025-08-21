@@ -26,8 +26,6 @@ onMounted(() => {
       url: window.location.href,
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
-      isProduction: process.env.NODE_ENV === 'production',
     })
   }
 })

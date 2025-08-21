@@ -82,8 +82,6 @@ export default defineNuxtConfig({
     '/plan': { 
       prerender: true,
       ssr: true,
-      // 手機性能優化
-      experimentalNoScripts: false,
     },
     
     // 動態內容 - 伺服器端渲染
@@ -145,7 +143,7 @@ export default defineNuxtConfig({
   // Vite 配置 - 改善程式碼分割和效能
   vite: {
     optimizeDeps: {
-      include: ['gsap', 'gsap/ScrollTrigger', 'three'],
+      include: ['gsap', 'gsap/ScrollTrigger'],
     },
     build: {
       // 修復 Terser 錯誤
@@ -168,18 +166,11 @@ export default defineNuxtConfig({
             three: ['three'],
             // 將管理後台相關的程式碼分離
             admin: ['@tiptap/vue-3', '@tiptap/starter-kit'],
-            // 手機性能優化：分離 PLAN 頁面相關組件
-            plan: ['@/components/public/InfiniteMenu.vue', '@/components/public/SmartFormSection.vue'],
           },
         },
       },
       // 改善程式碼分割
       chunkSizeWarningLimit: 1000,
-    },
-    // 手機性能優化
-    define: {
-      __VUE_OPTIONS_API__: false,
-      __VUE_PROD_DEVTOOLS__: false,
     },
   },
 

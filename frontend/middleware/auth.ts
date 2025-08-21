@@ -13,8 +13,6 @@ export default defineNuxtRouteMiddleware((to) => {
       console.log('認證中間件執行', {
         targetPath: to.path,
         isAuthenticated,
-        environment: process.env.NODE_ENV,
-        isProduction: process.env.NODE_ENV === 'production',
         timestamp: new Date().toISOString(),
       })
     } catch (error) {

@@ -20,8 +20,6 @@ const props = defineProps({
   // 手機優化：添加效能控制參數
   isMobile: { type: Boolean, default: false },
   enableComplexEffects: { type: Boolean, default: true },
-  // 手機性能優化參數
-  mobileOptimization: { type: Boolean, default: false },
 })
 
 const isClient
@@ -239,15 +237,15 @@ onMounted(async () => {
   if (!isClient || !containerRef.value)
     return
     
-  // 手機優化：檢測設備類型並應用 props
-  const isMobileDevice = props.isMobile || window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  // 手機優化：檢測設備類型
+  const isMobileDevice = window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   
   let w = containerRef.value.clientWidth
   let h = containerRef.value.clientHeight
   
-  // 手機優化：根據設備類型調整渲染品質
-  const pixelRatio = isMobileDevice ? Math.min(window.devicePixelRatio || 1, 1.2) : window.devicePixelRatio || 1
-  const antialias = !isMobileDevice && props.enableComplexEffects
+  // 手機優化：降低渲染品質
+  const pixelRatio = isMobileDevice ? Math.min(window.devicePixelRatio || 1, 1.5) : window.devicePixelRatio || 1
+  const antialias = !isMobileDevice
   
   renderer = new THREE.WebGLRenderer({
     antialias: antialias,
@@ -256,15 +254,13 @@ onMounted(async () => {
     alpha: false,
     stencil: false,
     depth: false,
-    // 手機優化：減少緩衝區
-    preserveDrawingBuffer: false,
   })
   
   renderer.setClearColor(new THREE.Color(props.backgroundColor), 1)
   renderer.setPixelRatio(pixelRatio)
   
-  // 手機優化：更激進的解析度降低
-  const scale = isMobileDevice ? 0.4 : 0.7
+  // 手機優化：降低解析度
+  const scale = isMobileDevice ? 0.5 : 0.7
   renderer.setSize(w * scale, h * scale)
   renderer.domElement.style.width = `${w}px`
   renderer.domElement.style.height = `${h}px`
@@ -366,7 +362,7 @@ onMounted(async () => {
   intersectionObserver.observe(containerRef.value)
   // 動畫循環（手機優化：降低幀率）
   let lastTime = 0
-  const targetFPS = isMobileDevice ? 15 : 30 // 手機進一步降低到 15fps
+  const targetFPS = isMobileDevice ? 20 : 30 // 手機降低到 20fps
   const frameInterval = 1000 / targetFPS
   
   function animate(now) {
@@ -382,7 +378,7 @@ onMounted(async () => {
           persistColor[i] += (targetColor[i] - persistColor[i]) * dt
       }
       
-      const speed = dt * (isMobileDevice ? 2 : 5) // 手機進一步降低動畫速度
+      const speed = dt * (isMobileDevice ? 3 : 5) // 手機降低動畫速度
       mouse[0] += (target[0] - mouse[0]) * speed
       mouse[1] += (target[1] - mouse[1]) * speed
       
@@ -390,9 +386,9 @@ onMounted(async () => {
       quadMat.uniforms.sampler.value = rt1.texture
       quadMat.uniforms.time.value = clock.getElapsedTime()
       
-      // 手機優化：大幅降低特效強度
-      const noiseFactor = isMobileDevice ? props.noiseFactor * 0.3 : props.noiseFactor
-      const noiseScale = isMobileDevice ? props.noiseScale * 0.3 : props.noiseScale
+      // 手機優化：降低特效強度
+      const noiseFactor = isMobileDevice ? props.noiseFactor * 0.5 : props.noiseFactor
+      const noiseScale = isMobileDevice ? props.noiseScale * 0.5 : props.noiseScale
       
       quadMat.uniforms.noiseFactor.value = noiseFactor
       quadMat.uniforms.noiseScale.value = noiseScale

@@ -79,9 +79,9 @@ export function getPerformanceConfig() {
     
     // 動畫配置
     animation: {
-      speed: device.isMobile ? 0.8 : 1, // 提高手機動畫速度
-      complexity: device.isMobile ? 0.7 : 1, // 提高手機動畫複雜度
-      enableComplexEffects: true, // 保持複雜效果
+      speed: device.isMobile ? 0.6 : 1,
+      complexity: device.isMobile ? 0.3 : 1,
+      enableComplexEffects: !device.isMobile,
     },
     
     // 載入配置
@@ -210,7 +210,7 @@ export function autoOptimize() {
   
   // 根據設備類型自動調整
   if (config.device.isMobile) {
-    // 減少動畫複雜度，但保持基本動畫
+    // 減少動畫複雜度
     document.documentElement.style.setProperty('--animation-duration', '0.3s')
     document.documentElement.style.setProperty('--transition-duration', '0.2s')
     
@@ -218,10 +218,9 @@ export function autoOptimize() {
     document.documentElement.style.setProperty('transform', 'translateZ(0)')
   }
   
-  // 根據網路速度調整 - 只影響 CSS 動畫，不影響 GSAP
+  // 根據網路速度調整
   if (config.networkSpeed === 'slow') {
-    // 減少 CSS 動畫，但保持 GSAP 動畫
-    document.documentElement.style.setProperty('--css-animation-duration', '0.2s')
-    document.documentElement.style.setProperty('--css-transition-duration', '0.1s')
+    // 禁用非關鍵動畫
+    document.documentElement.style.setProperty('--animation-duration', '0s')
   }
 }

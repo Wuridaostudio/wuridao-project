@@ -5,8 +5,6 @@ import ScrollStack from '@/components/common/ScrollStack.vue'
 import ScrollStackItem from '@/components/common/ScrollStackItem.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { getPerformanceConfig, PerformanceMonitor } from '~/utils/performance'
-import { initGSAPDebug, testGSAPAnimation } from '~/utils/gsap-debug'
-import { initAnimationDebug, monitorScrollEvents } from '~/utils/animation-debug'
 
 // 指定使用 plan layout
 definePageMeta({
@@ -120,7 +118,9 @@ async function loadComponentsSequentially() {
     
     // 第三階段：延遲載入 ScrollStack
     setTimeout(() => {
-      isScrollStackLoaded.value = true
+      logger.log('[PLAN] 準備將 isScrollStackLoaded 設為 true');
+      isScrollStackLoaded.value = true;
+      logger.log('[PLAN] isScrollStackLoaded 的值:', isScrollStackLoaded.value);
     }, 3000)
     
   } else {
@@ -145,46 +145,6 @@ onMounted(async () => {
   detectDevice()
   await loadComponentsSequentially()
   await nextTick()
-  
-  // 初始化動畫調試
-  if (process.client) {
-    // 等待 DOM 完全載入
-    setTimeout(() => {
-      // 只在客戶端執行動畫調試
-      if (process.client) {
-        // 初始化動畫調試
-        const animationDebug = initAnimationDebug()
-        logger.log('[PLAN] 動畫調試結果:', animationDebug)
-        
-        // 初始化 GSAP 調試
-        const gsapDebug = initGSAPDebug()
-        logger.log('[PLAN] GSAP 調試結果:', gsapDebug)
-        
-        // 測試 GSAP 動畫
-        const testElement = document.querySelector('.scroll-stack-card')
-        if (testElement) {
-          testGSAPAnimation(testElement as HTMLElement)
-        }
-        
-        // 監控滾動事件
-        const cleanupScrollMonitor = monitorScrollEvents()
-        
-        // 執行額外的動畫測試
-        setTimeout(async () => {
-          const { checkScrollStackAnimation, checkAnimationPerformance } = await import('~/utils/animation-debug')
-          checkScrollStackAnimation()
-          checkAnimationPerformance()
-        }, 2000)
-        
-        // 清理函數
-        onUnmounted(() => {
-          if (cleanupScrollMonitor) {
-            cleanupScrollMonitor()
-          }
-        })
-      }
-    }, 1000) // 延遲 1 秒確保組件完全載入
-  }
 })
 </script>
 

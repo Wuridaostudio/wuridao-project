@@ -39,8 +39,8 @@ export class ArticlesService {
     createArticleDto: CreateArticleDto,
     coverImage?: Express.Multer.File,
   ) {
-    this.logger.log('🚀 [ArticlesService] ===== 文章創建服務開始 =====');
-    this.logger.log('📋 [ArticlesService] 接收到的數據:', {
+    this.logger.log('🚀 [ArticlesService] ===== Article creation service started =====');
+    this.logger.log('📋 [ArticlesService] Received data:', {
       title: createArticleDto.title,
       contentLength: createArticleDto.content?.length || 0,
       coverImageUrl: createArticleDto.coverImageUrl,
@@ -118,7 +118,7 @@ export class ArticlesService {
 
       const savedArticle = await this.articleRepository.save(article);
 
-      this.logger.log('✅ [ArticlesService] 文章創建成功:', savedArticle.id);
+      this.logger.log('✅ [ArticlesService] Article created successfully:', savedArticle.id);
       return savedArticle;
     } catch (error) {
       // 清理失敗的上傳
@@ -135,26 +135,26 @@ export class ArticlesService {
         );
       }
 
-      this.logger.error('❌ [ArticlesService] 文章創建失敗:', error);
+      this.logger.error('❌ [ArticlesService] Article creation failed:', error);
       throw error;
     }
   }
 
   private async processTags(tagIds?: number[]): Promise<Tag[]> {
     if (!tagIds || tagIds.length === 0) {
-      this.logger.log('ℹ️ [ArticlesService] 沒有標籤需要處理');
+      this.logger.log('ℹ️ [ArticlesService] No tags to process');
       return [];
     }
 
-    this.logger.log('🏷️ [ArticlesService] 查找標籤 IDs:', tagIds);
+    this.logger.log('🏷️ [ArticlesService] Looking up tag IDs:', tagIds);
     const tags = await this.tagRepository.findBy({ id: In(tagIds) });
-    this.logger.log('✅ [ArticlesService] 找到標籤數量:', tags.length);
+    this.logger.log('✅ [ArticlesService] Found tags count:', tags.length);
     return tags;
   }
 
   async findAll(query: any = {}, request?: any) {
-    this.logger.log('🔍 [ArticlesService] 開始查詢文章列表');
-    this.logger.log('🔍 [ArticlesService] 查詢參數:', query);
+    this.logger.log('🔍 [ArticlesService] Starting articles list query');
+    this.logger.log('🔍 [ArticlesService] Query parameters:', query);
 
     // 定義常量，避免硬編碼
     const PUBLISHED_STATUS = false;
@@ -170,25 +170,25 @@ export class ArticlesService {
       // 檢查是否有 Authorization 標頭（表示可能是管理員請求）
       const hasAuthHeader = request?.headers?.authorization && 
                            request.headers.authorization.startsWith('Bearer ');
-      this.logger.log('🔍 [ArticlesService] 認證標頭檢查:', { 
+      this.logger.log('🔍 [ArticlesService] Auth header check:', { 
         hasAuthHeader, 
-        authHeader: hasAuthHeader ? 'Bearer ***' : '無'
+        authHeader: hasAuthHeader ? 'Bearer ***' : 'None'
       });
 
       // 處理草稿狀態篩選
       if (query.isDraft !== undefined) {
         const isDraft = query.isDraft === 'true' || query.isDraft === true;
         queryBuilder.andWhere('article.isDraft = :isDraft', { isDraft });
-        this.logger.log('🔍 [ArticlesService] 使用指定的 isDraft 參數:', isDraft);
+        this.logger.log('🔍 [ArticlesService] Using specified isDraft parameter:', isDraft);
       } else {
         // 根據是否有認證標頭決定是否顯示草稿文章
         if (hasAuthHeader) {
           // 有認證標頭的請求（可能是管理員）可以看到所有文章
-          this.logger.log('🔍 [ArticlesService] 檢測到認證標頭，返回所有文章（包括草稿）');
+          this.logger.log('🔍 [ArticlesService] Auth header detected, returning all articles (including drafts)');
     } else {
           // 沒有認證標頭的請求（公開訪問）只能看到已發布的文章
           queryBuilder.andWhere('article.isDraft = :isDraft', { isDraft: PUBLISHED_STATUS });
-          this.logger.log('🔍 [ArticlesService] 公開訪問，只返回已發布文章');
+          this.logger.log('🔍 [ArticlesService] Public access, returning only published articles');
         }
       }
 
@@ -317,7 +317,7 @@ export class ArticlesService {
     });
 
     if (!article) {
-      throw new NotFoundException('文章不存在');
+      throw new NotFoundException('Article not found');
     }
 
     // 如果內容是 Cloudinary URL，需要從 Cloudinary 獲取實際內容
@@ -368,7 +368,7 @@ export class ArticlesService {
     }
 
     if (article) {
-      this.logger.log('[ArticleService][findOne] 查詢:', {
+      this.logger.log('[ArticleService][findOne] Query:', {
         id: article.id,
         coverImageUrl: article.coverImageUrl,
         contentLength: article.content?.length || 0,
@@ -460,8 +460,8 @@ export class ArticlesService {
     updateArticleDto: UpdateArticleDto,
     coverImage?: Express.Multer.File,
   ) {
-    this.logger.log('🔄 [ArticlesService] ===== 文章更新服務開始 =====');
-    this.logger.log('📋 [ArticlesService] 更新參數:', {
+    this.logger.log('🔄 [ArticlesService] ===== Article update service started =====');
+    this.logger.log('📋 [ArticlesService] Update parameters:', {
       id,
       isDraft: updateArticleDto.isDraft,
       title: updateArticleDto.title,
@@ -471,7 +471,7 @@ export class ArticlesService {
 
     const article = await this.findOne(id);
     
-    this.logger.log('📋 [ArticlesService] 原始文章狀態:', {
+    this.logger.log('📋 [ArticlesService] Original article state:', {
       id: article.id,
       title: article.title,
       isDraft: article.isDraft,
@@ -564,7 +564,7 @@ export class ArticlesService {
     // 處理 isDraft 欄位 - 確保不會被 Object.assign 覆蓋
     if (updateArticleDto.isDraft !== undefined) {
       article.isDraft = updateArticleDto.isDraft;
-      this.logger.log('[ArticleService][update] 設定 isDraft:', updateArticleDto.isDraft);
+      this.logger.log('[ArticleService][update] Setting isDraft:', updateArticleDto.isDraft);
     }
 
     // 創建一個不包含已處理欄位的 DTO 副本，避免 Object.assign 覆蓋
@@ -581,15 +581,15 @@ export class ArticlesService {
     try {
       // 根據規則 #1：儲存資料庫
       const updatedArticle = await this.articleRepository.save(article);
-      this.logger.log('[ArticleService][update] DB 實際寫入:', {
+      this.logger.log('[ArticleService][update] DB actual write:', {
         id: updatedArticle.id,
         coverImageUrl: updatedArticle.coverImageUrl,
         content: updatedArticle.content,
         isDraft: updatedArticle.isDraft,
       });
       
-      this.logger.log('✅ [ArticlesService] ===== 文章更新服務完成 =====');
-      this.logger.log('📋 [ArticlesService] 更新後文章狀態:', {
+      this.logger.log('✅ [ArticlesService] ===== Article update service completed =====');
+      this.logger.log('📋 [ArticlesService] Updated article state:', {
         id: updatedArticle.id,
         title: updatedArticle.title,
         isDraft: updatedArticle.isDraft,
@@ -710,6 +710,6 @@ export class ArticlesService {
     // 根據規則 #1：然後再刪除資料庫記錄
     await this.articleRepository.remove(article);
 
-    return { message: '文章已刪除' };
+    return { message: 'Article deleted' };
   }
 }

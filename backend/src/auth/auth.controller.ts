@@ -31,7 +31,7 @@ export class AuthController {
     @Res({ passthrough: true }) response: any,
   ) {
     // ✅ 詳細的登入請求日誌（已脫敏）
-    this.logger.log(`🔐 [LOGIN] 開始處理登入請求`);
+    this.logger.log(`🔐 [LOGIN] Starting login request processing`);
     const sanitizedRequestInfo = LogSanitizer.sanitizeIfProduction({
       username: loginDto.username,
       hasPassword: !!loginDto.password,
@@ -42,11 +42,11 @@ export class AuthController {
       host: req.headers.host,
       environment: process.env.NODE_ENV,
     });
-    this.logger.log(`🔐 [LOGIN] 請求資訊:`, sanitizedRequestInfo);
+    this.logger.log(`🔐 [LOGIN] Request info:`, sanitizedRequestInfo);
 
     try {
       // 調用認證服務
-      this.logger.log(`🔐 [LOGIN] 調用 AuthService.login()`);
+      this.logger.log(`🔐 [LOGIN] Calling AuthService.login()`);
       const result = await this.authService.login(loginDto);
       
       const sanitizedResult = LogSanitizer.sanitizeIfProduction({
@@ -56,7 +56,7 @@ export class AuthController {
         userId: result.user?.id,
         username: result.user?.username,
       });
-      this.logger.log(`🔐 [LOGIN] AuthService 返回結果:`, sanitizedResult);
+      this.logger.log(`🔐 [LOGIN] AuthService returned result:`, sanitizedResult);
 
       // ✅ [重要] 暫時移除 domain 設定，讓瀏覽器自動處理
       const cookieDomain = undefined; // 讓瀏覽器自動設定 domain
@@ -67,7 +67,7 @@ export class AuthController {
         hasToken: !!result.access_token,
         tokenLength: result.access_token?.length,
       });
-      this.logger.log(`🍪 [COOKIE] 準備設置 Cookie:`, sanitizedCookieInfo);
+      this.logger.log(`🍪 [COOKIE] Preparing to set Cookie:`, sanitizedCookieInfo);
 
       const cookieOptions = {
         httpOnly: false, // 允許前端 JavaScript 讀取
@@ -79,12 +79,12 @@ export class AuthController {
       };
 
       const sanitizedCookieOptions = LogSanitizer.sanitizeIfProduction(cookieOptions);
-      this.logger.log(`🍪 [COOKIE] Cookie 選項:`, sanitizedCookieOptions);
+      this.logger.log(`🍪 [COOKIE] Cookie options:`, sanitizedCookieOptions);
 
       // 設置 Cookie
       response.cookie('auth-token', result.access_token, cookieOptions);
       
-      this.logger.log(`🍪 [COOKIE] ✅ Cookie 已設置到響應中`);
+      this.logger.log(`🍪 [COOKIE] ✅ Cookie has been set in response`);
 
       // 記錄響應標頭（已脫敏）
       const sanitizedHeaders = LogSanitizer.sanitizeIfProduction({
@@ -92,9 +92,9 @@ export class AuthController {
         'access-control-allow-origin': response.getHeader('Access-Control-Allow-Origin'),
         'access-control-allow-credentials': response.getHeader('Access-Control-Allow-Credentials'),
       });
-      this.logger.log(`📋 [RESPONSE] 響應標頭:`, sanitizedHeaders);
+      this.logger.log(`📋 [RESPONSE] Response headers:`, sanitizedHeaders);
 
-      this.logger.log(`✅ [LOGIN] 登入成功，返回結果`);
+      this.logger.log(`✅ [LOGIN] Login successful, returning result`);
       return result;
 
     } catch (error) {
@@ -112,7 +112,7 @@ export class AuthController {
   @ApiOperation({ summary: '刷新 Token' })
   @Post('refresh')
   async refreshToken(@Body() body: { refresh_token: string }) {
-    this.logger.log(`🔄 [REFRESH] 刷新 Token 請求`);
+    this.logger.log(`🔄 [REFRESH] Refresh token request`);
     return this.authService.refreshToken(body.refresh_token);
   }
 
@@ -124,7 +124,7 @@ export class AuthController {
     @Request() req,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
-    this.logger.log(`🔑 [CHANGE_PASSWORD] 修改密碼請求:`, {
+    this.logger.log(`🔑 [CHANGE_PASSWORD] Change password request:`, {
       userId: req.user?.userId,
       username: req.user?.username,
     });
@@ -136,7 +136,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   getProfile(@Request() req) {
-    this.logger.log(`👤 [PROFILE] 取得使用者資訊:`, {
+    this.logger.log(`👤 [PROFILE] Get user profile:`, {
       userId: req.user?.userId,
       username: req.user?.username,
     });

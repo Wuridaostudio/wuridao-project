@@ -220,9 +220,9 @@ export class AppModule implements OnModuleInit {
         await this.createAdminSeed.run();
         await this.createCategoriesSeed.run();
         await this.createTagsSeed.run();
-        this.logger.log('✅ 種子數據初始化完成');
+        this.logger.log('✅ Seed data initialization completed');
       } catch (error) {
-        this.logger.error({ err: error }, '❌ 種子數據初始化失敗');
+        this.logger.error({ err: error }, '❌ Seed data initialization failed');
       }
     }
   }

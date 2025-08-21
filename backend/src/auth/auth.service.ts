@@ -22,8 +22,8 @@ export class AuthService {
 
   // ✅ 登入：比對帳密、簽發 token
   async login(loginDto: LoginDto) {
-    this.logger.log(`🔐 [AUTH_SERVICE] 開始登入驗證`);
-    this.logger.log(`🔐 [AUTH_SERVICE] 登入資訊:`, {
+    this.logger.log(`🔐 [AUTH_SERVICE] Starting login verification`);
+    this.logger.log(`🔐 [AUTH_SERVICE] Login info:`, {
       username: loginDto.username,
       hasPassword: !!loginDto.password,
       passwordLength: loginDto.password?.length,
@@ -31,7 +31,7 @@ export class AuthService {
     });
 
     // 查找用戶
-    this.logger.log(`🔍 [AUTH_SERVICE] 查找用戶: ${loginDto.username}`);
+    this.logger.log(`🔍 [AUTH_SERVICE] Looking up user: ${loginDto.username}`);
     const user = await this.userRepository.findOne({
       where: { username: loginDto.username },
     });
@@ -45,7 +45,7 @@ export class AuthService {
       throw new UnauthorizedException('帳號或密碼錯誤');
     }
 
-    this.logger.log(`✅ [AUTH_SERVICE] 用戶找到:`, {
+    this.logger.log(`✅ [AUTH_SERVICE] User found:`, {
       userId: user.id,
       username: user.username,
       hasPassword: !!user.password,
@@ -53,13 +53,13 @@ export class AuthService {
     });
 
     // 驗證密碼
-    this.logger.log(`🔐 [AUTH_SERVICE] 開始密碼驗證`);
+    this.logger.log(`🔐 [AUTH_SERVICE] Starting password verification`);
     const isPasswordValid = await bcrypt.compare(
       loginDto.password,
       user.password,
     );
 
-    this.logger.log(`🔐 [AUTH_SERVICE] 密碼驗證結果:`, {
+    this.logger.log(`🔐 [AUTH_SERVICE] Password verification result:`, {
       isPasswordValid,
       providedPasswordLength: loginDto.password?.length,
       storedPasswordLength: user.password?.length,
@@ -80,7 +80,7 @@ export class AuthService {
     );
 
     // 生成 JWT Token
-    this.logger.log(`🎫 [AUTH_SERVICE] 開始生成 JWT Token`);
+    this.logger.log(`🎫 [AUTH_SERVICE] Starting JWT Token generation`);
     const payload = { sub: user.id, username: user.username };
     
     this.logger.log(`🎫 [AUTH_SERVICE] JWT Payload:`, {
@@ -92,13 +92,13 @@ export class AuthService {
 
     const access_token = this.jwtService.sign(payload);
     
-    this.logger.log(`🎫 [AUTH_SERVICE] JWT Token 生成成功:`, {
+    this.logger.log(`🎫 [AUTH_SERVICE] JWT Token generated successfully:`, {
       hasToken: !!access_token,
       tokenLength: access_token?.length,
       tokenPreview: access_token ? `${access_token.substring(0, 20)}...` : 'null',
     });
 
-    this.logger.log(`✅ [AUTH_SERVICE] 登入成功，返回結果`);
+    this.logger.log(`✅ [AUTH_SERVICE] Login successful, returning result`);
     return {
       access_token,
       user: {

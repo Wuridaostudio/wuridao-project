@@ -168,7 +168,7 @@ onMounted(async () => {
       const cleanupScrollMonitor = monitorScrollEvents()
       
       // 執行額外的動畫測試
-      setTimeout(() => {
+      setTimeout(async () => {
         const { checkScrollStackAnimation, checkAnimationPerformance } = await import('~/utils/animation-debug')
         checkScrollStackAnimation()
         checkAnimationPerformance()

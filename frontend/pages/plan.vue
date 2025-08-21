@@ -167,6 +167,13 @@ onMounted(async () => {
       // 監控滾動事件
       const cleanupScrollMonitor = monitorScrollEvents()
       
+      // 執行額外的動畫測試
+      setTimeout(() => {
+        const { checkScrollStackAnimation, checkAnimationPerformance } = await import('~/utils/animation-debug')
+        checkScrollStackAnimation()
+        checkAnimationPerformance()
+      }, 2000)
+      
       // 清理函數
       onUnmounted(() => {
         if (cleanupScrollMonitor) {

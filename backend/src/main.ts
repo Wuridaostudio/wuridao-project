@@ -28,6 +28,11 @@ function getAllConstraints(errors: ValidationError[]): string[] {
 }
 
 async function bootstrap() {
+  // 設置環境變數以支援中文編碼
+  process.env.LANG = 'zh_TW.UTF-8';
+  process.env.LC_ALL = 'zh_TW.UTF-8';
+  process.env.LC_CTYPE = 'zh_TW.UTF-8';
+
   // 使用 NestExpressApplication 以支援 app.set()
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useLogger(app.get(Logger));

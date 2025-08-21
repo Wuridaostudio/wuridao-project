@@ -234,7 +234,7 @@ export class ArticlesService {
             );
             
             if (!validation.isValid && validation.fallbackUrl) {
-              this.logger.warn('[ArticlesService] 使用備用圖片', {
+              this.logger.warn('[ArticlesService] Using fallback image', {
                 articleId: article.id,
                 originalUrl: article.coverImageUrl,
                 fallbackUrl: validation.fallbackUrl
@@ -246,8 +246,8 @@ export class ArticlesService {
         })
       );
 
-      this.logger.log('✅ [ArticlesService] 文章列表查詢成功');
-      this.logger.log('📊 [ArticlesService] 查詢結果統計:', {
+      this.logger.log('✅ [ArticlesService] Articles list query successful');
+      this.logger.log('📊 [ArticlesService] Query result statistics:', {
         total,
         page,
         limit,
@@ -258,7 +258,7 @@ export class ArticlesService {
       // 記錄每篇文章的詳細信息
       processedData.forEach((article, index) => {
         this.logger.log(
-          `  ${index + 1}. ID: ${article.id}, 標題: ${article.title}, isDraft: ${article.isDraft}, 創建時間: ${article.createdAt}, 內容長度: ${article.content?.length || 0}, 封面圖片: ${article.coverImageUrl || '無'}, coverImagePublicId: ${article.coverImagePublicId || '無'}`,
+          `  ${index + 1}. ID: ${article.id}, Title: ${article.title}, isDraft: ${article.isDraft}, Created: ${article.createdAt}, Content Length: ${article.content?.length || 0}, Cover Image: ${article.coverImageUrl || 'None'}, coverImagePublicId: ${article.coverImagePublicId || 'None'}`,
         );
       });
 
@@ -270,7 +270,7 @@ export class ArticlesService {
         totalPages: Math.ceil(total / limit),
       };
     } catch (error) {
-      this.logger.error('❌ [ArticlesService] 文章列表查詢失敗:', error);
+      this.logger.error('❌ [ArticlesService] Articles list query failed:', error);
       throw error;
     }
   }

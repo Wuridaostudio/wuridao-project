@@ -65,9 +65,30 @@ import { databaseConfig } from './config/database.config';
                   ignore: 'pid,hostname',
                   translateTime: 'SYS:standard',
                   messageFormat: '{msg}',
+                  // 修復中文亂碼問題
+                  messageKey: 'msg',
+                  levelFirst: true,
+                  // 設置 UTF-8 編碼
+                  useOnlyCustomProps: false,
                 },
               }
             : undefined,
+        // 修復中文亂碼問題 - 設置編碼
+        serializers: {
+          req: (req) => ({
+            id: req.id,
+            method: req.method,
+            url: req.url,
+            query: req.query,
+            params: req.params,
+            headers: req.headers,
+            remoteAddress: req.remoteAddress,
+            remotePort: req.remotePort,
+          }),
+          res: (res) => ({
+            statusCode: res.statusCode,
+          }),
+        },
         customLogLevel: (req, res, err) => {
           if (res.statusCode >= 400 && res.statusCode < 500) {
             return 'warn';

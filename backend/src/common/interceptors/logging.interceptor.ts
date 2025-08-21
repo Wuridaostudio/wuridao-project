@@ -21,6 +21,7 @@ export class LoggingInterceptor implements NestInterceptor {
     // 設定日誌編碼為 UTF-8
     process.env.LANG = 'zh_TW.UTF-8';
     process.env.LC_ALL = 'zh_TW.UTF-8';
+    process.env.LC_CTYPE = 'zh_TW.UTF-8';
 
     // 安全日誌：記錄認證相關請求
     if (url.includes('/auth/') || url.includes('/login')) {

@@ -66,6 +66,10 @@ function updateCardTransforms() {
   const endElement = scroller.querySelector('.scroll-stack-end') as HTMLElement
   const endElementTop = endElement ? endElement.getBoundingClientRect().top + scrollTop : 0
 
+  // 檢測設備類型
+  const isMobile = window.innerWidth < 768
+  const isLowPerformance = navigator.hardwareConcurrency <= 4 || (navigator as any).deviceMemory <= 2
+
   cardsRef.value.forEach((card, i) => {
     if (!card)
       return
@@ -80,11 +84,12 @@ function updateCardTransforms() {
     const scaleProgress = calculateProgress(scrollTop, triggerStart, triggerEnd)
     const targetScale = props.baseScale + (i * props.itemScale)
     const scale = 1 - scaleProgress * (1 - targetScale)
-    // 修改旋轉方向：將正值改為負值，讓左上角往上、右上角往下
-    const rotation = props.rotationAmount ? -i * props.rotationAmount * scaleProgress : 0
+    
+    // 手機設備減少旋轉效果
+    const rotation = props.rotationAmount && !isMobile ? -i * props.rotationAmount * scaleProgress : 0
 
     let blur = 0
-    if (props.blurAmount) {
+    if (props.blurAmount && !isLowPerformance) {
       let topCardIndex = 0
       for (let j = 0; j < cardsRef.value.length; j++) {
         const jCardRect = cardsRef.value[j].getBoundingClientRect()
@@ -111,23 +116,34 @@ function updateCardTransforms() {
       translateY = pinEnd - cardTop + stackPositionPx + (props.itemStackDistance * i)
     }
 
+    // 手機設備優化精度
+    const precision = isMobile ? 10 : 100
+    const scalePrecision = isMobile ? 100 : 1000
+    
     const newTransform = {
-      translateY: Math.round(translateY * 100) / 100,
-      scale: Math.round(scale * 1000) / 1000,
-      rotation: Math.round(rotation * 100) / 100,
-      blur: Math.round(blur * 100) / 100,
+      translateY: Math.round(translateY * precision) / precision,
+      scale: Math.round(scale * scalePrecision) / scalePrecision,
+      rotation: Math.round(rotation * precision) / precision,
+      blur: Math.round(blur * precision) / precision,
     }
 
     const lastTransform = lastTransformsRef.value.get(i)
     const hasChanged = !lastTransform
-      || Math.abs(lastTransform.translateY - newTransform.translateY) > 0.1
-      || Math.abs(lastTransform.scale - newTransform.scale) > 0.001
-      || Math.abs(lastTransform.rotation - newTransform.rotation) > 0.1
-      || Math.abs(lastTransform.blur - newTransform.blur) > 0.1
+      || Math.abs(lastTransform.translateY - newTransform.translateY) > (isMobile ? 0.5 : 0.1)
+      || Math.abs(lastTransform.scale - newTransform.scale) > (isMobile ? 0.01 : 0.001)
+      || Math.abs(lastTransform.rotation - newTransform.rotation) > (isMobile ? 0.5 : 0.1)
+      || Math.abs(lastTransform.blur - newTransform.blur) > (isMobile ? 0.5 : 0.1)
 
     if (hasChanged) {
-      const transform = `translate3d(0, ${newTransform.translateY}px, 0) scale(${newTransform.scale}) rotate(${newTransform.rotation}deg)`
-      const filter = newTransform.blur > 0 ? `blur(${newTransform.blur}px)` : ''
+      // 手機設備簡化變換
+      let transform = ''
+      if (isMobile) {
+        transform = `translate3d(0, ${newTransform.translateY}px, 0) scale(${newTransform.scale})`
+      } else {
+        transform = `translate3d(0, ${newTransform.translateY}px, 0) scale(${newTransform.scale}) rotate(${newTransform.rotation}deg)`
+      }
+      
+      const filter = newTransform.blur > 0 && !isLowPerformance ? `blur(${newTransform.blur}px)` : ''
 
       card.style.transform = transform
       card.style.filter = filter
@@ -166,27 +182,63 @@ onMounted(async () => {
   cardsRef.value = cards
   const transformsCache = lastTransformsRef.value
 
+  // 檢測設備類型
+  const isMobile = window.innerWidth < 768
+  const isLowPerformance = navigator.hardwareConcurrency <= 4 || (navigator as any).deviceMemory <= 2
+
+  console.log('[ScrollStack] 設備檢測:', {
+    isMobile,
+    isLowPerformance,
+    hardwareConcurrency: navigator.hardwareConcurrency,
+    deviceMemory: (navigator as any).deviceMemory,
+    screenWidth: window.innerWidth
+  })
+
   cards.forEach((card, i) => {
     if (i < cards.length - 1) {
       card.style.marginBottom = `${props.itemDistance}px`
     }
+    
+    // 基本樣式設置
     card.style.willChange = 'transform, filter'
     card.style.transformOrigin = 'top center'
     card.style.backfaceVisibility = 'hidden'
+    card.style.transformStyle = 'preserve-3d'
+    
+    // 硬體加速
     card.style.transform = 'translateZ(0)'
     card.style.webkitTransform = 'translateZ(0)'
     card.style.perspective = '1000px'
     card.style.webkitPerspective = '1000px'
+    
+    // 手機設備優化
+    if (isMobile) {
+      // 減少動畫複雜度但保持基本效果
+      card.style.transition = 'transform 0.2s ease-out'
+      card.style.filter = 'blur(0px)' // 確保模糊效果可用
+    }
+    
+    // 低性能設備優化
+    if (isLowPerformance) {
+      card.style.willChange = 'transform' // 只優化變換
+    }
   })
 
-  window.addEventListener('scroll', handleScroll, { passive: true })
+  // 使用被動監聽器提高性能
+  const scrollOptions = { passive: true }
+  window.addEventListener('scroll', handleScroll, scrollOptions)
+  
+  // 立即更新一次
   updateCardTransforms()
 
+  // 使用 requestAnimationFrame 進行動畫循環
   const raf = () => {
     updateCardTransforms()
     animationFrameRef.value = requestAnimationFrame(raf)
   }
   animationFrameRef.value = requestAnimationFrame(raf)
+  
+  console.log('[ScrollStack] 動畫初始化完成')
 })
 
 onUnmounted(() => {

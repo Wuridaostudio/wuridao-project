@@ -6,6 +6,7 @@ import ScrollStackItem from '@/components/common/ScrollStackItem.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { getPerformanceConfig, PerformanceMonitor } from '~/utils/performance'
 import { initGSAPDebug, testGSAPAnimation } from '~/utils/gsap-debug'
+import { initAnimationDebug, monitorScrollEvents } from '~/utils/animation-debug'
 
 // 指定使用 plan layout
 definePageMeta({
@@ -145,16 +146,34 @@ onMounted(async () => {
   await loadComponentsSequentially()
   await nextTick()
   
-  // 初始化 GSAP 調試
+  // 初始化動畫調試
   if (process.client) {
-    const gsapDebug = initGSAPDebug()
-    logger.log('[PLAN] GSAP 調試結果:', gsapDebug)
-    
-    // 測試 GSAP 動畫
-    const testElement = document.querySelector('.scroll-stack-card')
-    if (testElement) {
-      testGSAPAnimation(testElement as HTMLElement)
-    }
+    // 等待 DOM 完全載入
+    setTimeout(() => {
+      // 初始化動畫調試
+      const animationDebug = initAnimationDebug()
+      logger.log('[PLAN] 動畫調試結果:', animationDebug)
+      
+      // 初始化 GSAP 調試
+      const gsapDebug = initGSAPDebug()
+      logger.log('[PLAN] GSAP 調試結果:', gsapDebug)
+      
+      // 測試 GSAP 動畫
+      const testElement = document.querySelector('.scroll-stack-card')
+      if (testElement) {
+        testGSAPAnimation(testElement as HTMLElement)
+      }
+      
+      // 監控滾動事件
+      const cleanupScrollMonitor = monitorScrollEvents()
+      
+      // 清理函數
+      onUnmounted(() => {
+        if (cleanupScrollMonitor) {
+          cleanupScrollMonitor()
+        }
+      })
+    }, 1000) // 延遲 1 秒確保組件完全載入
   }
 })
 </script>

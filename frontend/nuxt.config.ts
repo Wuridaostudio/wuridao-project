@@ -7,6 +7,22 @@ export default defineNuxtConfig({
   // 開發工具
   devtools: { enabled: true },
 
+  // 開發服務器配置 - 解決文件監視問題
+  devServer: {
+    port: 3000,
+    host: 'localhost',
+  },
+
+  // Vite 配置 - 優化文件監視
+  vite: {
+    server: {
+      watch: {
+        usePolling: true,
+        interval: 1000,
+      },
+    },
+  },
+
   // 應用程式配置
   app: {
     head: {

@@ -150,36 +150,39 @@ onMounted(async () => {
   if (process.client) {
     // 等待 DOM 完全載入
     setTimeout(() => {
-      // 初始化動畫調試
-      const animationDebug = initAnimationDebug()
-      logger.log('[PLAN] 動畫調試結果:', animationDebug)
-      
-      // 初始化 GSAP 調試
-      const gsapDebug = initGSAPDebug()
-      logger.log('[PLAN] GSAP 調試結果:', gsapDebug)
-      
-      // 測試 GSAP 動畫
-      const testElement = document.querySelector('.scroll-stack-card')
-      if (testElement) {
-        testGSAPAnimation(testElement as HTMLElement)
-      }
-      
-      // 監控滾動事件
-      const cleanupScrollMonitor = monitorScrollEvents()
-      
-      // 執行額外的動畫測試
-      setTimeout(async () => {
-        const { checkScrollStackAnimation, checkAnimationPerformance } = await import('~/utils/animation-debug')
-        checkScrollStackAnimation()
-        checkAnimationPerformance()
-      }, 2000)
-      
-      // 清理函數
-      onUnmounted(() => {
-        if (cleanupScrollMonitor) {
-          cleanupScrollMonitor()
+      // 只在客戶端執行動畫調試
+      if (process.client) {
+        // 初始化動畫調試
+        const animationDebug = initAnimationDebug()
+        logger.log('[PLAN] 動畫調試結果:', animationDebug)
+        
+        // 初始化 GSAP 調試
+        const gsapDebug = initGSAPDebug()
+        logger.log('[PLAN] GSAP 調試結果:', gsapDebug)
+        
+        // 測試 GSAP 動畫
+        const testElement = document.querySelector('.scroll-stack-card')
+        if (testElement) {
+          testGSAPAnimation(testElement as HTMLElement)
         }
-      })
+        
+        // 監控滾動事件
+        const cleanupScrollMonitor = monitorScrollEvents()
+        
+        // 執行額外的動畫測試
+        setTimeout(async () => {
+          const { checkScrollStackAnimation, checkAnimationPerformance } = await import('~/utils/animation-debug')
+          checkScrollStackAnimation()
+          checkAnimationPerformance()
+        }, 2000)
+        
+        // 清理函數
+        onUnmounted(() => {
+          if (cleanupScrollMonitor) {
+            cleanupScrollMonitor()
+          }
+        })
+      }
     }, 1000) // 延遲 1 秒確保組件完全載入
   }
 })

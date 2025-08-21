@@ -80,7 +80,7 @@ export class DatabaseHealthService {
 
       return stats;
     } catch (error) {
-      this.logger.error('獲取資料庫統計失敗', error.message);
+      this.logger.error('[DatabaseHealth] Failed to get database statistics', error.message);
       return {
         isConnected: false,
         error: error.message,

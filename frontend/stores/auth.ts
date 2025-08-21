@@ -105,7 +105,14 @@ export const useAuthStore = defineStore('auth', {
 
             // 4. 跳轉到管理後台
             logger.auth('準備跳轉到管理後台')
-            await navigateTo('/admin', { replace: true })
+            
+            // 在生產環境中使用 external: true 確保乾淨的跳轉
+            const navigationOptions = process.env.NODE_ENV === 'production' 
+              ? { replace: true, external: true }
+              : { replace: true }
+              
+            logger.auth('跳轉選項', navigationOptions)
+            await navigateTo('/admin', navigationOptions)
             logger.auth('跳轉完成')
           }
         } else {

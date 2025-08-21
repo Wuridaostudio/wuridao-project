@@ -67,6 +67,9 @@ import { databaseConfig } from './config/database.config';
                   messageFormat: '{msg}',
                   // 修復中文亂碼問題
                   messageKey: 'msg',
+                  // 確保 UTF-8 編碼
+                  translateTime: 'SYS:standard',
+                  ignore: 'pid,hostname,req,res,responseTime',
                 },
               }
             : undefined,

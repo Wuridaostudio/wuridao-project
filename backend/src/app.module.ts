@@ -63,11 +63,16 @@ import { databaseConfig } from './config/database.config';
                   crlf: true,
                   errorLikeObjectKeys: ['err', 'error'],
                   ignore: 'pid,hostname',
-                  translateTime: 'SYS:standard',
+                  translateTime: 'yyyy-mm-dd HH:MM:ss',
                   messageFormat: '{msg}',
+                  // 修復中文亂碼問題
+                  messageKey: 'msg',
                 },
               }
             : undefined,
+        // 修復中文亂碼問題
+        messageKey: 'msg',
+        timestamp: () => `,"time":"${new Date().toISOString()}"`,
         customLogLevel: (req, res, err) => {
           if (res.statusCode >= 400 && res.statusCode < 500) {
             return 'warn';
@@ -76,6 +81,17 @@ import { databaseConfig } from './config/database.config';
             return 'error';
           }
           return 'info';
+        },
+        // 確保 UTF-8 編碼
+        serializers: {
+          req: (req) => ({
+            method: req.method,
+            url: req.url,
+            headers: req.headers,
+          }),
+          res: (res) => ({
+            statusCode: res.statusCode,
+          }),
         },
       },
     }),
@@ -199,10 +215,10 @@ export class AppModule implements OnModuleInit {
         await this.createAdminSeed.run();
         await this.createCategoriesSeed.run();
         await this.createTagsSeed.run();
-        this.logger.log('✅ 種子數據初始化完成');
-      } catch (error) {
-        this.logger.error({ err: error }, '❌ 種子數據初始化失敗');
-      }
+                 this.logger.log('[AppModule] Seed data initialization completed');
+       } catch (error) {
+         this.logger.error({ err: error }, '[AppModule] Seed data initialization failed');
+       }
     }
   }
 }

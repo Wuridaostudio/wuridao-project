@@ -48,7 +48,7 @@ export class PerformanceMonitorService {
       100
     ).toFixed(1);
 
-    this.logger.log('📊 [PerformanceMonitor] 系統效能監控', {
+    this.logger.log('[PerformanceMonitor] System performance monitoring', {
       memory: {
         heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
         heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
@@ -69,16 +69,16 @@ export class PerformanceMonitorService {
 
     // 檢查記憶體使用量
     if (memoryUsage.heapUsed > memoryConfig.thresholds.heapUsed) {
-      this.logger.warn('⚠️ [PerformanceMonitor] 記憶體使用量過高', {
+      this.logger.warn('[PerformanceMonitor] High memory usage detected', {
         heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
         threshold:
           Math.round(memoryConfig.thresholds.heapUsed / 1024 / 1024) + ' MB',
-        suggestion: '考慮重啟服務或檢查記憶體洩漏',
+        suggestion: 'Consider restarting service or check for memory leaks',
       });
 
       // 如果超過強制垃圾回收閾值，執行垃圾回收
       if (memoryUsage.heapUsed > memoryConfig.gc.forceGCThreshold) {
-        this.logger.log('🔄 [PerformanceMonitor] 執行強制垃圾回收');
+        this.logger.log('[PerformanceMonitor] Executing forced garbage collection');
         if (global.gc) {
           global.gc();
         }
@@ -87,34 +87,34 @@ export class PerformanceMonitorService {
 
     // 檢查 RSS 記憶體
     if (memoryUsage.rss > memoryConfig.thresholds.rss) {
-      this.logger.warn('⚠️ [PerformanceMonitor] RSS 記憶體使用量過高', {
+      this.logger.warn('[PerformanceMonitor] High RSS memory usage detected', {
         rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
         threshold:
           Math.round(memoryConfig.thresholds.rss / 1024 / 1024) + ' MB',
-        suggestion: '檢查是否有記憶體洩漏或考慮增加系統記憶體',
+        suggestion: 'Check for memory leaks or consider increasing system memory',
       });
     }
 
     // 檢查系統記憶體使用率
     if (parseFloat(memoryUsagePercent) > memoryConfig.thresholds.systemUsage) {
-      this.logger.warn('⚠️ [PerformanceMonitor] 系統記憶體使用率過高', {
+      this.logger.warn('[PerformanceMonitor] High system memory usage detected', {
         usage: memoryUsagePercent + '%',
         threshold: memoryConfig.thresholds.systemUsage + '%',
-        suggestion: '考慮關閉不必要的應用程式或增加系統記憶體',
+        suggestion: 'Consider closing unnecessary applications or increasing system memory',
       });
     }
   }
 
   async monitorDatabaseQuery(query: string, duration: number) {
     if (duration > 1000) {
-      this.logger.warn('🐌 [PerformanceMonitor] 慢查詢檢測', {
+      this.logger.warn('[PerformanceMonitor] Slow query detected', {
         query: query.substring(0, 100) + '...',
         duration: duration + 'ms',
       });
     }
 
     if (duration > 5000) {
-      this.logger.error('🚨 [PerformanceMonitor] 極慢查詢警告', {
+      this.logger.error('[PerformanceMonitor] Very slow query warning', {
         query: query.substring(0, 200) + '...',
         duration: duration + 'ms',
       });
@@ -128,7 +128,7 @@ export class PerformanceMonitorService {
     statusCode: number,
   ) {
     if (duration > 2000) {
-      this.logger.warn('🐌 [PerformanceMonitor] API 響應時間過長', {
+      this.logger.warn('[PerformanceMonitor] API response time too long', {
         path,
         method,
         duration: duration + 'ms',
@@ -137,7 +137,7 @@ export class PerformanceMonitorService {
     }
 
     if (statusCode >= 500) {
-      this.logger.error('🚨 [PerformanceMonitor] 伺服器錯誤', {
+      this.logger.error('[PerformanceMonitor] Server error', {
         path,
         method,
         duration: duration + 'ms',
@@ -151,7 +151,7 @@ export class PerformanceMonitorService {
     fileType: string,
     duration: number,
   ) {
-    this.logger.log('📁 [PerformanceMonitor] 檔案上傳監控', {
+          this.logger.log('[PerformanceMonitor] File upload monitoring', {
       fileSize: Math.round((fileSize / 1024 / 1024) * 100) / 100 + ' MB',
       fileType,
       duration: duration + 'ms',
@@ -161,7 +161,7 @@ export class PerformanceMonitorService {
     });
 
     if (duration > 10000) {
-      this.logger.warn('⚠️ [PerformanceMonitor] 檔案上傳時間過長', {
+      this.logger.warn('[PerformanceMonitor] File upload time too long', {
         fileSize: Math.round((fileSize / 1024 / 1024) * 100) / 100 + ' MB',
         duration: duration + 'ms',
       });

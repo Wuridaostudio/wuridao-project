@@ -25,7 +25,7 @@ export class MediaController {
   @ApiOperation({ summary: '獲取媒體項目（照片或影片）' })
   @Get(':id')
   async findOne(@Param('id') id: string) {
-    this.logger.log(`[MEDIA] 嘗試獲取媒體 ID: ${id}`);
+    this.logger.log(`[MEDIA] Attempting to get media ID: ${id}`);
 
     // 1) 先以尾段匹配 DB（例如 /media/<suffix>）
     const photoBySuffix = await this.photosService.findByPublicIdSuffix(id);
@@ -38,18 +38,18 @@ export class MediaController {
       // 先嘗試獲取照片
       const photo = await this.photosService.findOne(+id);
       if (photo) {
-        this.logger.log(`[MEDIA] 找到照片 ID: ${id}`);
+        this.logger.log(`[MEDIA] Found photo ID: ${id}`);
         return { ...photo, type: 'photo' };
       }
 
       // 如果照片不存在，嘗試影片
-      this.logger.log(`[MEDIA] 照片 ID ${id} 不存在，嘗試影片`);
+      this.logger.log(`[MEDIA] Photo ID ${id} not found, trying video`);
       const video = await this.videosService.findOne(+id);
       if (video) {
         return video;
       }
 
-      this.logger.log(`[MEDIA] 影片 ID ${id} 不存在`);
+      this.logger.log(`[MEDIA] Video ID ${id} not found`);
 
       // 嘗試從 Cloudinary 獲取
       try {
@@ -58,7 +58,7 @@ export class MediaController {
           return cloudinaryResource;
         }
       } catch (cloudinaryError) {
-        this.logger.log(`[MEDIA] Cloudinary 資源 ${id} 不存在`);
+        this.logger.log(`[MEDIA] Cloudinary resource ${id} not found`);
       }
 
       throw new NotFoundException(`Media with ID ${id} not found`);
@@ -75,7 +75,7 @@ export class MediaController {
   @ApiOperation({ summary: '獲取公開媒體列表（從 Cloudinary）' })
   @Get('public/list')
   async getPublicMedia() {
-    this.logger.log(`[MEDIA] 獲取公開媒體列表`);
+    this.logger.log(`[MEDIA] Getting public media list`);
 
     try {
       // 獲取公開的照片和影片

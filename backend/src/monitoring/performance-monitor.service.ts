@@ -48,7 +48,7 @@ export class PerformanceMonitorService {
       100
     ).toFixed(1);
 
-    this.logger.log('📊 [PerformanceMonitor] 系統效能監控', {
+    this.logger.log('📊 [PerformanceMonitor] System performance monitoring', {
       memory: {
         heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
         heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
@@ -78,7 +78,7 @@ export class PerformanceMonitorService {
 
       // 如果超過強制垃圾回收閾值，執行垃圾回收
       if (memoryUsage.heapUsed > memoryConfig.gc.forceGCThreshold) {
-        this.logger.log('🔄 [PerformanceMonitor] 執行強制垃圾回收');
+        this.logger.log('🔄 [PerformanceMonitor] Executing forced garbage collection');
         if (global.gc) {
           global.gc();
         }
@@ -151,7 +151,7 @@ export class PerformanceMonitorService {
     fileType: string,
     duration: number,
   ) {
-    this.logger.log('📁 [PerformanceMonitor] 檔案上傳監控', {
+    this.logger.log('📁 [PerformanceMonitor] File upload monitoring', {
       fileSize: Math.round((fileSize / 1024 / 1024) * 100) / 100 + ' MB',
       fileType,
       duration: duration + 'ms',

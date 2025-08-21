@@ -8,8 +8,8 @@ export class ArticleUploadService {
   constructor(private readonly cloudinaryService: CloudinaryService) {}
 
   async uploadCoverImage(coverImage: Express.Multer.File) {
-    this.logger.log('📁 [ArticleUploadService] 開始上傳封面圖片...');
-    this.logger.log('📁 [ArticleUploadService] 檔案信息:', {
+    this.logger.log('📁 [ArticleUploadService] Starting cover image upload...');
+    this.logger.log('📁 [ArticleUploadService] File info:', {
       name: coverImage.originalname,
       size: coverImage.size,
       mimetype: coverImage.mimetype,
@@ -30,11 +30,11 @@ export class ArticleUploadService {
 
   async uploadContent(content: string) {
     if (!content) {
-      this.logger.log('ℹ️ [ArticleUploadService] 沒有內容需要上傳');
+      this.logger.log('ℹ️ [ArticleUploadService] No content to upload');
       return null;
     }
 
-    this.logger.log('📤 [ArticleUploadService] 上傳內容到 Cloudinary...');
+    this.logger.log('📤 [ArticleUploadService] Uploading content to Cloudinary...');
 
     // 將文章內容轉換為 Buffer
     const contentBuffer = Buffer.from(content, 'utf-8');
@@ -59,8 +59,8 @@ export class ArticleUploadService {
     coverImageUrl: string,
     coverImagePublicId: string,
   ) {
-    this.logger.log('🔍 [ArticleUploadService] 檢查現有封面圖片...');
-    this.logger.log('🔍 [ArticleUploadService] 檢查信息:', {
+    this.logger.log('🔍 [ArticleUploadService] Checking existing cover image...');
+    this.logger.log('🔍 [ArticleUploadService] Check info:', {
       coverImageUrl,
       coverImagePublicId,
     });
@@ -78,7 +78,7 @@ export class ArticleUploadService {
       return null;
     }
 
-    this.logger.log('✅ [ArticleUploadService] 現有封面圖片驗證成功');
+    this.logger.log('✅ [ArticleUploadService] Existing cover image validation successful');
     return {
       secure_url: coverImageUrl,
       public_id: coverImagePublicId,
@@ -93,7 +93,7 @@ export class ArticleUploadService {
 
     try {
       await this.cloudinaryService.safelyDeleteResource(publicId, resourceType);
-      this.logger.log(`✅ [ArticleUploadService] 清理失敗的上傳: ${publicId}`);
+      this.logger.log(`✅ [ArticleUploadService] Cleaned up failed upload: ${publicId}`);
     } catch (error) {
       this.logger.error(
         `❌ [ArticleUploadService] 清理失敗: ${publicId}`,

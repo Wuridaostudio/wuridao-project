@@ -7,7 +7,7 @@ export class ArticleSeoService {
   private readonly logger = new Logger(ArticleSeoService.name);
 
   processSeoData(createArticleDto: CreateArticleDto | UpdateArticleDto) {
-    this.logger.log('🔍 [ArticleSeoService] 處理 SEO 欄位...');
+    this.logger.log('🔍 [ArticleSeoService] Processing SEO fields...');
 
     const seoData = {
       seoTitle: createArticleDto.seoTitle,
@@ -15,24 +15,24 @@ export class ArticleSeoService {
       seoKeywords: createArticleDto.seoKeywords,
     };
 
-    this.logger.log('📊 [ArticleSeoService] SEO 數據:', seoData);
+    this.logger.log('📊 [ArticleSeoService] SEO data:', seoData);
     return seoData;
   }
 
   processAeoData(createArticleDto: CreateArticleDto | UpdateArticleDto) {
-    this.logger.log('🔍 [ArticleSeoService] 處理 AEO 欄位...');
+    this.logger.log('🔍 [ArticleSeoService] Processing AEO fields...');
 
     const aeoData = {
       aeoFaq: createArticleDto.aeoFaq || [],
       aeoFeaturedSnippet: createArticleDto.aeoFeaturedSnippet || '',
     };
 
-    this.logger.log('📊 [ArticleSeoService] AEO 數據:', aeoData);
+    this.logger.log('📊 [ArticleSeoService] AEO data:', aeoData);
     return aeoData;
   }
 
   processGeoData(createArticleDto: CreateArticleDto | UpdateArticleDto) {
-    this.logger.log('🔍 [ArticleSeoService] 處理 GEO 欄位...');
+    this.logger.log('🔍 [ArticleSeoService] Processing GEO fields...');
 
     const geoData = {
       geoLatitude: createArticleDto.geoLatitude,
@@ -42,7 +42,7 @@ export class ArticleSeoService {
       geoPostalCode: createArticleDto.geoPostalCode,
     };
 
-    this.logger.log('📊 [ArticleSeoService] GEO 數據:', geoData);
+    this.logger.log('📊 [ArticleSeoService] GEO data:', geoData);
     return geoData;
   }
 

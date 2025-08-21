@@ -11,15 +11,52 @@ definePageMeta({
   layout: 'plan',
 })
 
-// 性能配置
-const performanceConfig = getPerformanceConfig()
+// 性能配置 - 伺服器端安全處理
+const performanceConfig = ref({
+  render: {
+    pixelRatio: 1,
+    antialias: true,
+    scale: 0.7,
+    fps: 30,
+  },
+  animation: {
+    speed: 1,
+    complexity: 1,
+    enableComplexEffects: true,
+  },
+  loading: {
+    delay: 200,
+    timeout: 10000,
+    sequential: false,
+  },
+  images: {
+    quality: 'high',
+    lazy: true,
+    preload: true,
+  },
+  device: {
+    isMobile: false,
+    isTablet: false,
+    isDesktop: true,
+  },
+  performanceLevel: 'high',
+  networkSpeed: 'fast',
+})
+
 const performanceMonitor = new PerformanceMonitor()
+
+// 在客戶端初始化性能配置
+onMounted(() => {
+  if (process.client) {
+    performanceConfig.value = getPerformanceConfig()
+  }
+})
 
 // 載入狀態管理
 const isInfiniteMenuLoaded = ref(false)
 const isSmartFormLoaded = ref(false)
 const isScrollStackLoaded = ref(false)
-const isMobile = ref(performanceConfig.device.isMobile)
+const isMobile = computed(() => performanceConfig.value.device.isMobile)
 const isLoading = ref(true)
 const loadStartTime = ref(0)
 
@@ -49,11 +86,11 @@ const InfiniteMenu = defineAsyncComponent({
     })
   },
   loadingComponent: LoadingSpinner,
-  delay: performanceConfig.loading.delay,
-  timeout: performanceConfig.loading.timeout,
+  delay: performanceConfig.value.loading.delay,
+  timeout: performanceConfig.value.loading.timeout,
   onLoad: () => {
     isInfiniteMenuLoaded.value = true
-    performanceMonitor.log('InfiniteMenu', { config: performanceConfig.device })
+    performanceMonitor.log('InfiniteMenu', { config: performanceConfig.value.device })
   },
   onError: (error) => {
     logger.error('[PLAN] InfiniteMenu 載入失敗:', error)
@@ -70,11 +107,11 @@ const SmartFormSection = defineAsyncComponent({
     })
   },
   loadingComponent: LoadingSpinner,
-  delay: performanceConfig.loading.delay + 100, // 延遲載入
-  timeout: performanceConfig.loading.timeout,
+  delay: performanceConfig.value.loading.delay + 100, // 延遲載入
+  timeout: performanceConfig.value.loading.timeout,
   onLoad: () => {
     isSmartFormLoaded.value = true
-    performanceMonitor.log('SmartFormSection', { config: performanceConfig.device })
+    performanceMonitor.log('SmartFormSection', { config: performanceConfig.value.device })
   },
   onError: (error) => {
     logger.error('[PLAN] SmartFormSection 載入失敗:', error)
@@ -85,9 +122,8 @@ const SmartFormSection = defineAsyncComponent({
 function detectDevice() {
   if (process.client) {
     const config = getPerformanceConfig()
-    isMobile.value = config.device.isMobile
     logger.log('[PLAN] 設備檢測:', { 
-      isMobile: isMobile.value, 
+      isMobile: config.device.isMobile, 
       width: window.innerWidth,
       userAgent: navigator.userAgent,
       performanceLevel: config.performanceLevel,
@@ -104,9 +140,9 @@ function handleStackComplete() {
 async function loadComponentsSequentially() {
   performanceMonitor.start('TotalLoad')
   
-  if (performanceConfig.loading.sequential) {
+  if (performanceConfig.value.loading.sequential) {
     // 手機：分階段載入，優先載入關鍵組件
-    logger.log('[PLAN] 手機模式：開始分階段載入', performanceConfig)
+    logger.log('[PLAN] 手機模式：開始分階段載入', performanceConfig.value)
     
     // 第一階段：只載入 InfiniteMenu
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -137,7 +173,7 @@ async function loadComponentsSequentially() {
   
   performanceMonitor.log('TotalLoad', { 
     loadTimes: loadTimes.value,
-    config: performanceConfig
+    config: performanceConfig.value
   })
 }
 
@@ -166,7 +202,7 @@ onMounted(async () => {
           <InfiniteMenu 
             class="w-full h-full" 
             :is-mobile="isMobile"
-            :enable-complex-effects="performanceConfig.animation.enableComplexEffects"
+            :enable-complex-effects="performanceConfig.value.animation.enableComplexEffects"
           />
         </template>
         <template #fallback>
@@ -200,14 +236,14 @@ onMounted(async () => {
     <!-- 滾動堆疊區塊 - 手機延遲載入 -->
     <section v-if="isScrollStackLoaded" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
       <ScrollStack
-        :item-distance="performanceConfig.device.isMobile ? 60 : 100"
-        :item-scale="performanceConfig.device.isMobile ? 0.015 : 0.03"
-        :item-stack-distance="performanceConfig.device.isMobile ? 15 : 30"
+        :item-distance="performanceConfig.value.device.isMobile ? 60 : 100"
+        :item-scale="performanceConfig.value.device.isMobile ? 0.015 : 0.03"
+        :item-stack-distance="performanceConfig.value.device.isMobile ? 15 : 30"
         stack-position="20%"
         scale-end-position="10%"
-        :base-scale="performanceConfig.device.isMobile ? 0.95 : 0.85"
+        :base-scale="performanceConfig.value.device.isMobile ? 0.95 : 0.85"
         :rotation-amount="0"
-        :blur-amount="performanceConfig.device.isMobile ? 0.2 : 0.5"
+        :blur-amount="performanceConfig.value.device.isMobile ? 0.2 : 0.5"
         @stack-complete="handleStackComplete"
         role="region"
         aria-label="智慧家庭服務流程"

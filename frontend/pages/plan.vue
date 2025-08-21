@@ -7,6 +7,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { getPerformanceConfig, PerformanceMonitor } from '~/utils/performance'
 import { initGSAPDebug, testGSAPAnimation } from '~/utils/gsap-debug'
 import { initAnimationDebug, monitorScrollEvents } from '~/utils/animation-debug'
+import { runAnimationTests } from '~/utils/test-animation.js'
 
 // 指定使用 plan layout
 definePageMeta({
@@ -166,6 +167,9 @@ onMounted(async () => {
       
       // 監控滾動事件
       const cleanupScrollMonitor = monitorScrollEvents()
+      
+      // 執行動畫測試
+      runAnimationTests()
       
       // 清理函數
       onUnmounted(() => {

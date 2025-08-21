@@ -120,11 +120,9 @@ if (typeof window !== 'undefined') {
 }
 
 // 導出函數供其他模組使用
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    testScrollStackAnimation,
-    testDeviceDetection,
-    testAnimationPerformance,
-    runAnimationTests
-  }
+export {
+  testScrollStackAnimation,
+  testDeviceDetection,
+  testAnimationPerformance,
+  runAnimationTests
 }

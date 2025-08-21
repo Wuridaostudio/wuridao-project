@@ -45,13 +45,6 @@ const performanceConfig = ref({
 
 const performanceMonitor = new PerformanceMonitor()
 
-// 在客戶端初始化性能配置
-onMounted(() => {
-  if (process.client) {
-    performanceConfig.value = getPerformanceConfig()
-  }
-})
-
 // 載入狀態管理
 const isInfiniteMenuLoaded = ref(false)
 const isSmartFormLoaded = ref(false)
@@ -179,6 +172,14 @@ async function loadComponentsSequentially() {
 
 onMounted(async () => {
   detectDevice()
+  
+  // 在客戶端初始化性能配置
+  if (process.client) {
+    // 等待下一個 tick 確保所有響應式系統都已準備好
+    await nextTick()
+    performanceConfig.value = getPerformanceConfig()
+  }
+  
   await loadComponentsSequentially()
   await nextTick()
 })

@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { logger } from '~/utils/logger'
 import { isCloudinaryImage, handleImageError as getFallbackImage } from '~/utils/imageFallback'
+import { sanitizeHtml } from '~/utils/html-sanitizer'
 
 const props = defineProps<{ item: any }>()
 
@@ -16,16 +17,7 @@ function stripHtml(html: string) {
   return div.textContent || div.innerText || ''
 }
 
-function sanitizeHtml(html: string) {
-  // 簡單的 HTML 清理，移除危險標籤
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
-    .replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi, '')
-    .replace(/javascript:/gi, '')
-    .replace(/on\w+\s*=/gi, '')
-}
+// 使用專業的HTML sanitizer，移除舊的簡單實現
 
 function formatDate(date: string) {
   if (!date) return ''
@@ -93,7 +85,7 @@ function handleImageError(event: Event) {
     <!-- 文章內容 -->
     <div class="p-4">
       <h3 class="text-lg font-semibold mb-2 line-clamp-2">{{ item.title }}</h3>
-      <div class="text-gray-600 dark:text-gray-400 line-clamp-3 mb-3" v-html="sanitizeHtml(stripHtml(item.excerpt || item.content))" />
+      <div class="text-gray-600 dark:text-gray-400 line-clamp-3 mb-3" v-html="sanitizeHtml(stripHtml(item.excerpt || item.content), { strict: true })" />
       
       <!-- 文章元數據 -->
       <div class="flex items-center justify-between text-sm text-gray-500">

@@ -5,6 +5,7 @@ import { watch } from 'vue'
 import ArticleSkeleton from '~/components/common/ArticleSkeleton.vue'
 import { useCategoriesStore } from '~/stores/categories'
 import { useTagsStore } from '~/stores/tags'
+import { sanitizeHtml } from '~/utils/html-sanitizer'
 
 const { $gsap } = useNuxtApp()
 const route = useRoute()
@@ -262,17 +263,7 @@ function stripHtml(html) {
   return div.textContent || div.innerText || ''
 }
 
-function sanitizeHtml(html: string) {
-  if (!html) return ''
-  // 簡單的 HTML 清理，移除危險標籤
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
-    .replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi, '')
-    .replace(/javascript:/gi, '')
-    .replace(/on\w+\s*=/gi, '')
-}
+// 使用專業的HTML sanitizer，移除舊的簡單實現
 </script>
 
 <template>
@@ -335,7 +326,7 @@ function sanitizeHtml(html: string) {
           <div
             v-if="article && article.content && article.content.trim()"
             class="prose prose-lg dark:prose-invert max-w-none"
-            v-html="sanitizeHtml(article.content)"
+            v-html="sanitizeHtml(article.content, { allowImages: true, allowLinks: true, allowTables: true })"
           />
           <div v-else class="text-gray-400">
             暫無內容

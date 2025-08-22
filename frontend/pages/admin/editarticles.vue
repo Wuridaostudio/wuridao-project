@@ -837,25 +837,7 @@ function insertImageByUrl() {
   }
 }
 
-function sanitizeHtml(html: string) {
-  if (!html)
-    return ''
-
-  // 移除危險標籤和屬性
-  const sanitized = html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
-    .replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi, '')
-    .replace(/javascript:/gi, '')
-    .replace(/on\w+\s*=/gi, '')
-
-  // 保留 Tiptap 編輯器的合法標籤和樣式
-  // 允許的標籤：p, h1, h2, h3, h4, h5, h6, strong, em, u, s, code, pre, blockquote, ul, ol, li, a, img, table, tr, td, th
-  // 允許的樣式：color, background-color, text-align
-
-  return sanitized
-}
+// 使用專業的HTML sanitizer，移除舊的簡單實現
 
 const SeoAnalyzer = defineAsyncComponent({
   loader: () => import('@/components/admin/SeoAnalyzer.vue'),

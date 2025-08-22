@@ -150,8 +150,9 @@ export default defineNuxtConfig({
       minify: 'terser',
       terserOptions: {
         compress: {
-          drop_console: false,
+          drop_console: process.env.NODE_ENV === 'production',
           drop_debugger: true,
+          pure_funcs: process.env.NODE_ENV === 'production' ? ['console.log', 'console.info'] : [],
         },
         format: {
           comments: false,
@@ -166,11 +167,18 @@ export default defineNuxtConfig({
             three: ['three'],
             // 將管理後台相關的程式碼分離
             admin: ['@tiptap/vue-3', '@tiptap/starter-kit'],
+            // 新增：將大型庫分離
+            utils: ['axios', 'dompurify'],
+            ui: ['@nuxtjs/tailwindcss'],
           },
         },
       },
       // 改善程式碼分割
-      chunkSizeWarningLimit: 1000,
+      chunkSizeWarningLimit: 500, // 降低警告閾值
+    },
+    // 新增：CSS 優化
+    css: {
+      devSourcemap: false,
     },
   },
 
@@ -188,6 +196,13 @@ export default defineNuxtConfig({
     // 改善伺服器端效能
     compressPublicAssets: true,
     minify: true,
+    // 新增：快取配置
+    storage: {
+      redis: {
+        driver: 'redis',
+        /* redis 配置 */
+      }
+    },
   },
 
   // TypeScript
@@ -222,5 +237,5 @@ export default defineNuxtConfig({
   },
 
   // 日誌配置
-  logLevel: process.env.NODE_ENV === 'development' ? 'info' : 'error',
+  logLevel: process.env.NODE_ENV === 'development' ? 'info' : 'silent',
 })

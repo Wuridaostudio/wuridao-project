@@ -27,6 +27,7 @@ const isClient
 
 const containerRef = ref(null)
 const loading = ref(true)
+const isLowPerformance = ref(false)
 let renderer,
   scene,
   fluidScene,
@@ -103,12 +104,13 @@ float snoise3(vec3 v){
   vec3 x3=x0-D.yyy;
   i=mod289(i);
   vec4 p=permute(permute(permute(i.z+vec4(0.,i1.z,i2.z,1.))+i.y+vec4(0.,i1.y,i2.y,1.))+i.x+vec4(0.,i1.x,i2.x,1.));
-  float n_=1./7.; vec3 ns=n_*D.wyz-D.xzx;
+  float n_=1./7.;
+  vec3 ns=n_*D.wyz-D.xzx;
   vec4 j=p-49.*floor(p*ns.z*ns.z);
   vec4 x_=floor(j*ns.z);
   vec4 y_=floor(j-7.*x_);
   vec4 x=x_*ns.x+ns.yyyy;
-  vec4 y=y_*ns.x+ns.yyyy;
+  vec4 y=y_*ns.y+ns.xxxx;
   vec4 h=1.-abs(x)-abs(y);
   vec4 b0=vec4(x.xy,y.xy);
   vec4 b1=vec4(x.zw,y.zw);
@@ -121,115 +123,94 @@ float snoise3(vec3 v){
   vec3 p1=vec3(a0.zw,h.y);
   vec3 p2=vec3(a1.xy,h.z);
   vec3 p3=vec3(a1.zw,h.w);
-  vec4 norm=inversesqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
-  p0*=norm.x; p1*=norm.y; p2*=norm.z; p3*=norm.w;
-  vec4 m=max(.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.);
-  m*=m;
-  return 42.*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
+  vec4 norm=permute(permute(p.x+vec4(0.,p0.x,p1.x,p2.x))+p.y+vec4(0.,p0.y,p1.y,p2.y));
+  norm=permute(norm+p.z+vec4(0.,p0.z,p1.z,p2.z));
+  vec4 m=max(.5-vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)),0.);
+  m=m*m;
+  return 105.*dot(m*m,norm);
 }`
 
 const PERSIST_FRAG = `
 uniform sampler2D sampler;
 uniform float time;
 uniform vec2 mousePos;
-uniform float noiseFactor,noiseScale,rgbPersistFactor,alphaPersistFactor;
+uniform float noiseFactor;
+uniform float noiseScale;
+uniform float rgbPersistFactor;
+uniform float alphaPersistFactor;
 varying vec2 v_uv;
 ${SIMPLEX}
 void main(){
-  float a=snoise3(vec3(v_uv*noiseFactor,time*.1))*noiseScale;
-  float b=snoise3(vec3(v_uv*noiseFactor,time*.1+100.))*noiseScale;
-  vec4 t=texture2D(sampler,v_uv+vec2(a,b)+mousePos*.005);
-  gl_FragColor=vec4(t.xyz*rgbPersistFactor,alphaPersistFactor);
+  vec2 uv=v_uv;
+  vec2 mouse=mousePos;
+  float t=time;
+  vec2 p=uv*2.-1.;
+  float noise=snoise3(vec3(p*noiseScale,t*0.5,0.))*noiseFactor;
+  vec2 flow=vec2(snoise3(vec3(p*2.,t*0.3,0.)),snoise3(vec3(p*2.,t*0.3,100.)))*0.1;
+  vec2 distortedUv=uv+flow+noise*0.1;
+  vec4 color=texture2D(sampler,distortedUv);
+  vec2 mouseFlow=normalize(uv-mouse)*0.1;
+  color.rgb=mix(color.rgb,color.rgb*1.2,exp(-length(uv-mouse)*2.));
+  gl_FragColor=vec4(color.rgb*rgbPersistFactor,color.a*alphaPersistFactor);
 }`
 
 const TEXT_FRAG = `
-uniform sampler2D sampler;uniform vec3 color;varying vec2 v_uv;
+uniform sampler2D sampler;
+uniform vec4 color;
+varying vec2 v_uv;
 void main(){
-  vec4 t=texture2D(sampler,v_uv);
-  float alpha=smoothstep(0.1,0.9,t.a);
-  if(alpha<0.01)discard;
-  gl_FragColor=vec4(color,alpha);
+  vec4 texColor=texture2D(sampler,v_uv);
+  gl_FragColor=vec4(color.rgb,texColor.a*color.a);
 }`
 
-function drawTextToCanvas(
-  text,
-  fontFamily,
-  fontWeight,
-  textColor,
-  supersample,
-  renderer,
-) {
-  const max = Math.min(renderer.capabilities.maxTextureSize, 4096)
-  const pixelRatio = (window.devicePixelRatio || 1) * supersample
-  const canvasSize = max * pixelRatio
-  const texCanvas = document.createElement('canvas')
-  texCanvas.width = canvasSize
-  texCanvas.height = canvasSize
-  const ctx = texCanvas.getContext('2d', { alpha: true, colorSpace: 'srgb' })
-  ctx.setTransform(1, 0, 0, 1, 0, 0)
-  ctx.scale(pixelRatio, pixelRatio)
-  ctx.clearRect(0, 0, max, max)
-  ctx.imageSmoothingEnabled = true
-  ctx.imageSmoothingQuality = 'high'
-  ctx.shadowColor = 'rgba(255,255,255,0.3)'
-  ctx.shadowBlur = 2
-  // 更明顯的深到淺漸層
-  const gradient = ctx.createLinearGradient(0, max * 0.5, max, max * 0.5)
-  gradient.addColorStop(0, 'rgba(24,28,75,0.98)') // 深靛色
-  gradient.addColorStop(0.5, 'rgba(46,49,146,0.7)') // 靛色
-  gradient.addColorStop(1, 'rgba(174,239,255,0.5)') // 淺藍色
-  ctx.fillStyle = gradient
+function drawTextToCanvas(text, fontFamily, fontWeight, color, supersample, renderer) {
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+  const size = Math.min(renderer.domElement.width, renderer.domElement.height) * supersample
+  canvas.width = size
+  canvas.height = size
+  ctx.scale(supersample, supersample)
+  ctx.font = `${fontWeight} ${size / supersample}px "${fontFamily}"`
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-
-  const refSize = 500 * 0.8 // 字體縮小為 0.8 倍
-  ctx.font = `${fontWeight} ${refSize}px 'Inter', 'Noto Sans TC', sans-serif`
-
-  const cx = max / 2
-  const cy = max / 2
-  const offs = [
-    [0, 0],
-    [0.1, 0],
-    [-0.1, 0],
-    [0, 0.1],
-    [0, -0.1],
-    [0.1, 0.1],
-    [-0.1, -0.1],
-    [0.1, -0.1],
-    [-0.1, 0.1],
-  ]
-  ctx.globalAlpha = 1 / offs.length
-  offs.forEach(([dx, dy]) => ctx.fillText(text, cx + dx, cy + dy))
-  ctx.globalAlpha = 1
-  return texCanvas
+  ctx.fillStyle = color
+  ctx.fillText(text, size / supersample / 2, size / supersample / 2)
+  return canvas
 }
 
-function debounce(fn, delay) {
-  let t
-  return (...args) => {
-    clearTimeout(t)
-    t = setTimeout(() => fn(...args), delay)
+function debounce(func, wait) {
+  let timeout
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout)
+      func(...args)
+    }
+    clearTimeout(timeout)
+    timeout = setTimeout(later, wait)
   }
 }
 
 function disposeAll() {
   if (renderer) {
-    renderer.dispose && renderer.dispose()
-    renderer.forceContextLoss && renderer.forceContextLoss()
-    renderer.domElement && renderer.domElement.remove()
-    renderer = null
+    renderer.dispose()
   }
-  if (quad)
-    quad.geometry.dispose()
-  if (label)
-    label.geometry.dispose()
-  if (rt0)
+  if (rt0) {
     rt0.dispose()
-  if (rt1)
+  }
+  if (rt1) {
     rt1.dispose()
-  if (labelMat && labelMat.uniforms.sampler.value) {
-    labelMat.uniforms.sampler.value.dispose
-    && labelMat.uniforms.sampler.value.dispose()
+  }
+  if (quadMat) {
+    quadMat.dispose()
+  }
+  if (labelMat) {
+    labelMat.dispose()
+  }
+  if (quad && quad.geometry) {
+    quad.geometry.dispose()
+  }
+  if (label && label.geometry) {
+    label.geometry.dispose()
   }
 }
 
@@ -237,15 +218,50 @@ onMounted(async () => {
   if (!isClient || !containerRef.value)
     return
     
+  // 手機優化：檢查是否為低性能設備
+  const checkLowPerformanceDevice = () => {
+    if (!process.client) return false
+    
+    // 檢查記憶體
+    if ('memory' in performance) {
+      const memory = (performance as any).memory
+      if (memory.jsHeapSizeLimit < 100 * 1024 * 1024) { // 100MB
+        return true
+      }
+    }
+    
+    // 檢查WebGL支援
+    try {
+      const canvas = document.createElement('canvas')
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+      if (!gl) return true
+      
+      const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE)
+      if (maxTextureSize < 2048) return true
+    } catch (error) {
+      return true
+    }
+    
+    return false
+  }
+  
+  // 如果是低性能設備，使用簡化版本
+  if (checkLowPerformanceDevice()) {
+    console.log('[InfiniteMenu] 檢測到低性能設備，使用簡化版本')
+    isLowPerformance.value = true
+    loading.value = false
+    return
+  }
+    
   // 手機優化：檢測設備類型
-  const isMobileDevice = window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  const isMobileDevice = props.isMobile || window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   
-  let w = containerRef.value.clientWidth
-  let h = containerRef.value.clientHeight
+  const w = containerRef.value.clientWidth
+  const h = containerRef.value.clientHeight
   
-  // 手機優化：降低渲染品質
-  const pixelRatio = isMobileDevice ? Math.min(window.devicePixelRatio || 1, 1.5) : window.devicePixelRatio || 1
-  const antialias = !isMobileDevice
+  // 手機優化：大幅降低渲染品質以提高性能
+  const pixelRatio = isMobileDevice ? 1 : window.devicePixelRatio || 1
+  const antialias = false // 手機端完全關閉抗鋸齒
   
   renderer = new THREE.WebGLRenderer({
     antialias: antialias,
@@ -259,8 +275,8 @@ onMounted(async () => {
   renderer.setClearColor(new THREE.Color(props.backgroundColor), 1)
   renderer.setPixelRatio(pixelRatio)
   
-  // 手機優化：降低解析度
-  const scale = isMobileDevice ? 0.5 : 0.7
+  // 手機優化：大幅降低解析度以提高性能
+  const scale = isMobileDevice ? 0.3 : 0.7
   renderer.setSize(w * scale, h * scale)
   renderer.domElement.style.width = `${w}px`
   renderer.domElement.style.height = `${h}px`
@@ -360,9 +376,9 @@ onMounted(async () => {
     { threshold: 0.01 },
   )
   intersectionObserver.observe(containerRef.value)
-  // 動畫循環（手機優化：降低幀率）
+  // 動畫循環（手機優化：大幅降低幀率）
   let lastTime = 0
-  const targetFPS = isMobileDevice ? 20 : 30 // 手機降低到 20fps
+  const targetFPS = isMobileDevice ? 15 : 30 // 手機降低到 15fps
   const frameInterval = 1000 / targetFPS
   
   function animate(now) {
@@ -378,7 +394,7 @@ onMounted(async () => {
           persistColor[i] += (targetColor[i] - persistColor[i]) * dt
       }
       
-      const speed = dt * (isMobileDevice ? 3 : 5) // 手機降低動畫速度
+      const speed = dt * (isMobileDevice ? 1.5 : 5) // 手機大幅降低動畫速度
       mouse[0] += (target[0] - mouse[0]) * speed
       mouse[1] += (target[1] - mouse[1]) * speed
       
@@ -386,9 +402,9 @@ onMounted(async () => {
       quadMat.uniforms.sampler.value = rt1.texture
       quadMat.uniforms.time.value = clock.getElapsedTime()
       
-      // 手機優化：降低特效強度
-      const noiseFactor = isMobileDevice ? props.noiseFactor * 0.5 : props.noiseFactor
-      const noiseScale = isMobileDevice ? props.noiseScale * 0.5 : props.noiseScale
+      // 手機優化：大幅降低特效強度
+      const noiseFactor = isMobileDevice ? props.noiseFactor * 0.2 : props.noiseFactor
+      const noiseScale = isMobileDevice ? props.noiseScale * 0.2 : props.noiseScale
       
       quadMat.uniforms.noiseFactor.value = noiseFactor
       quadMat.uniforms.noiseScale.value = noiseScale
@@ -443,6 +459,21 @@ onBeforeUnmount(() => {
       class="absolute inset-0 flex items-center justify-center bg-black/80 z-10"
     >
       <LoadingSpinner />
+    </div>
+    
+    <!-- 低性能設備的簡化版本 -->
+    <div
+      v-if="!loading && isLowPerformance"
+      class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900"
+    >
+      <div class="text-center">
+        <h1 class="text-4xl md:text-6xl lg:text-8xl font-bold text-blue-300 mb-4 animate-pulse">
+          WURIDAO
+        </h1>
+        <p class="text-blue-200 text-lg md:text-xl opacity-80">
+          智慧家庭解決方案
+        </p>
+      </div>
     </div>
   </div>
 </template>

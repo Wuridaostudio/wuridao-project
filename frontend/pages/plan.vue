@@ -15,6 +15,7 @@ const isInfiniteMenuLoaded = ref(false)
 const isSmartFormLoaded = ref(false)
 const isScrollStackLoaded = ref(false)
 const isMobile = ref(false)
+const isLowPerformanceDevice = ref(false)
 
 // 懶載入組件，添加載入狀態
 const InfiniteMenu = defineAsyncComponent({
@@ -45,11 +46,40 @@ const SmartFormSection = defineAsyncComponent({
   }
 })
 
-// 檢測設備類型
+// 檢測設備類型和性能
 function detectDevice() {
   if (process.client) {
     isMobile.value = window.innerWidth < 768
-    logger.log('[PLAN] 設備檢測:', { isMobile: isMobile.value, width: window.innerWidth })
+    
+    // 檢測低性能設備
+    if ('memory' in performance) {
+      const memory = (performance as any).memory
+      if (memory.jsHeapSizeLimit < 100 * 1024 * 1024) { // 100MB
+        isLowPerformanceDevice.value = true
+      }
+    }
+    
+    // 檢查WebGL支援
+    try {
+      const canvas = document.createElement('canvas')
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+      if (!gl) {
+        isLowPerformanceDevice.value = true
+      } else {
+        const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE)
+        if (maxTextureSize < 2048) {
+          isLowPerformanceDevice.value = true
+        }
+      }
+    } catch (error) {
+      isLowPerformanceDevice.value = true
+    }
+    
+    logger.log('[PLAN] 設備檢測:', { 
+      isMobile: isMobile.value, 
+      isLowPerformance: isLowPerformanceDevice.value,
+      width: window.innerWidth 
+    })
   }
 }
 
@@ -57,25 +87,21 @@ function handleStackComplete() {
   logger.log('Scroll stack animation completed!')
 }
 
-// 手機優化：延遲載入非關鍵組件
+// 優化載入策略
 onMounted(async () => {
   detectDevice()
   
-  // 手機設備優化：延遲載入非關鍵組件
+  // 手機設備：立即載入所有組件，但使用簡化版本
   if (isMobile.value) {
-    // 延遲載入 SmartFormSection
-    setTimeout(() => {
-      isSmartFormLoaded.value = true
-    }, 1000)
-    
-    // 延遲載入 ScrollStack
-    setTimeout(() => {
-      isScrollStackLoaded.value = true
-    }, 2000)
+    // 手機設備：立即載入所有組件，但使用簡化版本
+    isSmartFormLoaded.value = true
+    isScrollStackLoaded.value = true
+    logger.log('[PLAN] 手機設備：立即載入所有組件')
   } else {
     // 桌面設備立即載入
     isSmartFormLoaded.value = true
     isScrollStackLoaded.value = true
+    logger.log('[PLAN] 桌面設備：立即載入所有組件')
   }
   
   await nextTick()
@@ -89,7 +115,11 @@ onMounted(async () => {
     <section style="height: 100vh; position: relative">
       <Suspense>
         <template #default>
-          <InfiniteMenu class="w-full h-full" />
+          <InfiniteMenu 
+            class="w-full h-full" 
+            :is-mobile="isMobile"
+            :enable-complex-effects="!isLowPerformanceDevice"
+          />
         </template>
         <template #fallback>
           <div class="w-full h-full flex items-center justify-center bg-black">
@@ -99,7 +129,7 @@ onMounted(async () => {
       </Suspense>
     </section>
     
-    <!-- 表單區塊 - 手機延遲載入 -->
+    <!-- 表單區塊 - 立即載入 -->
     <section v-if="isSmartFormLoaded">
       <Suspense>
         <template #default>
@@ -113,17 +143,17 @@ onMounted(async () => {
       </Suspense>
     </section>
     
-    <!-- 滾動堆疊區塊 - 手機延遲載入 -->
+    <!-- 滾動堆疊區塊 - 立即載入，優化手機參數 -->
     <section v-if="isScrollStackLoaded" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
       <ScrollStack
-        :item-distance="isMobile ? 80 : 100"
-        :item-scale="isMobile ? 0.02 : 0.03"
-        :item-stack-distance="isMobile ? 20 : 30"
+        :item-distance="isMobile ? 60 : 100"
+        :item-scale="isMobile ? 0.015 : 0.03"
+        :item-stack-distance="isMobile ? 15 : 30"
         stack-position="20%"
         scale-end-position="10%"
-        :base-scale="isMobile ? 0.9 : 0.85"
+        :base-scale="isMobile ? 0.95 : 0.85"
         :rotation-amount="0"
-        :blur-amount="isMobile ? 0.3 : 0.5"
+        :blur-amount="isMobile ? 0.2 : 0.5"
         @stack-complete="handleStackComplete"
         role="region"
         aria-label="智慧家庭服務流程"
@@ -241,6 +271,17 @@ onMounted(async () => {
     width: 300px;
     height: 200px;
     font-size: 1.5rem;
+  }
+  
+  /* 防止手機端抖動 */
+  section {
+    will-change: auto;
+    transform: translateZ(0);
+  }
+  
+  /* 優化滾動性能 */
+  .min-h-screen {
+    -webkit-overflow-scrolling: touch;
   }
 }
 </style>

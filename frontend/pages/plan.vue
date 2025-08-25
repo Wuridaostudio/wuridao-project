@@ -45,8 +45,8 @@ const BREAKPOINTS = {
 function detectDeviceAndPerformance() {
   if (!process.client) return
 
-  const width = window.innerWidth
-  const userAgent = navigator.userAgent
+  const width = window.innerWidth || 1024 // SSR fallback
+  const userAgent = navigator.userAgent || ''
   
   // 響應式斷點檢測
   if (width < BREAKPOINTS.mobile) {
@@ -68,7 +68,8 @@ function detectDeviceAndPerformance() {
 
   // iOS檢測
   isIOS.value = /iPad|iPhone|iPod/.test(userAgent) || 
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+                false
 
   // 性能檢測
   detectPerformanceCapabilities()
@@ -144,7 +145,9 @@ function handleResize() {
   if (!process.client) return
 
   // 防抖處理
-  clearTimeout(resizeTimer.value)
+  if (resizeTimer.value) {
+    clearTimeout(resizeTimer.value)
+  }
   resizeTimer.value = setTimeout(() => {
     detectDeviceAndPerformance()
     logger.log('[PLAN] 響應式調整完成:', { breakpoint: currentBreakpoint.value })
@@ -183,6 +186,14 @@ const SmartFormSection = defineAsyncComponent({
   onError: (error) => {
     logger.error('[PLAN] SmartFormSection 載入失敗:', error)
   }
+})
+
+// 開發模式檢測（SSR兼容）
+const isDev = computed(() => {
+  if (process.client) {
+    return process.dev || process.env.NODE_ENV === 'development'
+  }
+  return false
 })
 
 // 計算屬性：動態配置
@@ -241,10 +252,14 @@ function startPerformanceMonitoring() {
       }
     }
     
-    requestAnimationFrame(measureFPS)
+    if (process.client) {
+      requestAnimationFrame(measureFPS)
+    }
   }
 
-  requestAnimationFrame(measureFPS)
+  if (process.client) {
+    requestAnimationFrame(measureFPS)
+  }
 }
 
 // 生命週期管理
@@ -442,7 +457,7 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
     </section>
 
     <!-- 性能監控面板（開發模式） -->
-    <div v-if="process.dev && performanceMetrics" class="fixed top-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs z-50">
+    <div v-if="isDev && performanceMetrics" class="fixed top-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs z-50">
       <div class="mb-2">
         <strong>性能監控</strong>
       </div>

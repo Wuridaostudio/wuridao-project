@@ -379,86 +379,101 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
     
     <!-- 滾動堆疊區塊 -->
     <section v-if="isScrollStackLoaded && isClient" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
-      <!-- 手機端：靜態顯示，完全禁用動畫 -->
-      <div v-if="isMobile" class="w-full max-w-4xl px-4 py-8">
-        <div class="space-y-8">
-          <!-- 步驟 1 -->
-          <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 shadow-lg">
-            <div class="text-center">
-              <h3 class="text-2xl font-bold mb-4 text-white">
-                1. 填寫諮詢表
-              </h3>
-              <p class="text-gray-300 leading-relaxed">
-                詳細了解您的需求與預算
-              </p>
-            </div>
-          </div>
+             <!-- 手機端：霧面玻璃設計，完全禁用動畫 -->
+       <div v-if="isMobile" class="w-full max-w-4xl px-4 py-8">
+         <div class="space-y-6">
+           <!-- 步驟 1 -->
+           <div class="mobile-glass-card">
+             <div class="mobile-glass-content">
+               <div class="step-number">01</div>
+               <div class="text-center">
+                 <h3 class="mobile-card-title">
+                   填寫諮詢表
+                 </h3>
+                 <p class="mobile-card-description">
+                   詳細了解您的需求與預算
+                 </p>
+               </div>
+             </div>
+           </div>
 
-          <!-- 步驟 2 -->
-          <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 shadow-lg">
-            <div class="text-center">
-              <h3 class="text-2xl font-bold mb-4 text-white">
-                2. 預約簡報體驗
-              </h3>
-              <p class="text-gray-300 leading-relaxed mb-4">
-                專業規劃師為您展示智慧家庭方案
-              </p>
-              
-              <!-- LINE QR Code -->
-              <div class="flex justify-center">
-                <div class="bg-white p-2 rounded-lg inline-block">
-                  <img 
-                    src="https://qr-official.line.me/gs/M_417qbotf_BW.png?oat_content=qr"
-                    alt="LINE 好友 QR Code"
-                    class="w-16 h-16"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-              </div>
-              <p class="text-xs text-gray-400 mt-2">
-                掃描加入 LINE 好友
-              </p>
-            </div>
-          </div>
+           <!-- 步驟 2 -->
+           <div class="mobile-glass-card">
+             <div class="mobile-glass-content">
+               <div class="step-number">02</div>
+               <div class="text-center">
+                 <h3 class="mobile-card-title">
+                   預約簡報體驗
+                 </h3>
+                 <p class="mobile-card-description mb-4">
+                   專業規劃師為您展示智慧家庭方案
+                 </p>
+                 
+                 <!-- LINE QR Code -->
+                 <div class="flex justify-center">
+                   <div class="qr-code-container">
+                     <img 
+                       src="https://qr-official.line.me/gs/M_417qbotf_BW.png?oat_content=qr"
+                       alt="LINE 好友 QR Code"
+                       class="qr-code-image"
+                       loading="lazy"
+                       decoding="async"
+                     />
+                   </div>
+                 </div>
+                 <p class="qr-code-text">
+                   掃描加入 LINE 好友
+                 </p>
+               </div>
+             </div>
+           </div>
 
-          <!-- 步驟 3 -->
-          <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 shadow-lg">
-            <div class="text-center">
-              <h3 class="text-2xl font-bold mb-4 text-white">
-                3. 智慧規劃師上線
-              </h3>
-              <p class="text-gray-300 leading-relaxed">
-                協同設計師規劃最佳化配置
-              </p>
-            </div>
-          </div>
+           <!-- 步驟 3 -->
+           <div class="mobile-glass-card">
+             <div class="mobile-glass-content">
+               <div class="step-number">03</div>
+               <div class="text-center">
+                 <h3 class="mobile-card-title">
+                   智慧規劃師上線
+                 </h3>
+                 <p class="mobile-card-description">
+                   協同設計師規劃最佳化配置
+                 </p>
+               </div>
+             </div>
+           </div>
 
-          <!-- 步驟 4 -->
-          <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 shadow-lg">
-            <div class="text-center">
-              <h3 class="text-2xl font-bold mb-4 text-white">
-                4. 進行完整規劃
-              </h3>
-              <p class="text-gray-300 leading-relaxed">
-                制定詳細的安裝與配置計劃
-              </p>
-            </div>
-          </div>
+           <!-- 步驟 4 -->
+           <div class="mobile-glass-card">
+             <div class="mobile-glass-content">
+               <div class="step-number">04</div>
+               <div class="text-center">
+                 <h3 class="mobile-card-title">
+                   進行完整規劃
+                 </h3>
+                 <p class="mobile-card-description">
+                   制定詳細的安裝與配置計劃
+                 </p>
+               </div>
+             </div>
+           </div>
 
-          <!-- 步驟 5 -->
-          <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 shadow-lg">
-            <div class="text-center">
-              <h3 class="text-2xl font-bold mb-4 text-white">
-                5. 落地安裝設定
-              </h3>
-              <p class="text-gray-300 leading-relaxed">
-                專業團隊到府安裝與設定
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+           <!-- 步驟 5 -->
+           <div class="mobile-glass-card">
+             <div class="mobile-glass-content">
+               <div class="step-number">05</div>
+               <div class="text-center">
+                 <h3 class="mobile-card-title">
+                   落地安裝設定
+                 </h3>
+                 <p class="mobile-card-description">
+                   專業團隊到府安裝與設定
+                 </p>
+               </div>
+             </div>
+           </div>
+         </div>
+       </div>
 
       <!-- 桌面端：使用ScrollStack動畫 -->
       <ScrollStack
@@ -669,6 +684,180 @@ html {
     /* 避免iOS Safari的渲染問題 */
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+  }
+}
+
+/* 手機端霧面玻璃設計 */
+.mobile-glass-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.mobile-glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border-radius: 24px;
+  pointer-events: none;
+}
+
+.mobile-glass-card::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 50%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
+  border-radius: 23px;
+  pointer-events: none;
+}
+
+.mobile-glass-content {
+  position: relative;
+  z-index: 1;
+}
+
+.step-number {
+  position: absolute;
+  top: -12px;
+  right: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  letter-spacing: 1px;
+}
+
+.mobile-card-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 12px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+}
+
+.mobile-card-description {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.6;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.qr-code-container {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 12px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.qr-code-image {
+  width: 64px;
+  height: 64px;
+  display: block;
+}
+
+.qr-code-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 8px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* 手機端霧面玻璃懸停效果 */
+@media (hover: hover) {
+  .mobile-glass-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* 手機端霧面玻璃觸控效果 */
+@media (hover: none) and (pointer: coarse) {
+  .mobile-glass-card:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+}
+
+/* 手機端霧面玻璃響應式優化 */
+@media (max-width: 480px) {
+  .mobile-glass-card {
+    padding: 20px;
+    border-radius: 20px;
+  }
+  
+  .mobile-card-title {
+    font-size: 18px;
+  }
+  
+  .mobile-card-description {
+    font-size: 13px;
+  }
+  
+  .step-number {
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 10px;
+  }
+  
+  .qr-code-image {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+/* 手機端霧面玻璃性能優化 */
+.mobile-glass-card {
+  will-change: transform;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* 手機端霧面玻璃iOS優化 */
+@supports (-webkit-touch-callout: none) {
+  .mobile-glass-card {
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+  }
+  
+  .qr-code-container {
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
 }
 </style>

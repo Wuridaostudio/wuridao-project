@@ -245,8 +245,12 @@ onMounted(async () => {
       return true
     }
     
-    // 移動設備自動使用簡化版本
-    if (props.isMobile || window.innerWidth < 768) {
+    // iPhone特殊處理：不自動歸類為低性能設備
+    const userAgent = navigator.userAgent.toLowerCase()
+    const isIPhone = /iphone|ipad|ipod/i.test(userAgent)
+    
+    // 只有非iPhone的移動設備才自動使用簡化版本
+    if (!isIPhone && (props.isMobile || window.innerWidth < 768)) {
       return true
     }
     
@@ -260,35 +264,59 @@ onMounted(async () => {
     loading.value = false
     return
   }
+  
+  // 添加iPhone調試日誌
+  console.log('[InfiniteMenu] 設備檢測:', {
+    userAgent: navigator.userAgent,
+    isIPhone: /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase()),
+    isMobile: props.isMobile,
+    width: window.innerWidth,
+    height: window.innerHeight,
+    devicePixelRatio: window.devicePixelRatio
+  })
     
   // 手機優化：檢測設備類型
   const isMobileDevice = props.isMobile || window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   
+  // iPhone特殊配置
+  const userAgent = navigator.userAgent.toLowerCase()
+  const isIPhone = /iphone|ipad|ipod/i.test(userAgent)
+  
   const w = containerRef.value.clientWidth
   const h = containerRef.value.clientHeight
   
-  // 手機優化：大幅降低渲染品質以提高性能
-  const pixelRatio = isMobileDevice ? 1 : window.devicePixelRatio || 1
-  const antialias = false // 手機端完全關閉抗鋸齒
+  // iPhone優化：使用更保守的渲染設定
+  const pixelRatio = isIPhone ? 1 : (isMobileDevice ? 1 : window.devicePixelRatio || 1)
+  const antialias = isIPhone ? false : !isMobileDevice // iPhone關閉抗鋸齒
   
   renderer = new THREE.WebGLRenderer({
     antialias: antialias,
     powerPreference: 'high-performance',
-    // 手機優化：減少記憶體使用
-    alpha: false,
+    // iPhone優化：啟用alpha通道以支援透明效果
+    alpha: isIPhone ? true : false,
     stencil: false,
     depth: false,
+    // iPhone特殊設定
+    preserveDrawingBuffer: isIPhone ? true : false,
   })
   
-  renderer.setClearColor(new THREE.Color(props.backgroundColor), 1)
+  renderer.setClearColor(new THREE.Color(props.backgroundColor), isIPhone ? 0 : 1)
   renderer.setPixelRatio(pixelRatio)
   
-  // 手機優化：大幅降低解析度以提高性能
-  const scale = isMobileDevice ? 0.3 : 0.7
+  // iPhone優化：使用更保守的解析度
+  const scale = isIPhone ? 0.5 : (isMobileDevice ? 0.3 : 0.7)
   renderer.setSize(w * scale, h * scale)
   renderer.domElement.style.width = `${w}px`
   renderer.domElement.style.height = `${h}px`
   renderer.domElement.style.transform = `scale(${1/scale})`
+  
+  // iPhone特殊處理：確保canvas正確顯示
+  if (isIPhone) {
+    renderer.domElement.style.position = 'absolute'
+    renderer.domElement.style.top = '0'
+    renderer.domElement.style.left = '0'
+    renderer.domElement.style.zIndex = '1'
+  }
   
   containerRef.value.appendChild(renderer.domElement)
   scene = new THREE.Scene()
@@ -384,9 +412,9 @@ onMounted(async () => {
     { threshold: 0.01 },
   )
   intersectionObserver.observe(containerRef.value)
-  // 動畫循環（手機優化：大幅降低幀率）
+  // 動畫循環（iPhone優化：調整幀率）
   let lastTime = 0
-  const targetFPS = isMobileDevice ? 15 : 30 // 手機降低到 15fps
+  const targetFPS = isIPhone ? 30 : (isMobileDevice ? 15 : 30) // iPhone使用30fps
   const frameInterval = 1000 / targetFPS
   
   function animate(now) {
@@ -396,13 +424,13 @@ onMounted(async () => {
     if (now - lastTime > frameInterval) {
       const dt = clock.getDelta()
       
-      // 手機優化：簡化顏色動畫
-      if (props.animateColor && !props.textColor && !isMobileDevice) {
+      // iPhone優化：簡化顏色動畫
+      if (props.animateColor && !props.textColor && !isIPhone) {
         for (let i = 0; i < 3; i++)
           persistColor[i] += (targetColor[i] - persistColor[i]) * dt
       }
       
-      const speed = dt * (isMobileDevice ? 1.5 : 5) // 手機大幅降低動畫速度
+      const speed = dt * (isIPhone ? 3 : (isMobileDevice ? 1.5 : 5)) // iPhone適中的動畫速度
       mouse[0] += (target[0] - mouse[0]) * speed
       mouse[1] += (target[1] - mouse[1]) * speed
       
@@ -410,9 +438,9 @@ onMounted(async () => {
       quadMat.uniforms.sampler.value = rt1.texture
       quadMat.uniforms.time.value = clock.getElapsedTime()
       
-      // 手機優化：大幅降低特效強度
-      const noiseFactor = isMobileDevice ? props.noiseFactor * 0.2 : props.noiseFactor
-      const noiseScale = isMobileDevice ? props.noiseScale * 0.2 : props.noiseScale
+      // iPhone優化：適中的特效強度
+      const noiseFactor = isIPhone ? props.noiseFactor * 0.5 : (isMobileDevice ? props.noiseFactor * 0.2 : props.noiseFactor)
+      const noiseScale = isIPhone ? props.noiseScale * 0.5 : (isMobileDevice ? props.noiseScale * 0.2 : props.noiseScale)
       
       quadMat.uniforms.noiseFactor.value = noiseFactor
       quadMat.uniforms.noiseScale.value = noiseScale
@@ -483,7 +511,7 @@ onBeforeUnmount(() => {
       
       <div class="text-center relative z-10 px-4">
         <h1 class="text-3xl sm:text-4xl md:text-6xl lg:text-8xl font-bold text-blue-300 mb-4 animate-pulse tracking-wider">
-          WURIDAO
+          {{ text }}
         </h1>
         <p class="text-blue-200 text-base sm:text-lg md:text-xl opacity-90 max-w-md mx-auto leading-relaxed">
           智慧家庭解決方案
@@ -521,7 +549,26 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </div>
+    
+    <!-- WebGL動畫版本 -->
+    <div v-if="!loading && !isLowPerformance" class="w-full h-full"></div>
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+/* iPhone特殊樣式 */
+@supports (-webkit-touch-callout: none) {
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+</style>

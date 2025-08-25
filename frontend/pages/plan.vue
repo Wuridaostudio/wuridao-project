@@ -53,21 +53,15 @@ function detectDeviceAndPerformance() {
   const width = window.innerWidth || 1024 // SSR fallback
   const userAgent = navigator.userAgent || ''
   
-  // 響應式斷點檢測 - 更精確的邏輯
+  // 響應式斷點檢測 - 修復重複邏輯
   if (width < BREAKPOINTS.mobile) {
     // 手機端：< 640px
     currentBreakpoint.value = 'mobile'
     isMobile.value = true
     isTablet.value = false
     isDesktop.value = false
-  } else if (width < BREAKPOINTS.tablet) {
-    // 小平板：640px - 767px
-    currentBreakpoint.value = 'tablet'
-    isMobile.value = false
-    isTablet.value = true
-    isDesktop.value = false
   } else if (width < BREAKPOINTS.desktop) {
-    // 大平板：768px - 1023px
+    // 平板端：640px - 1023px (包含小平板和大平板)
     currentBreakpoint.value = 'tablet'
     isMobile.value = false
     isTablet.value = true
@@ -154,7 +148,7 @@ function detectPerformanceCapabilities() {
   }
 }
 
-// 響應式事件處理 - 更精確的響應式處理
+// 響應式事件處理 - 更強大的響應式處理
 function handleResize() {
   if (!process.client) return
 
@@ -164,19 +158,44 @@ function handleResize() {
   }
   resizeTimer.value = setTimeout(() => {
     const newWidth = window.innerWidth
+    const newHeight = window.innerHeight
     const oldBreakpoint = currentBreakpoint.value
+    const oldOrientation = window.orientation || 0
     
     detectDeviceAndPerformance()
     
-    // 只有在斷點真正改變時才記錄
+    // 記錄詳細的響應式變化信息
     if (oldBreakpoint !== currentBreakpoint.value) {
       logger.log('[PLAN] 響應式斷點變化:', { 
         from: oldBreakpoint, 
         to: currentBreakpoint.value,
-        width: newWidth 
+        width: newWidth,
+        height: newHeight,
+        orientation: oldOrientation
       })
     }
-  }, 100) // 減少到100ms提高響應性
+  }, 50) // 進一步減少到50ms提高響應性
+}
+
+// 方向變化處理
+function handleOrientationChange() {
+  if (!process.client) return
+  
+  // 延遲處理，確保方向變化完成
+  setTimeout(() => {
+    const width = window.innerWidth
+    const height = window.innerHeight
+    const orientation = window.orientation || 0
+    
+    detectDeviceAndPerformance()
+    
+    logger.log('[PLAN] 方向變化處理:', {
+      width,
+      height,
+      orientation,
+      breakpoint: currentBreakpoint.value
+    })
+  }, 300) // 給足夠時間讓方向變化完成
 }
 
 // 響應式計時器
@@ -327,8 +346,13 @@ onMounted(async () => {
   
   // 添加響應式事件監聽 - 更全面的監聽
   if (process.client) {
+    // 視窗大小變化
     window.addEventListener('resize', handleResize, { passive: true })
-    window.addEventListener('orientationchange', handleResize, { passive: true })
+    
+    // 方向變化 - 使用專門的處理函數
+    window.addEventListener('orientationchange', handleOrientationChange, { passive: true })
+    
+    // 頁面載入完成
     window.addEventListener('load', detectDeviceAndPerformance, { passive: true })
     
     // 確保在頁面完全載入後再次檢測
@@ -337,6 +361,12 @@ onMounted(async () => {
     } else {
       window.addEventListener('load', detectDeviceAndPerformance, { passive: true })
     }
+    
+    // 添加更多響應式事件監聽
+    window.addEventListener('focus', () => {
+      // 當視窗重新獲得焦點時重新檢測
+      setTimeout(detectDeviceAndPerformance, 100)
+    }, { passive: true })
   }
 
   // 組件載入策略
@@ -378,7 +408,9 @@ onUnmounted(() => {
   // 清理事件監聽器
   if (process.client) {
     window.removeEventListener('resize', handleResize)
-    window.removeEventListener('orientationchange', handleResize)
+    window.removeEventListener('orientationchange', handleOrientationChange)
+    window.removeEventListener('load', detectDeviceAndPerformance)
+    window.removeEventListener('focus', detectDeviceAndPerformance)
   }
   
   // 清理計時器
@@ -400,8 +432,30 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
     isMobile: isMobile.value,
     isTablet: isTablet.value,
     isDesktop: isDesktop.value,
-    isLowPerformance: isLowPerformance.value
+    isLowPerformance: isLowPerformance.value,
+    breakpoint: currentBreakpoint.value,
+    width: process.client ? window.innerWidth : 'SSR',
+    height: process.client ? window.innerHeight : 'SSR'
   })
+})
+
+// 響應式狀態監控器 - 用於調試
+const responsiveDebugger = computed(() => {
+  if (!process.client) return {}
+  
+  return {
+    windowWidth: window.innerWidth,
+    windowHeight: window.innerHeight,
+    orientation: window.orientation || 0,
+    breakpoint: currentBreakpoint.value,
+    isMobile: isMobile.value,
+    isTablet: isTablet.value,
+    isDesktop: isDesktop.value,
+    isIOS: isIOS.value,
+    isLowPerformance: isLowPerformance.value,
+    devicePixelRatio: window.devicePixelRatio,
+    userAgent: navigator.userAgent.substring(0, 100)
+  }
 })
 </script>
 
@@ -622,17 +676,24 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
                </ScrollStack>
        </section>
 
-         <!-- 性能監控面板（開發模式） -->
-     <div v-if="isDev && performanceMetrics" class="fixed top-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs z-50">
-       <div class="mb-2">
-         <strong>性能監控</strong>
-       </div>
-       <div>載入時間: {{ performanceMetrics.loadTime.toFixed(0) }}ms</div>
-       <div>FPS: {{ performanceMetrics.fps }}</div>
-       <div>斷點: {{ currentBreakpoint }}</div>
-       <div>iOS: {{ isIOS ? '是' : '否' }}</div>
-       <div>低性能: {{ isLowPerformance ? '是' : '否' }}</div>
-     </div>
+                   <!-- 性能監控面板（開發模式） -->
+      <div v-if="isDev && performanceMetrics" class="fixed top-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs z-50 max-w-xs">
+        <div class="mb-2">
+          <strong>性能監控</strong>
+        </div>
+        <div>載入時間: {{ performanceMetrics.loadTime.toFixed(0) }}ms</div>
+        <div>FPS: {{ performanceMetrics.fps }}</div>
+        <div>斷點: {{ currentBreakpoint }}</div>
+        <div>iOS: {{ isIOS ? '是' : '否' }}</div>
+        <div>低性能: {{ isLowPerformance ? '是' : '否' }}</div>
+        <div class="mt-2 pt-2 border-t border-gray-600">
+          <strong>響應式調試</strong>
+        </div>
+        <div>視窗: {{ responsiveDebugger.windowWidth }}x{{ responsiveDebugger.windowHeight }}</div>
+        <div>方向: {{ responsiveDebugger.orientation }}°</div>
+        <div>像素比: {{ responsiveDebugger.devicePixelRatio }}</div>
+        <div>設備: {{ isMobile ? '手機' : isTablet ? '平板' : '桌面' }}</div>
+      </div>
    </div>
      <template #fallback>
        <div class="relative bg-black min-h-screen flex items-center justify-center">

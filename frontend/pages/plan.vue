@@ -39,11 +39,11 @@ const performanceMetrics = ref({
   }
 })
 
-// 響應式斷點配置
+// 響應式斷點配置 - 更精確的斷點設置
 const BREAKPOINTS = {
-  mobile: 768,
-  tablet: 1024,
-  desktop: 1025
+  mobile: 640,    // sm: 640px
+  tablet: 768,    // md: 768px
+  desktop: 1024   // lg: 1024px
 }
 
 // 設備檢測和性能評估
@@ -53,18 +53,27 @@ function detectDeviceAndPerformance() {
   const width = window.innerWidth || 1024 // SSR fallback
   const userAgent = navigator.userAgent || ''
   
-  // 響應式斷點檢測
+  // 響應式斷點檢測 - 更精確的邏輯
   if (width < BREAKPOINTS.mobile) {
+    // 手機端：< 640px
     currentBreakpoint.value = 'mobile'
     isMobile.value = true
     isTablet.value = false
     isDesktop.value = false
   } else if (width < BREAKPOINTS.tablet) {
+    // 小平板：640px - 767px
+    currentBreakpoint.value = 'tablet'
+    isMobile.value = false
+    isTablet.value = true
+    isDesktop.value = false
+  } else if (width < BREAKPOINTS.desktop) {
+    // 大平板：768px - 1023px
     currentBreakpoint.value = 'tablet'
     isMobile.value = false
     isTablet.value = true
     isDesktop.value = false
   } else {
+    // 桌面端：>= 1024px
     currentBreakpoint.value = 'desktop'
     isMobile.value = false
     isTablet.value = false
@@ -145,18 +154,29 @@ function detectPerformanceCapabilities() {
   }
 }
 
-// 響應式事件處理
+// 響應式事件處理 - 更精確的響應式處理
 function handleResize() {
   if (!process.client) return
 
-  // 防抖處理
+  // 防抖處理 - 減少延遲時間提高響應性
   if (resizeTimer.value) {
     clearTimeout(resizeTimer.value)
   }
   resizeTimer.value = setTimeout(() => {
+    const newWidth = window.innerWidth
+    const oldBreakpoint = currentBreakpoint.value
+    
     detectDeviceAndPerformance()
-    logger.log('[PLAN] 響應式調整完成:', { breakpoint: currentBreakpoint.value })
-  }, 150)
+    
+    // 只有在斷點真正改變時才記錄
+    if (oldBreakpoint !== currentBreakpoint.value) {
+      logger.log('[PLAN] 響應式斷點變化:', { 
+        from: oldBreakpoint, 
+        to: currentBreakpoint.value,
+        width: newWidth 
+      })
+    }
+  }, 100) // 減少到100ms提高響應性
 }
 
 // 響應式計時器
@@ -299,16 +319,24 @@ onMounted(async () => {
   // 標記已完成hydration
   isHydrated.value = true
   
-  // 初始設備檢測
+  // 初始設備檢測 - 立即執行
   detectDeviceAndPerformance()
   
   // 啟動性能監控
   stopPerformanceMonitoring = startPerformanceMonitoring()
   
-  // 添加響應式事件監聽
+  // 添加響應式事件監聽 - 更全面的監聽
   if (process.client) {
     window.addEventListener('resize', handleResize, { passive: true })
     window.addEventListener('orientationchange', handleResize, { passive: true })
+    window.addEventListener('load', detectDeviceAndPerformance, { passive: true })
+    
+    // 確保在頁面完全載入後再次檢測
+    if (document.readyState === 'complete') {
+      detectDeviceAndPerformance()
+    } else {
+      window.addEventListener('load', detectDeviceAndPerformance, { passive: true })
+    }
   }
 
   // 組件載入策略
@@ -646,8 +674,27 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
   );
 }
 
-/* 響應式優化樣式 */
-@media (max-width: 768px) {
+/* 響應式優化樣式 - 更精確的斷點 */
+/* 大平板和桌面端 */
+@media (min-width: 1024px) {
+  .color-card {
+    width: 500px;
+    height: 350px;
+    font-size: 2rem;
+  }
+}
+
+/* 小平板端 */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .color-card {
+    width: 400px;
+    height: 280px;
+    font-size: 1.8rem;
+  }
+}
+
+/* 手機端 */
+@media (max-width: 767px) {
   .color-card {
     width: 300px;
     height: 200px;
@@ -655,7 +702,8 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
   }
 }
 
-@media (max-width: 480px) {
+/* 小手機端 */
+@media (max-width: 639px) {
   .color-card {
     width: 250px;
     height: 150px;
@@ -691,8 +739,9 @@ html {
   }
 }
 
-/* 手機卡片穩定性優化 */
-@media (max-width: 768px) {
+/* 手機卡片穩定性優化 - 更精確的斷點 */
+/* 平板和手機端 */
+@media (max-width: 1023px) {
   .scroll-stack-card {
     /* 減少GPU負載 */
     will-change: transform;
@@ -840,8 +889,51 @@ html {
   }
 }
 
-/* 手機端霧面玻璃響應式優化 */
-@media (max-width: 480px) {
+/* 手機端霧面玻璃響應式優化 - 更精確的斷點 */
+/* 小平板端 */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .mobile-glass-card {
+    padding: 32px;
+    border-radius: 28px;
+  }
+  
+  .mobile-card-title {
+    font-size: 24px;
+  }
+  
+  .mobile-card-description {
+    font-size: 16px;
+  }
+  
+  .qr-code-image {
+    width: 72px;
+    height: 72px;
+  }
+}
+
+/* 手機端 */
+@media (max-width: 767px) {
+  .mobile-glass-card {
+    padding: 24px;
+    border-radius: 24px;
+  }
+  
+  .mobile-card-title {
+    font-size: 20px;
+  }
+  
+  .mobile-card-description {
+    font-size: 14px;
+  }
+  
+  .qr-code-image {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+/* 小手機端 */
+@media (max-width: 639px) {
   .mobile-glass-card {
     padding: 20px;
     border-radius: 20px;
@@ -854,8 +946,6 @@ html {
   .mobile-card-description {
     font-size: 13px;
   }
-  
-
   
   .qr-code-image {
     width: 56px;

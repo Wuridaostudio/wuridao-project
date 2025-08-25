@@ -222,32 +222,40 @@ onMounted(async () => {
   const checkLowPerformanceDevice = () => {
     if (!process.client) return false
     
-    // 檢查記憶體
+    // 改善低性能設備檢測邏輯
+    let isLowPerformance = false
+    
+    // 檢查記憶體（降低閾值）
     if ('memory' in performance) {
       const memory = (performance as any).memory
-      if (memory.jsHeapSizeLimit < 100 * 1024 * 1024) { // 100MB
-        return true
+      if (memory.jsHeapSizeLimit < 50 * 1024 * 1024) { // 50MB
+        isLowPerformance = true
       }
     }
     
-    // 檢查WebGL支援
+    // 檢查WebGL支援（更寬鬆的標準）
     try {
       const canvas = document.createElement('canvas')
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
       if (!gl) return true
       
       const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE)
-      if (maxTextureSize < 2048) return true
+      if (maxTextureSize < 1024) return true // 降低要求
     } catch (error) {
       return true
     }
     
-    return false
+    // 移動設備自動使用簡化版本
+    if (props.isMobile || window.innerWidth < 768) {
+      return true
+    }
+    
+    return isLowPerformance
   }
   
   // 如果是低性能設備，使用簡化版本
   if (checkLowPerformanceDevice()) {
-    console.log('[InfiniteMenu] 檢測到低性能設備，使用簡化版本')
+    console.log('[InfiniteMenu] 檢測到低性能設備或移動設備，使用簡化版本')
     isLowPerformance.value = true
     loading.value = false
     return
@@ -464,15 +472,53 @@ onBeforeUnmount(() => {
     <!-- 低性能設備的簡化版本 -->
     <div
       v-if="!loading && isLowPerformance"
-      class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900"
+      class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 relative overflow-hidden"
     >
-      <div class="text-center">
-        <h1 class="text-4xl md:text-6xl lg:text-8xl font-bold text-blue-300 mb-4 animate-pulse">
+      <!-- 背景動畫效果 -->
+      <div class="absolute inset-0 opacity-20">
+        <div class="absolute top-1/4 left-1/4 w-32 h-32 bg-blue-400 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute bottom-1/4 right-1/4 w-24 h-24 bg-purple-400 rounded-full blur-2xl animate-pulse" style="animation-delay: 1s;"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-indigo-400 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+      </div>
+      
+      <div class="text-center relative z-10 px-4">
+        <h1 class="text-3xl sm:text-4xl md:text-6xl lg:text-8xl font-bold text-blue-300 mb-4 animate-pulse tracking-wider">
           WURIDAO
         </h1>
-        <p class="text-blue-200 text-lg md:text-xl opacity-80">
+        <p class="text-blue-200 text-base sm:text-lg md:text-xl opacity-90 max-w-md mx-auto leading-relaxed">
           智慧家庭解決方案
         </p>
+        
+        <!-- 手機端額外資訊 -->
+        <div class="mt-6 sm:mt-8">
+          <div class="flex justify-center space-x-4 sm:space-x-6">
+            <div class="text-center">
+              <div class="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <p class="text-xs sm:text-sm text-blue-200">智能控制</p>
+            </div>
+            <div class="text-center">
+              <div class="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <p class="text-xs sm:text-sm text-purple-200">安全守護</p>
+            </div>
+            <div class="text-center">
+              <div class="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-500 rounded-full flex items-center justify-center mx-auto mb-2">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M13 7H7v6h6V7z"/>
+                  <path fill-rule="evenodd" d="M7 2a1 1 0 000 2h6a1 1 0 100-2H7zm0 14a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+              <p class="text-xs sm:text-sm text-indigo-200">節能環保</p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

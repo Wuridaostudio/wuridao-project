@@ -46,39 +46,57 @@ const SmartFormSection = defineAsyncComponent({
   }
 })
 
-// 檢測設備類型和性能
+// 改善設備檢測邏輯
 function detectDevice() {
   if (process.client) {
-    isMobile.value = window.innerWidth < 768
+    // 更準確的移動設備檢測
+    const userAgent = navigator.userAgent.toLowerCase()
+    const isMobileDevice = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent)
+    const isSmallScreen = window.innerWidth < 768
     
-    // 檢測低性能設備
+    isMobile.value = isMobileDevice || isSmallScreen
+    
+    // 改善低性能設備檢測
+    let isLowPerformance = false
+    
+    // 檢查記憶體（如果可用）
     if ('memory' in performance) {
       const memory = (performance as any).memory
-      if (memory.jsHeapSizeLimit < 100 * 1024 * 1024) { // 100MB
-        isLowPerformanceDevice.value = true
+      // 降低記憶體閾值，避免過於嚴格
+      if (memory.jsHeapSizeLimit < 50 * 1024 * 1024) { // 50MB
+        isLowPerformance = true
       }
     }
     
-    // 檢查WebGL支援
+    // 檢查WebGL支援（更寬鬆的標準）
     try {
       const canvas = document.createElement('canvas')
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
       if (!gl) {
-        isLowPerformanceDevice.value = true
+        isLowPerformance = true
       } else {
         const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE)
-        if (maxTextureSize < 2048) {
-          isLowPerformanceDevice.value = true
+        // 降低紋理大小要求
+        if (maxTextureSize < 1024) {
+          isLowPerformance = true
         }
       }
     } catch (error) {
-      isLowPerformanceDevice.value = true
+      isLowPerformance = true
     }
+    
+    // 移動設備自動降低性能要求
+    if (isMobile.value) {
+      isLowPerformance = true
+    }
+    
+    isLowPerformanceDevice.value = isLowPerformance
     
     logger.log('[PLAN] 設備檢測:', { 
       isMobile: isMobile.value, 
       isLowPerformance: isLowPerformanceDevice.value,
-      width: window.innerWidth 
+      width: window.innerWidth,
+      userAgent: userAgent.substring(0, 50) + '...'
     })
   }
 }
@@ -87,22 +105,20 @@ function handleStackComplete() {
   logger.log('Scroll stack animation completed!')
 }
 
-// 優化載入策略
+// 改善載入策略
 onMounted(async () => {
   detectDevice()
   
-  // 手機設備：立即載入所有組件，但使用簡化版本
-  if (isMobile.value) {
-    // 手機設備：立即載入所有組件，但使用簡化版本
-    isSmartFormLoaded.value = true
-    isScrollStackLoaded.value = true
-    logger.log('[PLAN] 手機設備：立即載入所有組件')
-  } else {
-    // 桌面設備立即載入
-    isSmartFormLoaded.value = true
-    isScrollStackLoaded.value = true
-    logger.log('[PLAN] 桌面設備：立即載入所有組件')
-  }
+  // 統一載入策略：所有設備都立即載入
+  isSmartFormLoaded.value = true
+  isScrollStackLoaded.value = true
+  
+  logger.log('[PLAN] 組件載入策略:', {
+    isMobile: isMobile.value,
+    isLowPerformance: isLowPerformanceDevice.value,
+    smartFormLoaded: isSmartFormLoaded.value,
+    scrollStackLoaded: isScrollStackLoaded.value
+  })
   
   await nextTick()
   logger.log('[PLAN] 頁面載入完成')
@@ -143,87 +159,87 @@ onMounted(async () => {
       </Suspense>
     </section>
     
-    <!-- 滾動堆疊區塊 - 立即載入，優化手機參數 -->
+    <!-- 滾動堆疊區塊 - 改善手機參數 -->
     <section v-if="isScrollStackLoaded" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
       <ScrollStack
-        :item-distance="isMobile ? 60 : 100"
-        :item-scale="isMobile ? 0.015 : 0.03"
-        :item-stack-distance="isMobile ? 15 : 30"
+        :item-distance="isMobile ? 80 : 100"
+        :item-scale="isMobile ? 0.02 : 0.03"
+        :item-stack-distance="isMobile ? 25 : 30"
         stack-position="20%"
         scale-end-position="10%"
-        :base-scale="isMobile ? 0.95 : 0.85"
+        :base-scale="isMobile ? 0.9 : 0.85"
         :rotation-amount="0"
-        :blur-amount="isMobile ? 0.2 : 0.5"
+        :blur-amount="isMobile ? 0.3 : 0.5"
         @stack-complete="handleStackComplete"
         role="region"
         aria-label="智慧家庭服務流程"
       >
         <ScrollStackItem role="article" aria-label="步驟 1：填寫諮詢表">
-          <div class="text-center px-2 sm:px-4">
-            <h3 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 leading-tight">
+          <div class="text-center px-4 sm:px-6 md:px-8">
+            <h3 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 leading-tight">
               1. 填寫諮詢表
             </h3>
-            <p class="text-sm sm:text-sm md:text-base lg:text-lg text-gray-300 leading-relaxed">
+            <p class="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 leading-relaxed">
               詳細了解您的需求與預算
             </p>
           </div>
         </ScrollStackItem>
 
         <ScrollStackItem role="article" aria-label="步驟 2：預約簡報體驗">
-          <div class="text-center px-2 sm:px-4">
-            <h3 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 leading-tight">
+          <div class="text-center px-4 sm:px-6 md:px-8">
+            <h3 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 leading-tight">
               2. 預約簡報體驗
             </h3>
-            <p class="text-sm sm:text-sm md:text-base lg:text-lg text-gray-300 leading-relaxed mb-4">
+            <p class="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 leading-relaxed mb-4">
               專業規劃師為您展示智慧家庭方案
             </p>
             
-            <!-- LINE QR Code - 手機優化 -->
+            <!-- LINE QR Code - 改善手機顯示 -->
             <div class="flex justify-center">
-              <div class="bg-white p-2 rounded-lg inline-block">
+              <div class="bg-white p-3 rounded-lg inline-block shadow-lg">
                 <img 
                   src="https://qr-official.line.me/gs/M_417qbotf_BW.png?oat_content=qr"
                   alt="LINE 好友 QR Code"
-                  class="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20"
+                  class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24"
                   loading="lazy"
                   decoding="async"
                 />
               </div>
             </div>
-            <p class="text-xs text-gray-400 mt-2">
+            <p class="text-xs sm:text-sm text-gray-400 mt-3">
               掃描加入 LINE 好友
             </p>
           </div>
         </ScrollStackItem>
 
         <ScrollStackItem role="article" aria-label="步驟 3：智慧規劃師上線">
-          <div class="text-center px-2 sm:px-4">
-            <h3 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 leading-tight">
+          <div class="text-center px-4 sm:px-6 md:px-8">
+            <h3 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 leading-tight">
               3. 智慧規劃師上線
             </h3>
-            <p class="text-sm sm:text-sm md:text-base lg:text-lg text-gray-300 leading-relaxed">
+            <p class="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 leading-relaxed">
               協同設計師規劃最佳化配置
             </p>
           </div>
         </ScrollStackItem>
 
         <ScrollStackItem role="article" aria-label="步驟 4：進行完整規劃">
-          <div class="text-center px-2 sm:px-4">
-            <h3 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 leading-tight">
+          <div class="text-center px-4 sm:px-6 md:px-8">
+            <h3 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 leading-tight">
               4. 進行完整規劃
             </h3>
-            <p class="text-sm sm:text-sm md:text-base lg:text-lg text-gray-300 leading-relaxed">
+            <p class="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 leading-relaxed">
               制定詳細的安裝與配置計劃
             </p>
           </div>
         </ScrollStackItem>
 
         <ScrollStackItem role="article" aria-label="步驟 5：落地安裝設定">
-          <div class="text-center px-2 sm:px-4">
-            <h3 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 leading-tight">
+          <div class="text-center px-4 sm:px-6 md:px-8">
+            <h3 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 leading-tight">
               5. 落地安裝設定
             </h3>
-            <p class="text-sm sm:text-sm md:text-base lg:text-lg text-gray-300 leading-relaxed">
+            <p class="text-sm sm:text-base md:text-lg lg:text-xl text-gray-300 leading-relaxed">
               專業團隊到府安裝與設定
             </p>
           </div>
@@ -265,23 +281,45 @@ onMounted(async () => {
   );
 }
 
-/* 手機優化樣式 */
+/* 改善手機響應式樣式 */
 @media (max-width: 768px) {
   .color-card {
-    width: 300px;
-    height: 200px;
+    width: 90vw;
+    max-width: 350px;
+    height: 250px;
     font-size: 1.5rem;
+    margin: 0 auto;
   }
   
-  /* 防止手機端抖動 */
+  /* 改善手機端性能 */
   section {
     will-change: auto;
     transform: translateZ(0);
+    -webkit-transform: translateZ(0);
   }
   
   /* 優化滾動性能 */
   .min-h-screen {
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* 改善文字可讀性 */
+  h3 {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+  
+  p {
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* 改善平板響應式樣式 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .color-card {
+    width: 400px;
+    height: 300px;
+    font-size: 1.75rem;
   }
 }
 </style>

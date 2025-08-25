@@ -65,12 +65,12 @@ function updateCardTransforms() {
   if (!scroller || !cardsRef.value.length || isUpdatingRef.value)
     return
 
-  // 手機優化：降低更新頻率
+  // 改善手機端更新頻率控制
   if (process.client && window.innerWidth < 768) {
     const now = performance.now()
     if (!updateCardTransforms.lastUpdate) {
       updateCardTransforms.lastUpdate = now
-    } else if (now - updateCardTransforms.lastUpdate < 16) { // 約60fps
+    } else if (now - updateCardTransforms.lastUpdate < 32) { // 約30fps，更流暢
       return
     }
     updateCardTransforms.lastUpdate = now
@@ -99,7 +99,6 @@ function updateCardTransforms() {
     const scaleProgress = calculateProgress(scrollTop, triggerStart, triggerEnd)
     const targetScale = props.baseScale + (i * props.itemScale)
     const scale = 1 - scaleProgress * (1 - targetScale)
-    // 修改旋轉方向：將正值改為負值，讓左上角往上、右上角往下
     const rotation = props.rotationAmount ? -i * props.rotationAmount * scaleProgress : 0
 
     let blur = 0
@@ -120,25 +119,24 @@ function updateCardTransforms() {
       }
     }
 
-    // 手機優化：使用transform3d提高性能
-    const transform = isMobile.value 
-      ? `translate3d(0, 0, 0) scale(${scale}) rotateZ(${rotation}deg)`
-      : `translate3d(0, 0, 0) scale(${scale}) rotateZ(${rotation}deg)`
+    // 改善手機端transform計算
+    const transform = `translate3d(0, 0, 0) scale(${scale}) rotateZ(${rotation}deg)`
 
-    // 檢查是否需要更新
+    // 檢查是否需要更新（改善性能）
     const lastTransform = lastTransformsRef.value.get(card)
     if (lastTransform !== transform) {
       card.style.transform = transform
       lastTransformsRef.value.set(card, transform)
     }
 
+    // 改善模糊效果
     if (blur > 0) {
       card.style.filter = `blur(${blur}px)`
     } else {
       card.style.filter = 'none'
     }
 
-    // 手機優化：減少z-index變化
+    // 改善z-index管理
     if (!isMobile.value) {
       card.style.zIndex = cardsRef.value.length - i
     }
@@ -190,7 +188,7 @@ onMounted(async () => {
     window.addEventListener('scroll', handleScroll, { passive: true })
     updateCardTransforms()
     
-    // 手機優化：降低動畫幀率
+    // 改善動畫幀率控制
     const isMobileDevice = process.client && window.innerWidth < 768
     const targetFPS = isMobileDevice ? 30 : 60
     const frameInterval = 1000 / targetFPS
@@ -234,13 +232,15 @@ onUnmounted(() => {
 .scroll-stack-content {
   position: relative;
   z-index: 1;
+  padding-top: 20vh;
+  padding-bottom: 20vh;
 }
 
 .scroll-stack-item {
   position: relative;
   width: 100%;
   max-width: 800px;
-  margin: 0 auto;
+  margin: 0 auto 2rem;
   padding: 2rem;
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -253,9 +253,10 @@ onUnmounted(() => {
   /* 手機優化 */
   @media (max-width: 768px) {
     padding: 1.5rem;
-    margin: 0 1rem;
+    margin: 0 1rem 1.5rem;
     border-radius: 0.75rem;
     backdrop-filter: blur(5px);
+    max-width: calc(100% - 2rem);
   }
 }
 
@@ -264,12 +265,27 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-/* 手機優化：減少動畫複雜度 */
+/* 改善手機端性能 */
 @media (max-width: 768px) {
   .scroll-stack-item {
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
     perspective: 1000px;
+    -webkit-backface-visibility: hidden;
+    -webkit-perspective: 1000px;
+  }
+  
+  .scroll-stack-content {
+    padding-top: 15vh;
+    padding-bottom: 15vh;
+  }
+}
+
+/* 改善平板端顯示 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .scroll-stack-item {
+    max-width: 700px;
+    padding: 2.5rem;
   }
 }
 </style>

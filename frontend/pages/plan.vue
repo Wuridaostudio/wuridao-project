@@ -23,6 +23,7 @@ const currentBreakpoint = ref('desktop')
 
 // 確保SSR和客戶端初始狀態一致
 const isClient = ref(false)
+const isHydrated = ref(false)
 
 // 性能監控
 const performanceMetrics = ref({
@@ -241,8 +242,11 @@ function startPerformanceMonitoring() {
 
   let frameCount = 0
   let lastTime = performance.now()
+  let isMonitoring = true
 
   function measureFPS() {
+    if (!isMonitoring) return
+    
     frameCount++
     const currentTime = performance.now()
     
@@ -251,14 +255,14 @@ function startPerformanceMonitoring() {
       frameCount = 0
       lastTime = currentTime
       
-      // 如果FPS過低，考慮降級
-      if (performanceMetrics.value.fps < 20 && !isLowPerformance.value) {
+      // 如果FPS過低，考慮降級（但避免在初始化時誤判）
+      if (performanceMetrics.value.fps < 15 && !isLowPerformance.value && isHydrated.value) {
         logger.warn('[PLAN] 檢測到低FPS，考慮性能降級:', performanceMetrics.value.fps)
         isLowPerformance.value = true
       }
     }
     
-    if (process.client) {
+    if (process.client && isMonitoring) {
       requestAnimationFrame(measureFPS)
     }
   }
@@ -266,20 +270,33 @@ function startPerformanceMonitoring() {
   if (process.client) {
     requestAnimationFrame(measureFPS)
   }
+
+  // 返回停止監控的函數
+  return () => {
+    isMonitoring = false
+  }
 }
 
 // 生命週期管理
+let stopPerformanceMonitoring: (() => void) | null = null
+
 onMounted(async () => {
   const startTime = performance.now()
   
   // 標記客戶端已載入
   isClient.value = true
   
+  // 等待下一個tick確保DOM更新
+  await nextTick()
+  
+  // 標記已完成hydration
+  isHydrated.value = true
+  
   // 初始設備檢測
   detectDeviceAndPerformance()
   
   // 啟動性能監控
-  startPerformanceMonitoring()
+  stopPerformanceMonitoring = startPerformanceMonitoring()
   
   // 添加響應式事件監聽
   if (process.client) {
@@ -326,6 +343,11 @@ onUnmounted(() => {
   // 清理計時器
   if (resizeTimer.value) {
     clearTimeout(resizeTimer.value)
+  }
+  
+  // 停止性能監控
+  if (stopPerformanceMonitoring) {
+    stopPerformanceMonitoring()
   }
   
   logger.log('[PLAN] 頁面組件已卸載')
@@ -377,8 +399,8 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
       </Suspense>
     </section>
     
-         <!-- 滾動堆疊區塊 -->
-     <section v-if="isScrollStackLoaded && isClient" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
+                   <!-- 滾動堆疊區塊 -->
+      <section v-if="isScrollStackLoaded && isClient && isHydrated" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
        <!-- 手機端和平板端：霧面玻璃設計，完全禁用動畫 -->
        <div v-if="isMobile || isTablet" class="w-full max-w-4xl px-4 py-8">
          <div class="space-y-6">

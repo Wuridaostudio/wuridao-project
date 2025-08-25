@@ -21,6 +21,9 @@ const isIOS = ref(false)
 const isLowPerformance = ref(false)
 const currentBreakpoint = ref('desktop')
 
+// 確保SSR和客戶端初始狀態一致
+const isClient = ref(false)
+
 // 性能監控
 const performanceMetrics = ref({
   loadTime: 0,
@@ -196,16 +199,16 @@ const isDev = computed(() => {
   return false
 })
 
-// 計算屬性：動態配置（優化手機穩定性）
+// 計算屬性：動態配置（手機端完全禁用動畫）
 const scrollStackConfig = computed(() => {
   if (isMobile.value) {
     return {
-      itemDistance: 50, // 減少距離，提高穩定性
-      itemScale: 0.01, // 減少縮放變化，避免抖動
-      itemStackDistance: 10, // 減少堆疊距離
-      baseScale: 0.95, // 提高基礎縮放，減少變化範圍
-      blurAmount: 0.1, // 減少模糊效果
-      rotationAmount: 0 // 手機端禁用旋轉，避免抖動
+      itemDistance: 60, // 固定距離
+      itemScale: 0, // 完全禁用縮放動畫
+      itemStackDistance: 0, // 禁用堆疊動畫
+      baseScale: 1, // 固定縮放為1
+      blurAmount: 0, // 完全禁用模糊
+      rotationAmount: 0 // 完全禁用旋轉
     }
   } else if (isTablet.value) {
     return {
@@ -268,6 +271,9 @@ function startPerformanceMonitoring() {
 // 生命週期管理
 onMounted(async () => {
   const startTime = performance.now()
+  
+  // 標記客戶端已載入
+  isClient.value = true
   
   // 初始設備檢測
   detectDeviceAndPerformance()
@@ -372,8 +378,91 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
     </section>
     
     <!-- 滾動堆疊區塊 -->
-    <section v-if="isScrollStackLoaded" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
+    <section v-if="isScrollStackLoaded && isClient" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
+      <!-- 手機端：靜態顯示，完全禁用動畫 -->
+      <div v-if="isMobile" class="w-full max-w-4xl px-4 py-8">
+        <div class="space-y-8">
+          <!-- 步驟 1 -->
+          <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 shadow-lg">
+            <div class="text-center">
+              <h3 class="text-2xl font-bold mb-4 text-white">
+                1. 填寫諮詢表
+              </h3>
+              <p class="text-gray-300 leading-relaxed">
+                詳細了解您的需求與預算
+              </p>
+            </div>
+          </div>
+
+          <!-- 步驟 2 -->
+          <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 shadow-lg">
+            <div class="text-center">
+              <h3 class="text-2xl font-bold mb-4 text-white">
+                2. 預約簡報體驗
+              </h3>
+              <p class="text-gray-300 leading-relaxed mb-4">
+                專業規劃師為您展示智慧家庭方案
+              </p>
+              
+              <!-- LINE QR Code -->
+              <div class="flex justify-center">
+                <div class="bg-white p-2 rounded-lg inline-block">
+                  <img 
+                    src="https://qr-official.line.me/gs/M_417qbotf_BW.png?oat_content=qr"
+                    alt="LINE 好友 QR Code"
+                    class="w-16 h-16"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 mt-2">
+                掃描加入 LINE 好友
+              </p>
+            </div>
+          </div>
+
+          <!-- 步驟 3 -->
+          <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 shadow-lg">
+            <div class="text-center">
+              <h3 class="text-2xl font-bold mb-4 text-white">
+                3. 智慧規劃師上線
+              </h3>
+              <p class="text-gray-300 leading-relaxed">
+                協同設計師規劃最佳化配置
+              </p>
+            </div>
+          </div>
+
+          <!-- 步驟 4 -->
+          <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 shadow-lg">
+            <div class="text-center">
+              <h3 class="text-2xl font-bold mb-4 text-white">
+                4. 進行完整規劃
+              </h3>
+              <p class="text-gray-300 leading-relaxed">
+                制定詳細的安裝與配置計劃
+              </p>
+            </div>
+          </div>
+
+          <!-- 步驟 5 -->
+          <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 shadow-lg">
+            <div class="text-center">
+              <h3 class="text-2xl font-bold mb-4 text-white">
+                5. 落地安裝設定
+              </h3>
+              <p class="text-gray-300 leading-relaxed">
+                專業團隊到府安裝與設定
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 桌面端：使用ScrollStack動畫 -->
       <ScrollStack
+        v-else
         :item-distance="scrollStackConfig.itemDistance"
         :item-scale="scrollStackConfig.itemScale"
         :item-stack-distance="scrollStackConfig.itemStackDistance"

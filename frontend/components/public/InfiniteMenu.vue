@@ -95,37 +95,19 @@ uniform float rgbPersistFactor;
 uniform float alphaPersistFactor;
 varying vec2 v_uv;
 
-// 簡化的噪聲函數
-float simpleNoise(vec2 p) {
-  return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
-}
-
-float noise(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  f = f * f * (3.0 - 2.0 * f);
-  
-  float a = simpleNoise(i);
-  float b = simpleNoise(i + vec2(1.0, 0.0));
-  float c = simpleNoise(i + vec2(0.0, 1.0));
-  float d = simpleNoise(i + vec2(1.0, 1.0));
-  
-  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-}
-
 void main() {
   vec2 uv = v_uv;
   vec2 mouse = mousePos;
   float t = time;
   
-  // 簡化的流體效果
+  // 簡單的流體效果
   vec2 p = uv * 2.0 - 1.0;
-  float n = noise(p * noiseScale + t * 0.5) * noiseFactor;
+  float n = sin(p.x * noiseScale + t) * cos(p.y * noiseScale + t) * noiseFactor;
   
   vec2 flow = vec2(
-    noise(p * 2.0 + t * 0.3),
-    noise(p * 2.0 + t * 0.3 + 100.0)
-  ) * 0.1;
+    sin(p.x * 2.0 + t * 0.3) * 0.1,
+    cos(p.y * 2.0 + t * 0.3) * 0.1
+  );
   
   vec2 distortedUv = uv + flow + n * 0.1;
   vec4 color = texture2D(sampler, distortedUv);
@@ -404,6 +386,16 @@ onMounted(async () => {
     if (now - lastTime > frameInterval) {
       const dt = clock.getDelta()
       
+      // 添加調試信息
+      if (Math.floor(now / 1000) % 5 === 0) {
+        console.log('[InfiniteMenu] 動畫運行中:', {
+          time: clock.getElapsedTime(),
+          mouse: [mouse[0], mouse[1]],
+          target: [target[0], target[1]],
+          persistColor: persistColor
+        })
+      }
+      
       // iPhone優化：簡化顏色動畫
       if (props.animateColor && !props.textColor && !isIPhone) {
         for (let i = 0; i < 3; i++)
@@ -443,10 +435,14 @@ onMounted(async () => {
       requestAnimationFrame(animate)
   }
   animationActive = true
+  isVisible = true
+  console.log('[InfiniteMenu] 開始動畫循環')
   animate()
+  
   // 頁面隱藏時暫停動畫
   document.addEventListener('visibilitychange', () => {
     animationActive = document.visibilityState === 'visible'
+    console.log('[InfiniteMenu] 頁面可見性變化:', animationActive)
     if (animationActive)
       animate()
   })

@@ -24,6 +24,7 @@ const currentBreakpoint = ref('desktop')
 // 確保SSR和客戶端初始狀態一致
 const isClient = ref(false)
 const isHydrated = ref(false)
+const isInitialized = ref(false)
 
 // 性能監控
 const performanceMetrics = ref({
@@ -243,6 +244,7 @@ function startPerformanceMonitoring() {
   let frameCount = 0
   let lastTime = performance.now()
   let isMonitoring = true
+  let measurementCount = 0
 
   function measureFPS() {
     if (!isMonitoring) return
@@ -254,9 +256,14 @@ function startPerformanceMonitoring() {
       performanceMetrics.value.fps = Math.round((frameCount * 1000) / (currentTime - lastTime))
       frameCount = 0
       lastTime = currentTime
+      measurementCount++
       
-      // 如果FPS過低，考慮降級（但避免在初始化時誤判）
-      if (performanceMetrics.value.fps < 15 && !isLowPerformance.value && isHydrated.value) {
+      // 只在多次測量後且初始化完成時才進行性能降級判斷
+      if (measurementCount >= 3 && 
+          performanceMetrics.value.fps < 15 && 
+          !isLowPerformance.value && 
+          isHydrated.value && 
+          isInitialized.value) {
         logger.warn('[PLAN] 檢測到低FPS，考慮性能降級:', performanceMetrics.value.fps)
         isLowPerformance.value = true
       }
@@ -329,6 +336,12 @@ onMounted(async () => {
   
   await nextTick()
   
+  // 延遲標記初始化完成，確保所有組件都已載入
+  setTimeout(() => {
+    isInitialized.value = true
+    logger.log('[PLAN] 頁面初始化完成')
+  }, 2000)
+  
   performanceMetrics.value.loadTime = performance.now() - startTime
   logger.log('[PLAN] 頁面載入完成，載入時間:', performanceMetrics.value.loadTime + 'ms')
 })
@@ -399,8 +412,9 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
       </Suspense>
     </section>
     
-                   <!-- 滾動堆疊區塊 -->
-      <section v-if="isScrollStackLoaded && isClient && isHydrated" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
+                                       <!-- 滾動堆疊區塊 -->
+       <ClientOnly>
+         <section v-if="isScrollStackLoaded && isClient && isHydrated && isInitialized" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
        <!-- 手機端和平板端：霧面玻璃設計，完全禁用動畫 -->
        <div v-if="isMobile || isTablet" class="w-full max-w-4xl px-4 py-8">
          <div class="space-y-6">
@@ -577,8 +591,9 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
             </p>
           </div>
         </ScrollStackItem>
-      </ScrollStack>
-    </section>
+               </ScrollStack>
+       </section>
+         </ClientOnly>
 
     <!-- 性能監控面板（開發模式） -->
     <div v-if="isDev && performanceMetrics" class="fixed top-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs z-50">

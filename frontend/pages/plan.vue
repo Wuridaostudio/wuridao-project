@@ -378,25 +378,26 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
 </script>
 
 <template>
-  <div class="relative bg-black min-h-screen">
-    <!-- Hero 區塊（InfiniteMenu）- 優先載入 -->
-    <section style="height: 100vh; position: relative">
-      <Suspense>
-        <template #default>
-          <InfiniteMenu 
-            class="w-full h-full" 
-            :is-mobile="isMobile"
-            :is-ios="isIOS"
-            :is-low-performance="isLowPerformance"
-          />
-        </template>
-        <template #fallback>
-          <div class="w-full h-full flex items-center justify-center bg-black">
-            <LoadingSpinner />
-          </div>
-        </template>
-      </Suspense>
-    </section>
+  <ClientOnly>
+    <div class="relative bg-black min-h-screen">
+      <!-- Hero 區塊（InfiniteMenu）- 優先載入 -->
+      <section style="height: 100vh; position: relative">
+        <Suspense>
+          <template #default>
+            <InfiniteMenu 
+              class="w-full h-full" 
+              :is-mobile="isMobile"
+              :is-ios="isIOS"
+              :is-low-performance="isLowPerformance"
+            />
+          </template>
+          <template #fallback>
+            <div class="w-full h-full flex items-center justify-center bg-black">
+              <LoadingSpinner />
+            </div>
+          </template>
+        </Suspense>
+      </section>
     
     <!-- 表單區塊 -->
     <section v-if="isSmartFormLoaded">
@@ -412,9 +413,8 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
       </Suspense>
     </section>
     
-                                       <!-- 滾動堆疊區塊 -->
-       <ClientOnly>
-         <section v-if="isScrollStackLoaded && isClient && isHydrated && isInitialized" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
+                                                                               <!-- 滾動堆疊區塊 -->
+        <section v-if="isScrollStackLoaded && isClient && isHydrated && isInitialized" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
        <!-- 手機端和平板端：霧面玻璃設計，完全禁用動畫 -->
        <div v-if="isMobile || isTablet" class="w-full max-w-4xl px-4 py-8">
          <div class="space-y-6">
@@ -593,21 +593,26 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
         </ScrollStackItem>
                </ScrollStack>
        </section>
-         </ClientOnly>
 
-    <!-- 性能監控面板（開發模式） -->
-    <div v-if="isDev && performanceMetrics" class="fixed top-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs z-50">
-      <div class="mb-2">
-        <strong>性能監控</strong>
-      </div>
-      <div>載入時間: {{ performanceMetrics.loadTime.toFixed(0) }}ms</div>
-      <div>FPS: {{ performanceMetrics.fps }}</div>
-      <div>斷點: {{ currentBreakpoint }}</div>
-      <div>iOS: {{ isIOS ? '是' : '否' }}</div>
-      <div>低性能: {{ isLowPerformance ? '是' : '否' }}</div>
-    </div>
-  </div>
-</template>
+         <!-- 性能監控面板（開發模式） -->
+     <div v-if="isDev && performanceMetrics" class="fixed top-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs z-50">
+       <div class="mb-2">
+         <strong>性能監控</strong>
+       </div>
+       <div>載入時間: {{ performanceMetrics.loadTime.toFixed(0) }}ms</div>
+       <div>FPS: {{ performanceMetrics.fps }}</div>
+       <div>斷點: {{ currentBreakpoint }}</div>
+       <div>iOS: {{ isIOS ? '是' : '否' }}</div>
+       <div>低性能: {{ isLowPerformance ? '是' : '否' }}</div>
+     </div>
+   </div>
+     <template #fallback>
+       <div class="relative bg-black min-h-screen flex items-center justify-center">
+         <LoadingSpinner />
+       </div>
+     </template>
+   </ClientOnly>
+ </template>
 
 <style scoped>
 .infinite-menu-absolute {

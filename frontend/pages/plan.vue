@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { logger } from '~/utils/logger'
-import { defineAsyncComponent, ref, onMounted, nextTick } from 'vue'
+import { defineAsyncComponent, ref, onMounted, onUnmounted, nextTick, watch, computed } from 'vue'
 import ScrollStack from '@/components/common/ScrollStack.vue'
 import ScrollStackItem from '@/components/common/ScrollStackItem.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
@@ -10,11 +10,149 @@ definePageMeta({
   layout: 'plan',
 })
 
-// 載入狀態管理
+// 響應式狀態管理
 const isInfiniteMenuLoaded = ref(false)
 const isSmartFormLoaded = ref(false)
 const isScrollStackLoaded = ref(false)
 const isMobile = ref(false)
+const isTablet = ref(false)
+const isDesktop = ref(false)
+const isIOS = ref(false)
+const isLowPerformance = ref(false)
+const currentBreakpoint = ref('desktop')
+
+// 性能監控
+const performanceMetrics = ref({
+  loadTime: 0,
+  memoryUsage: 0,
+  fps: 0,
+  deviceCapabilities: {
+    webgl: false,
+    webgl2: false,
+    maxTextureSize: 0,
+    memoryLimit: 0
+  }
+})
+
+// 響應式斷點配置
+const BREAKPOINTS = {
+  mobile: 768,
+  tablet: 1024,
+  desktop: 1025
+}
+
+// 設備檢測和性能評估
+function detectDeviceAndPerformance() {
+  if (!process.client) return
+
+  const width = window.innerWidth
+  const userAgent = navigator.userAgent
+  
+  // 響應式斷點檢測
+  if (width < BREAKPOINTS.mobile) {
+    currentBreakpoint.value = 'mobile'
+    isMobile.value = true
+    isTablet.value = false
+    isDesktop.value = false
+  } else if (width < BREAKPOINTS.tablet) {
+    currentBreakpoint.value = 'tablet'
+    isMobile.value = false
+    isTablet.value = true
+    isDesktop.value = false
+  } else {
+    currentBreakpoint.value = 'desktop'
+    isMobile.value = false
+    isTablet.value = false
+    isDesktop.value = true
+  }
+
+  // iOS檢測
+  isIOS.value = /iPad|iPhone|iPod/.test(userAgent) || 
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+
+  // 性能檢測
+  detectPerformanceCapabilities()
+
+  logger.log('[PLAN] 設備檢測完成:', {
+    breakpoint: currentBreakpoint.value,
+    isMobile: isMobile.value,
+    isTablet: isTablet.value,
+    isDesktop: isDesktop.value,
+    isIOS: isIOS.value,
+    width,
+    userAgent: userAgent.substring(0, 50) + '...'
+  })
+}
+
+// 性能能力檢測
+function detectPerformanceCapabilities() {
+  if (!process.client) return
+
+  try {
+    // WebGL檢測
+    const canvas = document.createElement('canvas')
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+    const gl2 = canvas.getContext('webgl2')
+
+    performanceMetrics.value.deviceCapabilities.webgl = !!gl
+    performanceMetrics.value.deviceCapabilities.webgl2 = !!gl2
+
+    if (gl) {
+      performanceMetrics.value.deviceCapabilities.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE)
+    }
+
+    // 記憶體檢測
+    if ('memory' in performance) {
+      const memory = (performance as any).memory
+      performanceMetrics.value.deviceCapabilities.memoryLimit = memory.jsHeapSizeLimit
+      performanceMetrics.value.memoryUsage = memory.usedJSHeapSize
+    }
+
+    // 性能評估
+    const isLowPerformanceDevice = () => {
+      // iOS設備特殊處理
+      if (isIOS.value) {
+        // iOS設備通常需要更保守的性能評估
+        return performanceMetrics.value.deviceCapabilities.maxTextureSize < 4096 ||
+               performanceMetrics.value.deviceCapabilities.memoryLimit < 200 * 1024 * 1024
+      }
+
+      // 其他設備
+      return performanceMetrics.value.deviceCapabilities.maxTextureSize < 2048 ||
+             performanceMetrics.value.deviceCapabilities.memoryLimit < 100 * 1024 * 1024 ||
+             !performanceMetrics.value.deviceCapabilities.webgl
+    }
+
+    isLowPerformance.value = isLowPerformanceDevice()
+
+    logger.log('[PLAN] 性能檢測完成:', {
+      webgl: performanceMetrics.value.deviceCapabilities.webgl,
+      webgl2: performanceMetrics.value.deviceCapabilities.webgl2,
+      maxTextureSize: performanceMetrics.value.deviceCapabilities.maxTextureSize,
+      memoryLimit: performanceMetrics.value.deviceCapabilities.memoryLimit,
+      isLowPerformance: isLowPerformance.value
+    })
+
+  } catch (error) {
+    logger.error('[PLAN] 性能檢測失敗:', error)
+    isLowPerformance.value = true
+  }
+}
+
+// 響應式事件處理
+function handleResize() {
+  if (!process.client) return
+
+  // 防抖處理
+  clearTimeout(resizeTimer.value)
+  resizeTimer.value = setTimeout(() => {
+    detectDeviceAndPerformance()
+    logger.log('[PLAN] 響應式調整完成:', { breakpoint: currentBreakpoint.value })
+  }, 150)
+}
+
+// 響應式計時器
+const resizeTimer = ref<NodeJS.Timeout | null>(null)
 
 // 懶載入組件，添加載入狀態
 const InfiniteMenu = defineAsyncComponent({
@@ -28,6 +166,8 @@ const InfiniteMenu = defineAsyncComponent({
   },
   onError: (error) => {
     logger.error('[PLAN] InfiniteMenu 載入失敗:', error)
+    // 載入失敗時使用備用方案
+    isLowPerformance.value = true
   }
 })
 
@@ -45,41 +185,136 @@ const SmartFormSection = defineAsyncComponent({
   }
 })
 
-// 檢測設備類型
-function detectDevice() {
-  if (process.client) {
-    isMobile.value = window.innerWidth < 768
-    logger.log('[PLAN] 設備檢測:', { isMobile: isMobile.value, width: window.innerWidth })
+// 計算屬性：動態配置
+const scrollStackConfig = computed(() => {
+  if (isMobile.value) {
+    return {
+      itemDistance: 60,
+      itemScale: 0.015,
+      itemStackDistance: 15,
+      baseScale: 0.92,
+      blurAmount: 0.2
+    }
+  } else if (isTablet.value) {
+    return {
+      itemDistance: 80,
+      itemScale: 0.025,
+      itemStackDistance: 25,
+      baseScale: 0.88,
+      blurAmount: 0.4
+    }
+  } else {
+    return {
+      itemDistance: 100,
+      itemScale: 0.03,
+      itemStackDistance: 30,
+      baseScale: 0.85,
+      blurAmount: 0.5
+    }
   }
-}
+})
 
 function handleStackComplete() {
-  logger.log('Scroll stack animation completed!')
+  logger.log('[PLAN] Scroll stack animation completed!')
 }
 
-// 手機優化：延遲載入非關鍵組件
-onMounted(async () => {
-  detectDevice()
-  
-  // 手機設備優化：延遲載入非關鍵組件
-  if (isMobile.value) {
-    // 延遲載入 SmartFormSection
-    setTimeout(() => {
-      isSmartFormLoaded.value = true
-    }, 1000)
+// 性能監控
+function startPerformanceMonitoring() {
+  if (!process.client) return
+
+  let frameCount = 0
+  let lastTime = performance.now()
+
+  function measureFPS() {
+    frameCount++
+    const currentTime = performance.now()
     
-    // 延遲載入 ScrollStack
-    setTimeout(() => {
-      isScrollStackLoaded.value = true
-    }, 2000)
-  } else {
-    // 桌面設備立即載入
+    if (currentTime - lastTime >= 1000) {
+      performanceMetrics.value.fps = Math.round((frameCount * 1000) / (currentTime - lastTime))
+      frameCount = 0
+      lastTime = currentTime
+      
+      // 如果FPS過低，考慮降級
+      if (performanceMetrics.value.fps < 20 && !isLowPerformance.value) {
+        logger.warn('[PLAN] 檢測到低FPS，考慮性能降級:', performanceMetrics.value.fps)
+        isLowPerformance.value = true
+      }
+    }
+    
+    requestAnimationFrame(measureFPS)
+  }
+
+  requestAnimationFrame(measureFPS)
+}
+
+// 生命週期管理
+onMounted(async () => {
+  const startTime = performance.now()
+  
+  // 初始設備檢測
+  detectDeviceAndPerformance()
+  
+  // 啟動性能監控
+  startPerformanceMonitoring()
+  
+  // 添加響應式事件監聽
+  if (process.client) {
+    window.addEventListener('resize', handleResize, { passive: true })
+    window.addEventListener('orientationchange', handleResize, { passive: true })
+  }
+
+  // 組件載入策略
+  if (isLowPerformance.value || isIOS.value) {
+    // 低性能設備或iOS：立即載入所有組件，但使用簡化版本
     isSmartFormLoaded.value = true
     isScrollStackLoaded.value = true
+    logger.log('[PLAN] 低性能設備/iOS：立即載入所有組件')
+  } else if (isMobile.value) {
+    // 手機設備：延遲載入非關鍵組件
+    setTimeout(() => {
+      isSmartFormLoaded.value = true
+    }, 500)
+    
+    setTimeout(() => {
+      isScrollStackLoaded.value = true
+    }, 1000)
+    logger.log('[PLAN] 手機設備：延遲載入策略')
+  } else {
+    // 桌面設備：立即載入
+    isSmartFormLoaded.value = true
+    isScrollStackLoaded.value = true
+    logger.log('[PLAN] 桌面設備：立即載入')
   }
   
   await nextTick()
-  logger.log('[PLAN] 頁面載入完成')
+  
+  performanceMetrics.value.loadTime = performance.now() - startTime
+  logger.log('[PLAN] 頁面載入完成，載入時間:', performanceMetrics.value.loadTime + 'ms')
+})
+
+onUnmounted(() => {
+  // 清理事件監聽器
+  if (process.client) {
+    window.removeEventListener('resize', handleResize)
+    window.removeEventListener('orientationchange', handleResize)
+  }
+  
+  // 清理計時器
+  if (resizeTimer.value) {
+    clearTimeout(resizeTimer.value)
+  }
+  
+  logger.log('[PLAN] 頁面組件已卸載')
+})
+
+// 監聽響應式變化
+watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
+  logger.log('[PLAN] 響應式狀態變化:', {
+    isMobile: isMobile.value,
+    isTablet: isTablet.value,
+    isDesktop: isDesktop.value,
+    isLowPerformance: isLowPerformance.value
+  })
 })
 </script>
 
@@ -89,7 +324,12 @@ onMounted(async () => {
     <section style="height: 100vh; position: relative">
       <Suspense>
         <template #default>
-          <InfiniteMenu class="w-full h-full" />
+          <InfiniteMenu 
+            class="w-full h-full" 
+            :is-mobile="isMobile"
+            :is-ios="isIOS"
+            :is-low-performance="isLowPerformance"
+          />
         </template>
         <template #fallback>
           <div class="w-full h-full flex items-center justify-center bg-black">
@@ -99,7 +339,7 @@ onMounted(async () => {
       </Suspense>
     </section>
     
-    <!-- 表單區塊 - 手機延遲載入 -->
+    <!-- 表單區塊 -->
     <section v-if="isSmartFormLoaded">
       <Suspense>
         <template #default>
@@ -113,17 +353,17 @@ onMounted(async () => {
       </Suspense>
     </section>
     
-    <!-- 滾動堆疊區塊 - 手機延遲載入 -->
+    <!-- 滾動堆疊區塊 -->
     <section v-if="isScrollStackLoaded" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
       <ScrollStack
-        :item-distance="isMobile ? 80 : 100"
-        :item-scale="isMobile ? 0.02 : 0.03"
-        :item-stack-distance="isMobile ? 20 : 30"
+        :item-distance="scrollStackConfig.itemDistance"
+        :item-scale="scrollStackConfig.itemScale"
+        :item-stack-distance="scrollStackConfig.itemStackDistance"
         stack-position="20%"
         scale-end-position="10%"
-        :base-scale="isMobile ? 0.9 : 0.85"
+        :base-scale="scrollStackConfig.baseScale"
         :rotation-amount="0"
-        :blur-amount="isMobile ? 0.3 : 0.5"
+        :blur-amount="scrollStackConfig.blurAmount"
         @stack-complete="handleStackComplete"
         role="region"
         aria-label="智慧家庭服務流程"
@@ -148,7 +388,7 @@ onMounted(async () => {
               專業規劃師為您展示智慧家庭方案
             </p>
             
-            <!-- LINE QR Code - 手機優化 -->
+            <!-- LINE QR Code - 響應式優化 -->
             <div class="flex justify-center">
               <div class="bg-white p-2 rounded-lg inline-block">
                 <img 
@@ -200,6 +440,18 @@ onMounted(async () => {
         </ScrollStackItem>
       </ScrollStack>
     </section>
+
+    <!-- 性能監控面板（開發模式） -->
+    <div v-if="process.dev && performanceMetrics" class="fixed top-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs z-50">
+      <div class="mb-2">
+        <strong>性能監控</strong>
+      </div>
+      <div>載入時間: {{ performanceMetrics.loadTime.toFixed(0) }}ms</div>
+      <div>FPS: {{ performanceMetrics.fps }}</div>
+      <div>斷點: {{ currentBreakpoint }}</div>
+      <div>iOS: {{ isIOS ? '是' : '否' }}</div>
+      <div>低性能: {{ isLowPerformance ? '是' : '否' }}</div>
+    </div>
   </div>
 </template>
 
@@ -235,12 +487,48 @@ onMounted(async () => {
   );
 }
 
-/* 手機優化樣式 */
+/* 響應式優化樣式 */
 @media (max-width: 768px) {
   .color-card {
     width: 300px;
     height: 200px;
     font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .color-card {
+    width: 250px;
+    height: 150px;
+    font-size: 1.2rem;
+  }
+}
+
+/* iOS 特定優化 */
+@supports (-webkit-touch-callout: none) {
+  .color-card {
+    /* iOS Safari 特定樣式 */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+}
+
+/* 性能優化 */
+* {
+  /* 啟用硬件加速 */
+  will-change: auto;
+}
+
+/* 滾動優化 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 觸控優化 */
+@media (hover: none) and (pointer: coarse) {
+  .color-card {
+    /* 觸控設備優化 */
+    touch-action: manipulation;
   }
 }
 </style>

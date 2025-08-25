@@ -17,8 +17,10 @@ const props = defineProps({
   backgroundColor: { type: [String, Number], default: 0x271E37 },
   colorCycleInterval: { type: Number, default: 3000 },
   supersample: { type: Number, default: 1 },
-  // 手機優化：添加效能控制參數
+  // 高級設備檢測參數
   isMobile: { type: Boolean, default: false },
+  isIOS: { type: Boolean, default: false },
+  isLowPerformance: { type: Boolean, default: false },
   enableComplexEffects: { type: Boolean, default: true },
 })
 
@@ -238,50 +240,72 @@ onMounted(async () => {
   if (!isClient || !containerRef.value)
     return
     
-  // 手機優化：檢查是否為低性能設備
-  const isLowPerformanceDevice = () => {
-    if (!process.client) return false
-    
-    // 檢查記憶體
-    if ('memory' in performance) {
-      const memory = (performance as any).memory
-      if (memory.jsHeapSizeLimit < 100 * 1024 * 1024) { // 100MB
-        return true
-      }
+  // 高級設備檢測和性能評估
+  const shouldUseSimplifiedVersion = () => {
+    // 如果父組件已經檢測到低性能，直接使用簡化版本
+    if (props.isLowPerformance) {
+      console.log('[InfiniteMenu] 父組件檢測到低性能設備')
+      return true
     }
     
-    // 檢查WebGL支援
+    // iOS設備特殊處理
+    if (props.isIOS) {
+      console.log('[InfiniteMenu] 檢測到iOS設備，使用優化版本')
+      return false // iOS設備使用優化版本，不是簡化版本
+    }
+    
+    // 本地性能檢測（作為備用）
+    if (!process.client) return false
+    
     try {
+      // 檢查WebGL支援
       const canvas = document.createElement('canvas')
       const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
-      if (!gl) return true
+      if (!gl) {
+        console.log('[InfiniteMenu] WebGL不支援')
+        return true
+      }
       
       const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE)
-      if (maxTextureSize < 2048) return true
+      if (maxTextureSize < 1024) {
+        console.log('[InfiniteMenu] WebGL紋理大小限制:', maxTextureSize)
+        return true
+      }
+      
+      // 檢查記憶體
+      if ('memory' in performance) {
+        const memory = (performance as any).memory
+        if (memory.jsHeapSizeLimit < 50 * 1024 * 1024) { // 50MB
+          console.log('[InfiniteMenu] 記憶體限制:', memory.jsHeapSizeLimit)
+          return true
+        }
+      }
     } catch (error) {
+      console.log('[InfiniteMenu] 性能檢測失敗:', error)
       return true
     }
     
     return false
   }
   
-  // 如果是低性能設備，使用簡化版本
-  if (isLowPerformanceDevice()) {
-    console.log('[InfiniteMenu] 檢測到低性能設備，使用簡化版本')
+  // 決定是否使用簡化版本
+  if (shouldUseSimplifiedVersion()) {
+    console.log('[InfiniteMenu] 使用簡化版本')
     isLowPerformance.value = true
     loading.value = false
     return
   }
     
-  // 手機優化：檢測設備類型
-  const isMobileDevice = window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  // 高級設備檢測和優化策略
+  const isMobileDevice = props.isMobile || window.innerWidth < 768
+  const isIOSDevice = props.isIOS || /iPad|iPhone|iPod/.test(navigator.userAgent)
   
   let w = containerRef.value.clientWidth
   let h = containerRef.value.clientHeight
   
-  // 手機優化：大幅降低渲染品質以提高性能
-  const pixelRatio = isMobileDevice ? 1 : window.devicePixelRatio || 1
-  const antialias = false // 手機端完全關閉抗鋸齒
+  // iOS設備特殊優化
+  const pixelRatio = isIOSDevice ? 1 : (isMobileDevice ? 1 : window.devicePixelRatio || 1)
+  const antialias = false // 所有移動設備關閉抗鋸齒
   
   renderer = new THREE.WebGLRenderer({
     antialias: antialias,
@@ -295,8 +319,8 @@ onMounted(async () => {
   renderer.setClearColor(new THREE.Color(props.backgroundColor), 1)
   renderer.setPixelRatio(pixelRatio)
   
-  // 手機優化：大幅降低解析度以提高性能
-  const scale = isMobileDevice ? 0.3 : 0.7
+  // 高級解析度優化策略
+  const scale = isIOSDevice ? 0.5 : (isMobileDevice ? 0.3 : 0.7)
   renderer.setSize(w * scale, h * scale)
   renderer.domElement.style.width = `${w}px`
   renderer.domElement.style.height = `${h}px`
@@ -396,9 +420,9 @@ onMounted(async () => {
     { threshold: 0.01 },
   )
   intersectionObserver.observe(containerRef.value)
-  // 動畫循環（手機優化：大幅降低幀率）
+  // 高級動畫優化策略
   let lastTime = 0
-  const targetFPS = isMobileDevice ? 15 : 30 // 手機降低到 15fps
+  const targetFPS = isIOSDevice ? 20 : (isMobileDevice ? 15 : 30) // iOS使用20fps平衡性能和流暢度
   const frameInterval = 1000 / targetFPS
   
   function animate(now) {
@@ -414,7 +438,7 @@ onMounted(async () => {
           persistColor[i] += (targetColor[i] - persistColor[i]) * dt
       }
       
-      const speed = dt * (isMobileDevice ? 1.5 : 5) // 手機大幅降低動畫速度
+      const speed = dt * (isIOSDevice ? 2 : (isMobileDevice ? 1.5 : 5)) // iOS適中的動畫速度
       mouse[0] += (target[0] - mouse[0]) * speed
       mouse[1] += (target[1] - mouse[1]) * speed
       
@@ -422,9 +446,9 @@ onMounted(async () => {
       quadMat.uniforms.sampler.value = rt1.texture
       quadMat.uniforms.time.value = clock.getElapsedTime()
       
-      // 手機優化：大幅降低特效強度
-      const noiseFactor = isMobileDevice ? props.noiseFactor * 0.2 : props.noiseFactor
-      const noiseScale = isMobileDevice ? props.noiseScale * 0.2 : props.noiseScale
+      // 高級特效優化策略
+      const noiseFactor = isIOSDevice ? props.noiseFactor * 0.3 : (isMobileDevice ? props.noiseFactor * 0.2 : props.noiseFactor)
+      const noiseScale = isIOSDevice ? props.noiseScale * 0.3 : (isMobileDevice ? props.noiseScale * 0.2 : props.noiseScale)
       
       quadMat.uniforms.noiseFactor.value = noiseFactor
       quadMat.uniforms.noiseScale.value = noiseScale

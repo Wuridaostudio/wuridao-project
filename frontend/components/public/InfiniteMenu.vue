@@ -27,7 +27,6 @@ const isClient
 
 const containerRef = ref(null)
 const loading = ref(true)
-const isLowPerformance = ref(false)
 let renderer,
   scene,
   fluidScene,
@@ -86,16 +85,28 @@ const BASE_VERT = `
 varying vec2 v_uv;
 void main(){gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);v_uv=uv;}`
 
-const SIMPLEX = `
+const PERSIST_FRAG = `
+uniform sampler2D sampler;
+uniform float time;
+uniform vec2 mousePos;
+uniform float noiseFactor;
+uniform float noiseScale;
+uniform float rgbPersistFactor;
+uniform float alphaPersistFactor;
+varying vec2 v_uv;
+
 vec3 mod289(vec3 x) {
   return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
+
 vec4 mod289(vec4 x) {
   return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
+
 vec4 permute(vec4 x) {
   return mod289(((x * 34.0) + 1.0) * x);
 }
+
 float snoise3(vec3 v) {
   const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
   const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
@@ -134,18 +145,8 @@ float snoise3(vec3 v) {
   vec4 m = max(0.5 - vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)), 0.0);
   m = m * m;
   return 105.0 * dot(m * m, norm);
-}`
+}
 
-const PERSIST_FRAG = `
-uniform sampler2D sampler;
-uniform float time;
-uniform vec2 mousePos;
-uniform float noiseFactor;
-uniform float noiseScale;
-uniform float rgbPersistFactor;
-uniform float alphaPersistFactor;
-varying vec2 v_uv;
-${SIMPLEX}
 void main() {
   vec2 uv = v_uv;
   vec2 mouse = mousePos;
@@ -155,7 +156,6 @@ void main() {
   vec2 flow = vec2(snoise3(vec3(p * 2.0, t * 0.3, 0.0)), snoise3(vec3(p * 2.0, t * 0.3, 100.0))) * 0.1;
   vec2 distortedUv = uv + flow + noise * 0.1;
   vec4 color = texture2D(sampler, distortedUv);
-  vec2 mouseFlow = normalize(uv - mouse) * 0.1;
   color.rgb = mix(color.rgb, color.rgb * 1.2, exp(-length(uv - mouse) * 2.0));
   gl_FragColor = vec4(color.rgb * rgbPersistFactor, color.a * alphaPersistFactor);
 }`
@@ -224,54 +224,7 @@ onMounted(async () => {
   if (!isClient || !containerRef.value)
     return
     
-  // 手機優化：檢查是否為低性能設備
-  const checkLowPerformanceDevice = () => {
-    if (!process.client) return false
-    
-    // 改善低性能設備檢測邏輯
-    let isLowPerformance = false
-    
-    // 檢查記憶體（降低閾值）
-    if ('memory' in performance) {
-      const memory = (performance as any).memory
-      if (memory.jsHeapSizeLimit < 50 * 1024 * 1024) { // 50MB
-        isLowPerformance = true
-      }
-    }
-    
-    // 檢查WebGL支援（更寬鬆的標準）
-    try {
-      const canvas = document.createElement('canvas')
-      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
-      if (!gl) return true
-      
-      const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE)
-      if (maxTextureSize < 1024) return true // 降低要求
-    } catch (error) {
-      return true
-    }
-    
-    // iPhone特殊處理：不自動歸類為低性能設備
-    const userAgent = navigator.userAgent.toLowerCase()
-    const isIPhone = /iphone|ipad|ipod/i.test(userAgent)
-    
-    // 只有非iPhone的移動設備才自動使用簡化版本
-    if (!isIPhone && (props.isMobile || window.innerWidth < 768)) {
-      return true
-    }
-    
-    return isLowPerformance
-  }
-  
-  // 如果是低性能設備，使用簡化版本
-  if (checkLowPerformanceDevice()) {
-    console.log('[InfiniteMenu] 檢測到低性能設備或移動設備，使用簡化版本')
-    isLowPerformance.value = true
-    loading.value = false
-    return
-  }
-  
-  // 添加iPhone調試日誌
+  // 添加設備調試日誌
   console.log('[InfiniteMenu] 設備檢測:', {
     userAgent: navigator.userAgent,
     isIPhone: /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase()),
@@ -281,7 +234,7 @@ onMounted(async () => {
     devicePixelRatio: window.devicePixelRatio
   })
     
-  // 手機優化：檢測設備類型
+  // 檢測設備類型
   const isMobileDevice = props.isMobile || window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   
   // iPhone特殊配置
@@ -291,33 +244,31 @@ onMounted(async () => {
   const w = containerRef.value.clientWidth
   const h = containerRef.value.clientHeight
   
-  // iPhone優化：使用更保守的渲染設定
+  // 渲染設定
   const pixelRatio = isIPhone ? 1 : (isMobileDevice ? 1 : window.devicePixelRatio || 1)
-  const antialias = isIPhone ? false : !isMobileDevice // iPhone關閉抗鋸齒
+  const antialias = isIPhone ? false : !isMobileDevice
   
   try {
     renderer = new THREE.WebGLRenderer({
       antialias: antialias,
       powerPreference: 'high-performance',
-      // iPhone優化：啟用alpha通道以支援透明效果
       alpha: isIPhone ? true : false,
       stencil: false,
       depth: false,
-      // iPhone特殊設定
       preserveDrawingBuffer: isIPhone ? true : false,
     })
     
     renderer.setClearColor(new THREE.Color(props.backgroundColor), isIPhone ? 0 : 1)
     renderer.setPixelRatio(pixelRatio)
     
-    // iPhone優化：使用更保守的解析度
+    // 解析度設定
     const scale = isIPhone ? 0.5 : (isMobileDevice ? 0.3 : 0.7)
     renderer.setSize(w * scale, h * scale)
     renderer.domElement.style.width = `${w}px`
     renderer.domElement.style.height = `${h}px`
     renderer.domElement.style.transform = `scale(${1/scale})`
     
-    // iPhone特殊處理：確保canvas正確顯示
+    // iPhone特殊處理
     if (isIPhone) {
       renderer.domElement.style.position = 'absolute'
       renderer.domElement.style.top = '0'
@@ -334,57 +285,43 @@ onMounted(async () => {
     rt0 = new THREE.WebGLRenderTarget(w, h)
     rt1 = rt0.clone()
     
-    // 嘗試創建著色器材質
-    try {
-      // 先初始化顏色
-      persistColor = hexToRgb(props.textColor || props.startColor).map(
-        c => c / 255,
-      )
-      targetColor = [...persistColor]
-      
-      console.log('[InfiniteMenu] 創建著色器材質，顏色:', persistColor)
-      
-      quadMat = new THREE.ShaderMaterial({
-        uniforms: {
-          sampler: { value: null },
-          time: { value: 0 },
-          mousePos: { value: new THREE.Vector2(-1, 1) },
-          noiseFactor: { value: props.noiseFactor },
-          noiseScale: { value: props.noiseScale },
-          rgbPersistFactor: { value: props.rgbPersistFactor },
-          alphaPersistFactor: { value: props.alphaPersistFactor },
-        },
-        vertexShader: BASE_VERT,
-        fragmentShader: PERSIST_FRAG,
-        transparent: true,
-      })
-      
-      console.log('[InfiniteMenu] quadMat 創建成功')
-      
-      labelMat = new THREE.ShaderMaterial({
-        uniforms: {
-          sampler: { value: null },
-          color: { value: new THREE.Vector4(...persistColor) },
-        },
-        vertexShader: BASE_VERT,
-        fragmentShader: TEXT_FRAG,
-        transparent: true,
-      })
-      
-      console.log('[InfiniteMenu] labelMat 創建成功')
-      
-    } catch (shaderError) {
-      console.error('[InfiniteMenu] 著色器編譯失敗，使用簡化版本:', shaderError)
-      console.error('[InfiniteMenu] 錯誤詳情:', {
-        message: shaderError.message,
-        stack: shaderError.stack,
-        persistColor: persistColor,
-        props: props
-      })
-      isLowPerformance.value = true
-      loading.value = false
-      return
-    }
+    // 初始化顏色
+    persistColor = hexToRgb(props.textColor || props.startColor).map(
+      c => c / 255,
+    )
+    targetColor = [...persistColor]
+    
+    console.log('[InfiniteMenu] 創建著色器材質，顏色:', persistColor)
+    
+    // 創建著色器材質
+    quadMat = new THREE.ShaderMaterial({
+      uniforms: {
+        sampler: { value: null },
+        time: { value: 0 },
+        mousePos: { value: new THREE.Vector2(-1, 1) },
+        noiseFactor: { value: props.noiseFactor },
+        noiseScale: { value: props.noiseScale },
+        rgbPersistFactor: { value: props.rgbPersistFactor },
+        alphaPersistFactor: { value: props.alphaPersistFactor },
+      },
+      vertexShader: BASE_VERT,
+      fragmentShader: PERSIST_FRAG,
+      transparent: true,
+    })
+    
+    console.log('[InfiniteMenu] quadMat 創建成功')
+    
+    labelMat = new THREE.ShaderMaterial({
+      uniforms: {
+        sampler: { value: null },
+        color: { value: new THREE.Vector4(...persistColor) },
+      },
+      vertexShader: BASE_VERT,
+      fragmentShader: TEXT_FRAG,
+      transparent: true,
+    })
+    
+    console.log('[InfiniteMenu] labelMat 創建成功')
     
     quad = new THREE.Mesh(new THREE.PlaneGeometry(w, h), quadMat)
     fluidScene.add(quad)
@@ -407,8 +344,7 @@ onMounted(async () => {
     labelMat.uniforms.sampler.value = new THREE.CanvasTexture(texCanvas)
     
   } catch (error) {
-    console.error('[InfiniteMenu] WebGL初始化失敗，使用簡化版本:', error)
-    isLowPerformance.value = true
+    console.error('[InfiniteMenu] WebGL初始化失敗:', error)
     loading.value = false
     return
   }
@@ -564,78 +500,11 @@ onBeforeUnmount(() => {
       <LoadingSpinner />
     </div>
     
-    <!-- 低性能設備的簡化版本 -->
-    <div
-      v-if="!loading && isLowPerformance"
-      class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 relative overflow-hidden"
-    >
-      <!-- 背景動畫效果 -->
-      <div class="absolute inset-0 opacity-20">
-        <div class="absolute top-1/4 left-1/4 w-32 h-32 bg-blue-400 rounded-full blur-3xl animate-pulse"></div>
-        <div class="absolute bottom-1/4 right-1/4 w-24 h-24 bg-purple-400 rounded-full blur-2xl animate-pulse" style="animation-delay: 1s;"></div>
-        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-indigo-400 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
-      </div>
-      
-      <div class="text-center relative z-10 px-4">
-        <h1 class="text-3xl sm:text-4xl md:text-6xl lg:text-8xl font-bold text-blue-300 mb-4 animate-pulse tracking-wider">
-          {{ text }}
-        </h1>
-        <p class="text-blue-200 text-base sm:text-lg md:text-xl opacity-90 max-w-md mx-auto leading-relaxed">
-          智慧家庭解決方案
-        </p>
-        
-        <!-- 手機端額外資訊 -->
-        <div class="mt-6 sm:mt-8">
-          <div class="flex justify-center space-x-4 sm:space-x-6">
-            <div class="text-center">
-              <div class="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-              <p class="text-xs sm:text-sm text-blue-200">智能控制</p>
-            </div>
-            <div class="text-center">
-              <div class="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
-                </svg>
-              </div>
-              <p class="text-xs sm:text-sm text-purple-200">安全守護</p>
-            </div>
-            <div class="text-center">
-              <div class="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-500 rounded-full flex items-center justify-center mx-auto mb-2">
-                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M13 7H7v6h6V7z"/>
-                  <path fill-rule="evenodd" d="M7 2a1 1 0 000 2h6a1 1 0 100-2H7zm0 14a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
-                </svg>
-              </div>
-              <p class="text-xs sm:text-sm text-indigo-200">節能環保</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
     <!-- WebGL動畫版本 -->
-    <div v-if="!loading && !isLowPerformance" class="w-full h-full"></div>
+    <div v-if="!loading" class="w-full h-full"></div>
   </div>
 </template>
 
 <style scoped>
-/* iPhone特殊樣式 */
-@supports (-webkit-touch-callout: none) {
-  .animate-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
+/* 保留基本樣式 */
 </style>

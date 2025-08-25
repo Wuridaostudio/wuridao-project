@@ -87,47 +87,53 @@ varying vec2 v_uv;
 void main(){gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);v_uv=uv;}`
 
 const SIMPLEX = `
-vec3 mod289(vec3 x){return x-floor(x*(1./289.))*289.;}
-vec4 mod289(vec4 x){return x-floor(x*(1./289.))*289.;}
-vec4 permute(vec4 x){return mod289(((x*34.)+1.)*x);}
-float snoise3(vec3 v){
-  const vec2 C=vec2(1./6.,1./3.);
-  const vec4 D=vec4(0.,.5,1.,2.);
-  vec3 i=floor(v+dot(v,C.yyy));
-  vec3 x0=v-i+dot(i,C.xxx);
-  vec3 g=step(x0.yzx,x0.xyz);
-  vec3 l=1.-g;
-  vec3 i1=min(g.xyz,l.zxy);
-  vec3 i2=max(g.xyz,l.zxy);
-  vec3 x1=x0-i1+C.xxx;
-  vec3 x2=x0-i2+C.yyy;
-  vec3 x3=x0-D.yyy;
-  i=mod289(i);
-  vec4 p=permute(permute(permute(i.z+vec4(0.,i1.z,i2.z,1.))+i.y+vec4(0.,i1.y,i2.y,1.))+i.x+vec4(0.,i1.x,i2.x,1.));
-  float n_=1./7.;
-  vec3 ns=n_*D.wyz-D.xzx;
-  vec4 j=p-49.*floor(p*ns.z*ns.z);
-  vec4 x_=floor(j*ns.z);
-  vec4 y_=floor(j-7.*x_);
-  vec4 x=x_*ns.x+ns.yyyy;
-  vec4 y=y_*ns.y+ns.xxxx;
-  vec4 h=1.-abs(x)-abs(y);
-  vec4 b0=vec4(x.xy,y.xy);
-  vec4 b1=vec4(x.zw,y.zw);
-  vec4 s0=floor(b0)*2.+1.;
-  vec4 s1=floor(b1)*2.+1.;
-  vec4 sh=-step(h,vec4(0.));
-  vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy;
-  vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
-  vec3 p0=vec3(a0.xy,h.x);
-  vec3 p1=vec3(a0.zw,h.y);
-  vec3 p2=vec3(a1.xy,h.z);
-  vec3 p3=vec3(a1.zw,h.w);
-  vec4 norm=permute(permute(p.x+vec4(0.,p0.x,p1.x,p2.x))+p.y+vec4(0.,p0.y,p1.y,p2.y));
-  norm=permute(norm+p.z+vec4(0.,p0.z,p1.z,p2.z));
-  vec4 m=max(.5-vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)),0.);
-  m=m*m;
-  return 105.*dot(m*m,norm);
+vec3 mod289(vec3 x) {
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+vec4 mod289(vec4 x) {
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+vec4 permute(vec4 x) {
+  return mod289(((x * 34.0) + 1.0) * x);
+}
+float snoise3(vec3 v) {
+  const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
+  const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+  vec3 i = floor(v + dot(v, C.yyy));
+  vec3 x0 = v - i + dot(i, C.xxx);
+  vec3 g = step(x0.yzx, x0.xyz);
+  vec3 l = 1.0 - g;
+  vec3 i1 = min(g.xyz, l.zxy);
+  vec3 i2 = max(g.xyz, l.zxy);
+  vec3 x1 = x0 - i1 + C.xxx;
+  vec3 x2 = x0 - i2 + C.yyy;
+  vec3 x3 = x0 - D.yyy;
+  i = mod289(i);
+  vec4 p = permute(permute(permute(i.z + vec4(0.0, i1.z, i2.z, 1.0)) + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+  float n_ = 1.0 / 7.0;
+  vec3 ns = n_ * D.wyz - D.xzx;
+  vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+  vec4 x_ = floor(j * ns.z);
+  vec4 y_ = floor(j - 7.0 * x_);
+  vec4 x = x_ * ns.x + ns.yyyy;
+  vec4 y = y_ * ns.y + ns.xxxx;
+  vec4 h = 1.0 - abs(x) - abs(y);
+  vec4 b0 = vec4(x.xy, y.xy);
+  vec4 b1 = vec4(x.zw, y.zw);
+  vec4 s0 = floor(b0) * 2.0 + 1.0;
+  vec4 s1 = floor(b1) * 2.0 + 1.0;
+  vec4 sh = -step(h, vec4(0.0));
+  vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+  vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+  vec3 p0 = vec3(a0.xy, h.x);
+  vec3 p1 = vec3(a0.zw, h.y);
+  vec3 p2 = vec3(a1.xy, h.z);
+  vec3 p3 = vec3(a1.zw, h.w);
+  vec4 norm = permute(permute(permute(p.x + vec4(0.0, p0.x, p1.x, p2.x)) + p.y + vec4(0.0, p0.y, p1.y, p2.y)) + p.z + vec4(0.0, p0.z, p1.z, p2.z));
+  norm = permute(norm + p.z + vec4(0.0, p0.z, p1.z, p2.z));
+  vec4 m = max(0.5 - vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)), 0.0);
+  m = m * m;
+  return 105.0 * dot(m * m, norm);
 }`
 
 const PERSIST_FRAG = `
@@ -140,27 +146,27 @@ uniform float rgbPersistFactor;
 uniform float alphaPersistFactor;
 varying vec2 v_uv;
 ${SIMPLEX}
-void main(){
-  vec2 uv=v_uv;
-  vec2 mouse=mousePos;
-  float t=time;
-  vec2 p=uv*2.-1.;
-  float noise=snoise3(vec3(p*noiseScale,t*0.5,0.))*noiseFactor;
-  vec2 flow=vec2(snoise3(vec3(p*2.,t*0.3,0.)),snoise3(vec3(p*2.,t*0.3,100.)))*0.1;
-  vec2 distortedUv=uv+flow+noise*0.1;
-  vec4 color=texture2D(sampler,distortedUv);
-  vec2 mouseFlow=normalize(uv-mouse)*0.1;
-  color.rgb=mix(color.rgb,color.rgb*1.2,exp(-length(uv-mouse)*2.));
-  gl_FragColor=vec4(color.rgb*rgbPersistFactor,color.a*alphaPersistFactor);
+void main() {
+  vec2 uv = v_uv;
+  vec2 mouse = mousePos;
+  float t = time;
+  vec2 p = uv * 2.0 - 1.0;
+  float noise = snoise3(vec3(p * noiseScale, t * 0.5, 0.0)) * noiseFactor;
+  vec2 flow = vec2(snoise3(vec3(p * 2.0, t * 0.3, 0.0)), snoise3(vec3(p * 2.0, t * 0.3, 100.0))) * 0.1;
+  vec2 distortedUv = uv + flow + noise * 0.1;
+  vec4 color = texture2D(sampler, distortedUv);
+  vec2 mouseFlow = normalize(uv - mouse) * 0.1;
+  color.rgb = mix(color.rgb, color.rgb * 1.2, exp(-length(uv - mouse) * 2.0));
+  gl_FragColor = vec4(color.rgb * rgbPersistFactor, color.a * alphaPersistFactor);
 }`
 
 const TEXT_FRAG = `
 uniform sampler2D sampler;
 uniform vec4 color;
 varying vec2 v_uv;
-void main(){
-  vec4 texColor=texture2D(sampler,v_uv);
-  gl_FragColor=vec4(color.rgb,texColor.a*color.a);
+void main() {
+  vec4 texColor = texture2D(sampler, v_uv);
+  gl_FragColor = vec4(color.rgb, texColor.a * color.a);
 }`
 
 function drawTextToCanvas(text, fontFamily, fontWeight, color, supersample, renderer) {
@@ -289,87 +295,109 @@ onMounted(async () => {
   const pixelRatio = isIPhone ? 1 : (isMobileDevice ? 1 : window.devicePixelRatio || 1)
   const antialias = isIPhone ? false : !isMobileDevice // iPhone關閉抗鋸齒
   
-  renderer = new THREE.WebGLRenderer({
-    antialias: antialias,
-    powerPreference: 'high-performance',
-    // iPhone優化：啟用alpha通道以支援透明效果
-    alpha: isIPhone ? true : false,
-    stencil: false,
-    depth: false,
-    // iPhone特殊設定
-    preserveDrawingBuffer: isIPhone ? true : false,
-  })
-  
-  renderer.setClearColor(new THREE.Color(props.backgroundColor), isIPhone ? 0 : 1)
-  renderer.setPixelRatio(pixelRatio)
-  
-  // iPhone優化：使用更保守的解析度
-  const scale = isIPhone ? 0.5 : (isMobileDevice ? 0.3 : 0.7)
-  renderer.setSize(w * scale, h * scale)
-  renderer.domElement.style.width = `${w}px`
-  renderer.domElement.style.height = `${h}px`
-  renderer.domElement.style.transform = `scale(${1/scale})`
-  
-  // iPhone特殊處理：確保canvas正確顯示
-  if (isIPhone) {
-    renderer.domElement.style.position = 'absolute'
-    renderer.domElement.style.top = '0'
-    renderer.domElement.style.left = '0'
-    renderer.domElement.style.zIndex = '1'
+  try {
+    renderer = new THREE.WebGLRenderer({
+      antialias: antialias,
+      powerPreference: 'high-performance',
+      // iPhone優化：啟用alpha通道以支援透明效果
+      alpha: isIPhone ? true : false,
+      stencil: false,
+      depth: false,
+      // iPhone特殊設定
+      preserveDrawingBuffer: isIPhone ? true : false,
+    })
+    
+    renderer.setClearColor(new THREE.Color(props.backgroundColor), isIPhone ? 0 : 1)
+    renderer.setPixelRatio(pixelRatio)
+    
+    // iPhone優化：使用更保守的解析度
+    const scale = isIPhone ? 0.5 : (isMobileDevice ? 0.3 : 0.7)
+    renderer.setSize(w * scale, h * scale)
+    renderer.domElement.style.width = `${w}px`
+    renderer.domElement.style.height = `${h}px`
+    renderer.domElement.style.transform = `scale(${1/scale})`
+    
+    // iPhone特殊處理：確保canvas正確顯示
+    if (isIPhone) {
+      renderer.domElement.style.position = 'absolute'
+      renderer.domElement.style.top = '0'
+      renderer.domElement.style.left = '0'
+      renderer.domElement.style.zIndex = '1'
+    }
+    
+    containerRef.value.appendChild(renderer.domElement)
+    scene = new THREE.Scene()
+    fluidScene = new THREE.Scene()
+    clock = new THREE.Clock()
+    cam = new THREE.OrthographicCamera(-w / 2, w / 2, h / 2, -h / 2, 0.1, 10)
+    cam.position.z = 1
+    rt0 = new THREE.WebGLRenderTarget(w, h)
+    rt1 = rt0.clone()
+    
+    // 嘗試創建著色器材質
+    try {
+      quadMat = new THREE.ShaderMaterial({
+        uniforms: {
+          sampler: { value: null },
+          time: { value: 0 },
+          mousePos: { value: new THREE.Vector2(-1, 1) },
+          noiseFactor: { value: props.noiseFactor },
+          noiseScale: { value: props.noiseScale },
+          rgbPersistFactor: { value: props.rgbPersistFactor },
+          alphaPersistFactor: { value: props.alphaPersistFactor },
+        },
+        vertexShader: BASE_VERT,
+        fragmentShader: PERSIST_FRAG,
+        transparent: true,
+      })
+      
+      labelMat = new THREE.ShaderMaterial({
+        uniforms: {
+          sampler: { value: null },
+          color: { value: new THREE.Vector4(...persistColor) },
+        },
+        vertexShader: BASE_VERT,
+        fragmentShader: TEXT_FRAG,
+        transparent: true,
+      })
+    } catch (shaderError) {
+      console.error('[InfiniteMenu] 著色器編譯失敗，使用簡化版本:', shaderError)
+      isLowPerformance.value = true
+      loading.value = false
+      return
+    }
+    
+    quad = new THREE.Mesh(new THREE.PlaneGeometry(w, h), quadMat)
+    fluidScene.add(quad)
+    persistColor = hexToRgb(props.textColor || props.startColor).map(
+      c => c / 255,
+    )
+    targetColor = [...persistColor]
+    
+    label = new THREE.Mesh(
+      new THREE.PlaneGeometry(Math.min(w, h), Math.min(w, h)),
+      labelMat,
+    )
+    scene.add(label)
+    
+    await loadFont(props.fontFamily)
+    texCanvas = drawTextToCanvas(
+      props.text,
+      props.fontFamily,
+      props.fontWeight,
+      props.textColor,
+      props.supersample,
+      renderer,
+    )
+    labelMat.uniforms.sampler.value = new THREE.CanvasTexture(texCanvas)
+    
+  } catch (error) {
+    console.error('[InfiniteMenu] WebGL初始化失敗，使用簡化版本:', error)
+    isLowPerformance.value = true
+    loading.value = false
+    return
   }
   
-  containerRef.value.appendChild(renderer.domElement)
-  scene = new THREE.Scene()
-  fluidScene = new THREE.Scene()
-  clock = new THREE.Clock()
-  cam = new THREE.OrthographicCamera(-w / 2, w / 2, h / 2, -h / 2, 0.1, 10)
-  cam.position.z = 1
-  rt0 = new THREE.WebGLRenderTarget(w, h)
-  rt1 = rt0.clone()
-  quadMat = new THREE.ShaderMaterial({
-    uniforms: {
-      sampler: { value: null },
-      time: { value: 0 },
-      mousePos: { value: new THREE.Vector2(-1, 1) },
-      noiseFactor: { value: props.noiseFactor },
-      noiseScale: { value: props.noiseScale },
-      rgbPersistFactor: { value: props.rgbPersistFactor },
-      alphaPersistFactor: { value: props.alphaPersistFactor },
-    },
-    vertexShader: BASE_VERT,
-    fragmentShader: PERSIST_FRAG,
-    transparent: true,
-  })
-  quad = new THREE.Mesh(new THREE.PlaneGeometry(w, h), quadMat)
-  fluidScene.add(quad)
-  persistColor = hexToRgb(props.textColor || props.startColor).map(
-    c => c / 255,
-  )
-  targetColor = [...persistColor]
-  labelMat = new THREE.ShaderMaterial({
-    uniforms: {
-      sampler: { value: null },
-      color: { value: new THREE.Vector4(...persistColor) },
-    },
-    vertexShader: BASE_VERT,
-    fragmentShader: TEXT_FRAG,
-    transparent: true,
-  })
-  label = new THREE.Mesh(
-    new THREE.PlaneGeometry(Math.min(w, h), Math.min(w, h)),
-    labelMat,
-  )
-  scene.add(label)
-  await loadFont(props.fontFamily)
-  texCanvas = drawTextToCanvas(
-    props.text,
-    props.fontFamily,
-    props.fontWeight,
-    props.textColor,
-    props.supersample,
-    renderer,
-  )
-  labelMat.uniforms.sampler.value = new THREE.CanvasTexture(texCanvas)
   // pointermove 事件
   pointerMoveHandler = (e) => {
     const r = containerRef.value.getBoundingClientRect()

@@ -336,6 +336,14 @@ onMounted(async () => {
     
     // 嘗試創建著色器材質
     try {
+      // 先初始化顏色
+      persistColor = hexToRgb(props.textColor || props.startColor).map(
+        c => c / 255,
+      )
+      targetColor = [...persistColor]
+      
+      console.log('[InfiniteMenu] 創建著色器材質，顏色:', persistColor)
+      
       quadMat = new THREE.ShaderMaterial({
         uniforms: {
           sampler: { value: null },
@@ -351,6 +359,8 @@ onMounted(async () => {
         transparent: true,
       })
       
+      console.log('[InfiniteMenu] quadMat 創建成功')
+      
       labelMat = new THREE.ShaderMaterial({
         uniforms: {
           sampler: { value: null },
@@ -360,8 +370,17 @@ onMounted(async () => {
         fragmentShader: TEXT_FRAG,
         transparent: true,
       })
+      
+      console.log('[InfiniteMenu] labelMat 創建成功')
+      
     } catch (shaderError) {
       console.error('[InfiniteMenu] 著色器編譯失敗，使用簡化版本:', shaderError)
+      console.error('[InfiniteMenu] 錯誤詳情:', {
+        message: shaderError.message,
+        stack: shaderError.stack,
+        persistColor: persistColor,
+        props: props
+      })
       isLowPerformance.value = true
       loading.value = false
       return
@@ -369,10 +388,6 @@ onMounted(async () => {
     
     quad = new THREE.Mesh(new THREE.PlaneGeometry(w, h), quadMat)
     fluidScene.add(quad)
-    persistColor = hexToRgb(props.textColor || props.startColor).map(
-      c => c / 255,
-    )
-    targetColor = [...persistColor]
     
     label = new THREE.Mesh(
       new THREE.PlaneGeometry(Math.min(w, h), Math.min(w, h)),
@@ -408,20 +423,44 @@ onMounted(async () => {
   // resize observer debounce
   ro = new window.ResizeObserver(
     debounce(() => {
-      w = containerRef.value.clientWidth
-      h = containerRef.value.clientHeight
-      renderer.setSize(w, h)
+      const newW = containerRef.value.clientWidth
+      const newH = containerRef.value.clientHeight
+      
+      // 更新變數
+      w = newW
+      h = newH
+      
+      // 重新計算scale
+      const newScale = isIPhone ? 0.5 : (isMobileDevice ? 0.3 : 0.7)
+      
+      // 更新renderer尺寸
+      renderer.setSize(w * newScale, h * newScale)
+      renderer.domElement.style.width = `${w}px`
+      renderer.domElement.style.height = `${h}px`
+      renderer.domElement.style.transform = `scale(${1/newScale})`
+      
+      // 更新相機
       cam.left = -w / 2
       cam.right = w / 2
       cam.top = h / 2
       cam.bottom = -h / 2
       cam.updateProjectionMatrix()
-      quad.geometry.dispose()
-      quad.geometry = new THREE.PlaneGeometry(w, h)
-      rt0.setSize(w, h)
-      rt1.setSize(w, h)
-      label.geometry.dispose()
-      label.geometry = new THREE.PlaneGeometry(Math.min(w, h), Math.min(w, h))
+      
+      // 更新幾何體
+      if (quad && quad.geometry) {
+        quad.geometry.dispose()
+        quad.geometry = new THREE.PlaneGeometry(w, h)
+      }
+      
+      // 更新渲染目標
+      if (rt0) rt0.setSize(w, h)
+      if (rt1) rt1.setSize(w, h)
+      
+      // 更新標籤幾何體
+      if (label && label.geometry) {
+        label.geometry.dispose()
+        label.geometry = new THREE.PlaneGeometry(Math.min(w, h), Math.min(w, h))
+      }
     }, 200),
   )
   ro.observe(containerRef.value)

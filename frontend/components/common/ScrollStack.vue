@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, computed } from 'vue'
 
 interface Props {
   itemDistance?: number
@@ -36,6 +36,31 @@ const animationFrameRef = ref<number | null>(null)
 const cardsRef = ref<HTMLElement[]>([])
 const lastTransformsRef = ref(new Map())
 const isUpdatingRef = ref(false)
+const lastUpdateTime = ref(0)
+
+// 移動設備檢測和優化
+const isMobile = computed(() => {
+  if (process.client) {
+    return window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  }
+  return false
+})
+
+// 移動設備優化參數
+const mobileOptimization = computed(() => ({
+  // 提高精度閾值，減少微小變化導致的抖動
+  translateThreshold: isMobile.value ? 0.5 : 0.1,
+  scaleThreshold: isMobile.value ? 0.005 : 0.001,
+  rotationThreshold: isMobile.value ? 0.5 : 0.1,
+  blurThreshold: isMobile.value ? 0.5 : 0.1,
+  // 降低更新頻率
+  updateInterval: isMobile.value ? 32 : 16, // 30fps vs 60fps
+  // 提高精度
+  translatePrecision: isMobile.value ? 1 : 2,
+  scalePrecision: isMobile.value ? 3 : 4,
+  rotationPrecision: isMobile.value ? 1 : 2,
+  blurPrecision: isMobile.value ? 1 : 2
+}))
 
 function calculateProgress(scrollTop: number, start: number, end: number) {
   if (scrollTop < start)
@@ -52,10 +77,23 @@ function parsePercentage(value: string | number, containerHeight: number) {
   return Number.parseFloat(value.toString())
 }
 
+// 高精度數值處理，避免浮點數精度問題
+function roundToPrecision(value: number, precision: number): number {
+  const factor = Math.pow(10, precision)
+  return Math.round(value * factor) / factor
+}
+
 function updateCardTransforms() {
   const scroller = scrollerRef.value
   if (!scroller || !cardsRef.value.length || isUpdatingRef.value)
     return
+
+  // 移動設備優化：控制更新頻率
+  const now = performance.now()
+  if (isMobile.value && (now - lastUpdateTime.value) < mobileOptimization.value.updateInterval) {
+    return
+  }
+  lastUpdateTime.value = now
 
   isUpdatingRef.value = true
 
@@ -111,22 +149,27 @@ function updateCardTransforms() {
       translateY = pinEnd - cardTop + stackPositionPx + (props.itemStackDistance * i)
     }
 
+    // 使用高精度處理，避免浮點數精度問題
     const newTransform = {
-      translateY: Math.round(translateY * 100) / 100,
-      scale: Math.round(scale * 1000) / 1000,
-      rotation: Math.round(rotation * 100) / 100,
-      blur: Math.round(blur * 100) / 100,
+      translateY: roundToPrecision(translateY, mobileOptimization.value.translatePrecision),
+      scale: roundToPrecision(scale, mobileOptimization.value.scalePrecision),
+      rotation: roundToPrecision(rotation, mobileOptimization.value.rotationPrecision),
+      blur: roundToPrecision(blur, mobileOptimization.value.blurPrecision),
     }
 
     const lastTransform = lastTransformsRef.value.get(i)
     const hasChanged = !lastTransform
-      || Math.abs(lastTransform.translateY - newTransform.translateY) > 0.1
-      || Math.abs(lastTransform.scale - newTransform.scale) > 0.001
-      || Math.abs(lastTransform.rotation - newTransform.rotation) > 0.1
-      || Math.abs(lastTransform.blur - newTransform.blur) > 0.1
+      || Math.abs(lastTransform.translateY - newTransform.translateY) > mobileOptimization.value.translateThreshold
+      || Math.abs(lastTransform.scale - newTransform.scale) > mobileOptimization.value.scaleThreshold
+      || Math.abs(lastTransform.rotation - newTransform.rotation) > mobileOptimization.value.rotationThreshold
+      || Math.abs(lastTransform.blur - newTransform.blur) > mobileOptimization.value.blurThreshold
 
     if (hasChanged) {
-      const transform = `translate3d(0, ${newTransform.translateY}px, 0) scale(${newTransform.scale}) rotate(${newTransform.rotation}deg)`
+      // 移動設備優化：使用更穩定的transform
+      const transform = isMobile.value 
+        ? `translate3d(0, ${newTransform.translateY}px, 0) scale(${newTransform.scale})`
+        : `translate3d(0, ${newTransform.translateY}px, 0) scale(${newTransform.scale}) rotate(${newTransform.rotation}deg)`
+      
       const filter = newTransform.blur > 0 ? `blur(${newTransform.blur}px)` : ''
 
       card.style.transform = transform
@@ -151,8 +194,21 @@ function updateCardTransforms() {
   isUpdatingRef.value = false
 }
 
+// 防抖處理的滾動事件
+let scrollTimeout: NodeJS.Timeout | null = null
 function handleScroll() {
-  updateCardTransforms()
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout)
+  }
+  
+  // 移動設備使用防抖，桌面設備直接更新
+  if (isMobile.value) {
+    scrollTimeout = setTimeout(() => {
+      updateCardTransforms()
+    }, 16) // 約60fps
+  } else {
+    updateCardTransforms()
+  }
 }
 
 onMounted(async () => {
@@ -170,20 +226,34 @@ onMounted(async () => {
     if (i < cards.length - 1) {
       card.style.marginBottom = `${props.itemDistance}px`
     }
-    card.style.willChange = 'transform, filter'
-    card.style.transformOrigin = 'top center'
-    card.style.backfaceVisibility = 'hidden'
-    card.style.transform = 'translateZ(0)'
-    card.style.webkitTransform = 'translateZ(0)'
-    card.style.perspective = '1000px'
-    card.style.webkitPerspective = '1000px'
+    
+    // 移動設備優化：減少GPU負載
+    if (isMobile.value) {
+      card.style.willChange = 'transform'
+      card.style.transformOrigin = 'top center'
+      card.style.backfaceVisibility = 'hidden'
+      card.style.transform = 'translateZ(0)'
+      card.style.webkitTransform = 'translateZ(0)'
+      // 移動設備不使用perspective，減少計算負載
+    } else {
+      card.style.willChange = 'transform, filter'
+      card.style.transformOrigin = 'top center'
+      card.style.backfaceVisibility = 'hidden'
+      card.style.transform = 'translateZ(0)'
+      card.style.webkitTransform = 'translateZ(0)'
+      card.style.perspective = '1000px'
+      card.style.webkitPerspective = '1000px'
+    }
   })
 
   window.addEventListener('scroll', handleScroll, { passive: true })
   updateCardTransforms()
 
+  // 移動設備優化：降低動畫幀率
   const raf = () => {
-    updateCardTransforms()
+    if (!isMobile.value || (performance.now() - lastUpdateTime.value) >= mobileOptimization.value.updateInterval) {
+      updateCardTransforms()
+    }
     animationFrameRef.value = requestAnimationFrame(raf)
   }
   animationFrameRef.value = requestAnimationFrame(raf)
@@ -192,6 +262,9 @@ onMounted(async () => {
 onUnmounted(() => {
   if (animationFrameRef.value) {
     cancelAnimationFrame(animationFrameRef.value)
+  }
+  if (scrollTimeout) {
+    clearTimeout(scrollTimeout)
   }
   window.removeEventListener('scroll', handleScroll)
   stackCompletedRef.value = false

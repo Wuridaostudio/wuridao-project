@@ -196,15 +196,16 @@ const isDev = computed(() => {
   return false
 })
 
-// 計算屬性：動態配置
+// 計算屬性：動態配置（優化手機穩定性）
 const scrollStackConfig = computed(() => {
   if (isMobile.value) {
     return {
-      itemDistance: 60,
-      itemScale: 0.015,
-      itemStackDistance: 15,
-      baseScale: 0.92,
-      blurAmount: 0.2
+      itemDistance: 50, // 減少距離，提高穩定性
+      itemScale: 0.01, // 減少縮放變化，避免抖動
+      itemStackDistance: 10, // 減少堆疊距離
+      baseScale: 0.95, // 提高基礎縮放，減少變化範圍
+      blurAmount: 0.1, // 減少模糊效果
+      rotationAmount: 0 // 手機端禁用旋轉，避免抖動
     }
   } else if (isTablet.value) {
     return {
@@ -212,7 +213,8 @@ const scrollStackConfig = computed(() => {
       itemScale: 0.025,
       itemStackDistance: 25,
       baseScale: 0.88,
-      blurAmount: 0.4
+      blurAmount: 0.4,
+      rotationAmount: 0
     }
   } else {
     return {
@@ -220,7 +222,8 @@ const scrollStackConfig = computed(() => {
       itemScale: 0.03,
       itemStackDistance: 30,
       baseScale: 0.85,
-      blurAmount: 0.5
+      blurAmount: 0.5,
+      rotationAmount: 0
     }
   }
 })
@@ -377,7 +380,7 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
         stack-position="20%"
         scale-end-position="10%"
         :base-scale="scrollStackConfig.baseScale"
-        :rotation-amount="0"
+        :rotation-amount="scrollStackConfig.rotationAmount"
         :blur-amount="scrollStackConfig.blurAmount"
         @stack-complete="handleStackComplete"
         role="region"
@@ -544,6 +547,39 @@ html {
   .color-card {
     /* 觸控設備優化 */
     touch-action: manipulation;
+  }
+}
+
+/* 手機卡片穩定性優化 */
+@media (max-width: 768px) {
+  .scroll-stack-card {
+    /* 減少GPU負載 */
+    will-change: transform;
+    /* 避免子像素渲染 */
+    transform: translateZ(0);
+    /* 禁用觸控高亮 */
+    -webkit-tap-highlight-color: transparent;
+    /* 優化滾動性能 */
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* 減少動畫複雜度 */
+  .scroll-stack-card * {
+    /* 禁用子元素的動畫，避免衝突 */
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* iOS Safari 特定優化 */
+@supports (-webkit-touch-callout: none) {
+  .scroll-stack-card {
+    /* iOS Safari 硬件加速優化 */
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    /* 避免iOS Safari的渲染問題 */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
   }
 }
 </style>

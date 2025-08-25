@@ -36,14 +36,6 @@ const animationFrameRef = ref<number | null>(null)
 const cardsRef = ref<HTMLElement[]>([])
 const lastTransformsRef = ref(new Map())
 const isUpdatingRef = ref(false)
-const isMobile = ref(false)
-
-// 檢測設備類型
-function detectDevice() {
-  if (process.client) {
-    isMobile.value = window.innerWidth < 768
-  }
-}
 
 function calculateProgress(scrollTop: number, start: number, end: number) {
   if (scrollTop < start)
@@ -64,17 +56,6 @@ function updateCardTransforms() {
   const scroller = scrollerRef.value
   if (!scroller || !cardsRef.value.length || isUpdatingRef.value)
     return
-
-  // 改善手機端更新頻率控制
-  if (process.client && window.innerWidth < 768) {
-    const now = performance.now()
-    if (!updateCardTransforms.lastUpdate) {
-      updateCardTransforms.lastUpdate = now
-    } else if (now - updateCardTransforms.lastUpdate < 32) { // 約30fps，更流暢
-      return
-    }
-    updateCardTransforms.lastUpdate = now
-  }
 
   isUpdatingRef.value = true
 
@@ -99,6 +80,7 @@ function updateCardTransforms() {
     const scaleProgress = calculateProgress(scrollTop, triggerStart, triggerEnd)
     const targetScale = props.baseScale + (i * props.itemScale)
     const scale = 1 - scaleProgress * (1 - targetScale)
+    // 修改旋轉方向：將正值改為負值，讓左上角往上、右上角往下
     const rotation = props.rotationAmount ? -i * props.rotationAmount * scaleProgress : 0
 
     let blur = 0
@@ -119,90 +101,92 @@ function updateCardTransforms() {
       }
     }
 
-    // 改善手機端transform計算
-    const transform = `translate3d(0, 0, 0) scale(${scale}) rotateZ(${rotation}deg)`
+    let translateY = 0
+    const isPinned = scrollTop >= pinStart && scrollTop <= pinEnd
 
-    // 檢查是否需要更新（改善性能）
-    const lastTransform = lastTransformsRef.value.get(card)
-    if (lastTransform !== transform) {
+    if (isPinned) {
+      translateY = scrollTop - cardTop + stackPositionPx + (props.itemStackDistance * i)
+    }
+    else if (scrollTop > pinEnd) {
+      translateY = pinEnd - cardTop + stackPositionPx + (props.itemStackDistance * i)
+    }
+
+    const newTransform = {
+      translateY: Math.round(translateY * 100) / 100,
+      scale: Math.round(scale * 1000) / 1000,
+      rotation: Math.round(rotation * 100) / 100,
+      blur: Math.round(blur * 100) / 100,
+    }
+
+    const lastTransform = lastTransformsRef.value.get(i)
+    const hasChanged = !lastTransform
+      || Math.abs(lastTransform.translateY - newTransform.translateY) > 0.1
+      || Math.abs(lastTransform.scale - newTransform.scale) > 0.001
+      || Math.abs(lastTransform.rotation - newTransform.rotation) > 0.1
+      || Math.abs(lastTransform.blur - newTransform.blur) > 0.1
+
+    if (hasChanged) {
+      const transform = `translate3d(0, ${newTransform.translateY}px, 0) scale(${newTransform.scale}) rotate(${newTransform.rotation}deg)`
+      const filter = newTransform.blur > 0 ? `blur(${newTransform.blur}px)` : ''
+
       card.style.transform = transform
-      lastTransformsRef.value.set(card, transform)
+      card.style.filter = filter
+
+      lastTransformsRef.value.set(i, newTransform)
     }
 
-    // 改善模糊效果
-    if (blur > 0) {
-      card.style.filter = `blur(${blur}px)`
-    } else {
-      card.style.filter = 'none'
-    }
-
-    // 改善z-index管理
-    if (!isMobile.value) {
-      card.style.zIndex = cardsRef.value.length - i
-    }
-  })
-
-  // 檢查是否完成堆疊動畫
-  if (!stackCompletedRef.value) {
-    const lastCard = cardsRef.value[cardsRef.value.length - 1]
-    if (lastCard) {
-      const lastCardRect = lastCard.getBoundingClientRect()
-      const lastCardTop = lastCardRect.top + scrollTop
-      const lastTriggerEnd = lastCardTop - scaleEndPositionPx
-      
-      if (scrollTop >= lastTriggerEnd) {
+    if (i === cardsRef.value.length - 1) {
+      const isInView = scrollTop >= pinStart && scrollTop <= pinEnd
+      if (isInView && !stackCompletedRef.value) {
         stackCompletedRef.value = true
         emit('stackComplete')
+        props.onStackComplete?.()
+      }
+      else if (!isInView && stackCompletedRef.value) {
+        stackCompletedRef.value = false
       }
     }
-  }
+  })
 
   isUpdatingRef.value = false
 }
 
 function handleScroll() {
-  if (animationFrameRef.value) {
-    cancelAnimationFrame(animationFrameRef.value)
-  }
-  animationFrameRef.value = requestAnimationFrame(updateCardTransforms)
+  updateCardTransforms()
 }
 
 onMounted(async () => {
-  detectDevice()
-  
   await nextTick()
-  
-  if (scrollerRef.value) {
-    const cards = scrollerRef.value.querySelectorAll('.scroll-stack-item')
-    cardsRef.value = Array.from(cards) as HTMLElement[]
-    
-    // 手機優化：預設樣式
-    cardsRef.value.forEach((card, i) => {
-      if (isMobile.value) {
-        card.style.willChange = 'transform'
-        card.style.backfaceVisibility = 'hidden'
-        card.style.perspective = '1000px'
-      }
-    })
-    
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    updateCardTransforms()
-    
-    // 改善動畫幀率控制
-    const isMobileDevice = process.client && window.innerWidth < 768
-    const targetFPS = isMobileDevice ? 30 : 60
-    const frameInterval = 1000 / targetFPS
-    let lastFrameTime = 0
-    
-    const raf = (currentTime) => {
-      if (currentTime - lastFrameTime >= frameInterval) {
-        updateCardTransforms()
-        lastFrameTime = currentTime
-      }
-      animationFrameRef.value = requestAnimationFrame(raf)
+
+  const scroller = scrollerRef.value
+  if (!scroller)
+    return
+
+  const cards = Array.from(scroller.querySelectorAll('.scroll-stack-card')) as HTMLElement[]
+  cardsRef.value = cards
+  const transformsCache = lastTransformsRef.value
+
+  cards.forEach((card, i) => {
+    if (i < cards.length - 1) {
+      card.style.marginBottom = `${props.itemDistance}px`
     }
+    card.style.willChange = 'transform, filter'
+    card.style.transformOrigin = 'top center'
+    card.style.backfaceVisibility = 'hidden'
+    card.style.transform = 'translateZ(0)'
+    card.style.webkitTransform = 'translateZ(0)'
+    card.style.perspective = '1000px'
+    card.style.webkitPerspective = '1000px'
+  })
+
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  updateCardTransforms()
+
+  const raf = () => {
+    updateCardTransforms()
     animationFrameRef.value = requestAnimationFrame(raf)
   }
+  animationFrameRef.value = requestAnimationFrame(raf)
 })
 
 onUnmounted(() => {
@@ -210,82 +194,61 @@ onUnmounted(() => {
     cancelAnimationFrame(animationFrameRef.value)
   }
   window.removeEventListener('scroll', handleScroll)
+  stackCompletedRef.value = false
+  cardsRef.value = []
+  lastTransformsRef.value.clear()
+  isUpdatingRef.value = false
 })
 </script>
 
 <template>
-  <div ref="scrollerRef" class="scroll-stack-container">
-    <div class="scroll-stack-content">
+  <div
+    ref="scrollerRef"
+    class="scroll-stack-container relative w-full h-full"
+    :style="{
+      WebkitTransform: 'translateZ(0)',
+      transform: 'translateZ(0)',
+      willChange: 'transform',
+    }"
+  >
+    <div class="scroll-stack-inner pt-[20vh] px-4 sm:px-8 md:px-12 lg:px-20 pb-[20vh] min-h-screen">
       <slot />
+      <!-- Spacer so the last pin can release cleanly -->
+      <div class="scroll-stack-end w-full h-px" />
     </div>
-    <div class="scroll-stack-end" />
   </div>
 </template>
 
 <style scoped>
 .scroll-stack-container {
-  position: relative;
-  width: 100%;
-  min-height: 100vh;
+  /* 自定義滾動條樣式 */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
 
-.scroll-stack-content {
-  position: relative;
-  z-index: 1;
-  padding-top: 20vh;
-  padding-bottom: 20vh;
+.scroll-stack-container::-webkit-scrollbar {
+  width: 8px;
 }
 
-.scroll-stack-item {
-  position: relative;
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto 2rem;
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  transition: transform 0.1s ease-out, filter 0.1s ease-out;
-  will-change: transform, filter;
-  
-  /* 手機優化 */
-  @media (max-width: 768px) {
-    padding: 1.5rem;
-    margin: 0 1rem 1.5rem;
-    border-radius: 0.75rem;
-    backdrop-filter: blur(5px);
-    max-width: calc(100% - 2rem);
-  }
+.scroll-stack-container::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.scroll-stack-end {
-  height: 100vh;
-  pointer-events: none;
+.scroll-stack-container::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
 }
 
-/* 改善手機端性能 */
-@media (max-width: 768px) {
-  .scroll-stack-item {
-    transform: translate3d(0, 0, 0);
-    backface-visibility: hidden;
-    perspective: 1000px;
-    -webkit-backface-visibility: hidden;
-    -webkit-perspective: 1000px;
-  }
-  
-  .scroll-stack-content {
-    padding-top: 15vh;
-    padding-bottom: 15vh;
-  }
+.scroll-stack-container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
-/* 改善平板端顯示 */
-@media (min-width: 769px) and (max-width: 1024px) {
-  .scroll-stack-item {
-    max-width: 700px;
-    padding: 2.5rem;
-  }
+/* 為 ScrollStack 容器添加 hover 效果 */
+.scroll-stack-container:hover {
+  transition: all 0.3s ease;
+}
+
+.scroll-stack-container:hover .scroll-stack-card {
+  transition: all 0.3s ease;
 }
 </style>

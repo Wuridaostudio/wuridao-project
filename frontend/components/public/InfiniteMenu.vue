@@ -27,6 +27,7 @@ const isClient
 
 const containerRef = ref(null)
 const loading = ref(true)
+const isLowPerformance = ref(false)
 let renderer,
   scene,
   fluidScene,
@@ -85,97 +86,151 @@ const BASE_VERT = `
 varying vec2 v_uv;
 void main(){gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);v_uv=uv;}`
 
+const SIMPLEX = `
+vec3 mod289(vec3 x){return x-floor(x*(1./289.))*289.;}
+vec4 mod289(vec4 x){return x-floor(x*(1./289.))*289.;}
+vec4 permute(vec4 x){return mod289(((x*34.)+1.)*x);}
+float snoise3(vec3 v){
+  const vec2 C=vec2(1./6.,1./3.);
+  const vec4 D=vec4(0.,.5,1.,2.);
+  vec3 i=floor(v+dot(v,C.yyy));
+  vec3 x0=v-i+dot(i,C.xxx);
+  vec3 g=step(x0.yzx,x0.xyz);
+  vec3 l=1.-g;
+  vec3 i1=min(g.xyz,l.zxy);
+  vec3 i2=max(g.xyz,l.zxy);
+  vec3 x1=x0-i1+C.xxx;
+  vec3 x2=x0-i2+C.yyy;
+  vec3 x3=x0-D.yyy;
+  i=mod289(i);
+  vec4 p=permute(permute(permute(i.z+vec4(0.,i1.z,i2.z,1.))+i.y+vec4(0.,i1.y,i2.y,1.))+i.x+vec4(0.,i1.x,i2.x,1.));
+  float n_=1./7.; vec3 ns=n_*D.wyz-D.xzx;
+  vec4 j=p-49.*floor(p*ns.z*ns.z);
+  vec4 x_=floor(j*ns.z);
+  vec4 y_=floor(j-7.*x_);
+  vec4 x=x_*ns.x+ns.yyyy;
+  vec4 y=y_*ns.x+ns.yyyy;
+  vec4 h=1.-abs(x)-abs(y);
+  vec4 b0=vec4(x.xy,y.xy);
+  vec4 b1=vec4(x.zw,y.zw);
+  vec4 s0=floor(b0)*2.+1.;
+  vec4 s1=floor(b1)*2.+1.;
+  vec4 sh=-step(h,vec4(0.));
+  vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy;
+  vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
+  vec3 p0=vec3(a0.xy,h.x);
+  vec3 p1=vec3(a0.zw,h.y);
+  vec3 p2=vec3(a1.xy,h.z);
+  vec3 p3=vec3(a1.zw,h.w);
+  vec4 norm=inversesqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
+  p0*=norm.x; p1*=norm.y; p2*=norm.z; p3*=norm.w;
+  vec4 m=max(.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.);
+  m*=m;
+  return 42.*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
+}`
+
 const PERSIST_FRAG = `
 uniform sampler2D sampler;
 uniform float time;
 uniform vec2 mousePos;
-uniform float noiseFactor;
-uniform float noiseScale;
-uniform float rgbPersistFactor;
-uniform float alphaPersistFactor;
+uniform float noiseFactor,noiseScale,rgbPersistFactor,alphaPersistFactor;
 varying vec2 v_uv;
-
-void main() {
-  vec2 uv = v_uv;
-  vec2 mouse = mousePos;
-  float t = time;
-  
-  // 簡單的流體效果
-  vec2 p = uv * 2.0 - 1.0;
-  float n = sin(p.x * noiseScale + t) * cos(p.y * noiseScale + t) * noiseFactor;
-  
-  vec2 flow = vec2(
-    sin(p.x * 2.0 + t * 0.3) * 0.1,
-    cos(p.y * 2.0 + t * 0.3) * 0.1
-  );
-  
-  vec2 distortedUv = uv + flow + n * 0.1;
-  vec4 color = texture2D(sampler, distortedUv);
-  
-  // 滑鼠互動效果
-  float mouseDist = length(uv - mouse);
-  color.rgb = mix(color.rgb, color.rgb * 1.2, exp(-mouseDist * 2.0));
-  
-  gl_FragColor = vec4(color.rgb * rgbPersistFactor, color.a * alphaPersistFactor);
+${SIMPLEX}
+void main(){
+  float a=snoise3(vec3(v_uv*noiseFactor,time*.1))*noiseScale;
+  float b=snoise3(vec3(v_uv*noiseFactor,time*.1+100.))*noiseScale;
+  vec4 t=texture2D(sampler,v_uv+vec2(a,b)+mousePos*.005);
+  gl_FragColor=vec4(t.xyz*rgbPersistFactor,alphaPersistFactor);
 }`
 
 const TEXT_FRAG = `
-uniform sampler2D sampler;
-uniform vec4 color;
-varying vec2 v_uv;
-void main() {
-  vec4 texColor = texture2D(sampler, v_uv);
-  gl_FragColor = vec4(color.rgb, texColor.a * color.a);
+uniform sampler2D sampler;uniform vec3 color;varying vec2 v_uv;
+void main(){
+  vec4 t=texture2D(sampler,v_uv);
+  float alpha=smoothstep(0.1,0.9,t.a);
+  if(alpha<0.01)discard;
+  gl_FragColor=vec4(color,alpha);
 }`
 
-function drawTextToCanvas(text, fontFamily, fontWeight, color, supersample, renderer) {
-  const canvas = document.createElement('canvas')
-  const ctx = canvas.getContext('2d')
-  const size = Math.min(renderer.domElement.width, renderer.domElement.height) * supersample
-  canvas.width = size
-  canvas.height = size
-  ctx.scale(supersample, supersample)
-  ctx.font = `${fontWeight} ${size / supersample}px "${fontFamily}"`
+function drawTextToCanvas(
+  text,
+  fontFamily,
+  fontWeight,
+  textColor,
+  supersample,
+  renderer,
+) {
+  const max = Math.min(renderer.capabilities.maxTextureSize, 4096)
+  const pixelRatio = (window.devicePixelRatio || 1) * supersample
+  const canvasSize = max * pixelRatio
+  const texCanvas = document.createElement('canvas')
+  texCanvas.width = canvasSize
+  texCanvas.height = canvasSize
+  const ctx = texCanvas.getContext('2d', { alpha: true, colorSpace: 'srgb' })
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  ctx.scale(pixelRatio, pixelRatio)
+  ctx.clearRect(0, 0, max, max)
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.shadowColor = 'rgba(255,255,255,0.3)'
+  ctx.shadowBlur = 2
+  // 更明顯的深到淺漸層
+  const gradient = ctx.createLinearGradient(0, max * 0.5, max, max * 0.5)
+  gradient.addColorStop(0, 'rgba(24,28,75,0.98)') // 深靛色
+  gradient.addColorStop(0.5, 'rgba(46,49,146,0.7)') // 靛色
+  gradient.addColorStop(1, 'rgba(174,239,255,0.5)') // 淺藍色
+  ctx.fillStyle = gradient
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillStyle = color
-  ctx.fillText(text, size / supersample / 2, size / supersample / 2)
-  return canvas
+
+  const refSize = 500 * 0.8 // 字體縮小為 0.8 倍
+  ctx.font = `${fontWeight} ${refSize}px 'Inter', 'Noto Sans TC', sans-serif`
+
+  const cx = max / 2
+  const cy = max / 2
+  const offs = [
+    [0, 0],
+    [0.1, 0],
+    [-0.1, 0],
+    [0, 0.1],
+    [0, -0.1],
+    [0.1, 0.1],
+    [-0.1, -0.1],
+    [0.1, -0.1],
+    [-0.1, 0.1],
+  ]
+  ctx.globalAlpha = 1 / offs.length
+  offs.forEach(([dx, dy]) => ctx.fillText(text, cx + dx, cy + dy))
+  ctx.globalAlpha = 1
+  return texCanvas
 }
 
-function debounce(func, wait) {
-  let timeout
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout)
-      func(...args)
-    }
-    clearTimeout(timeout)
-    timeout = setTimeout(later, wait)
+function debounce(fn, delay) {
+  let t
+  return (...args) => {
+    clearTimeout(t)
+    t = setTimeout(() => fn(...args), delay)
   }
 }
 
 function disposeAll() {
   if (renderer) {
-    renderer.dispose()
+    renderer.dispose && renderer.dispose()
+    renderer.forceContextLoss && renderer.forceContextLoss()
+    renderer.domElement && renderer.domElement.remove()
+    renderer = null
   }
-  if (rt0) {
-    rt0.dispose()
-  }
-  if (rt1) {
-    rt1.dispose()
-  }
-  if (quadMat) {
-    quadMat.dispose()
-  }
-  if (labelMat) {
-    labelMat.dispose()
-  }
-  if (quad && quad.geometry) {
+  if (quad)
     quad.geometry.dispose()
-  }
-  if (label && label.geometry) {
+  if (label)
     label.geometry.dispose()
+  if (rt0)
+    rt0.dispose()
+  if (rt1)
+    rt1.dispose()
+  if (labelMat && labelMat.uniforms.sampler.value) {
+    labelMat.uniforms.sampler.value.dispose
+    && labelMat.uniforms.sampler.value.dispose()
   }
 }
 
@@ -183,131 +238,122 @@ onMounted(async () => {
   if (!isClient || !containerRef.value)
     return
     
-  // 添加設備調試日誌
-  console.log('[InfiniteMenu] 設備檢測:', {
-    userAgent: navigator.userAgent,
-    isIPhone: /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase()),
-    isMobile: props.isMobile,
-    width: window.innerWidth,
-    height: window.innerHeight,
-    devicePixelRatio: window.devicePixelRatio
-  })
+  // 手機優化：檢查是否為低性能設備
+  const isLowPerformanceDevice = () => {
+    if (!process.client) return false
     
-  // 檢測設備類型
-  const isMobileDevice = props.isMobile || window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  
-  // iPhone特殊配置
-  const userAgent = navigator.userAgent.toLowerCase()
-  const isIPhone = /iphone|ipad|ipod/i.test(userAgent)
-  
-  const w = containerRef.value.clientWidth
-  const h = containerRef.value.clientHeight
-  
-  // 渲染設定
-  const pixelRatio = isIPhone ? 1 : (isMobileDevice ? 1 : window.devicePixelRatio || 1)
-  const antialias = isIPhone ? false : !isMobileDevice
-  
-  try {
-    renderer = new THREE.WebGLRenderer({
-      antialias: antialias,
-      powerPreference: 'high-performance',
-      alpha: isIPhone ? true : false,
-      stencil: false,
-      depth: false,
-      preserveDrawingBuffer: isIPhone ? true : false,
-    })
-    
-    renderer.setClearColor(new THREE.Color(props.backgroundColor), isIPhone ? 0 : 1)
-    renderer.setPixelRatio(pixelRatio)
-    
-    // 解析度設定
-    const scale = isIPhone ? 0.5 : (isMobileDevice ? 0.3 : 0.7)
-    renderer.setSize(w * scale, h * scale)
-    renderer.domElement.style.width = `${w}px`
-    renderer.domElement.style.height = `${h}px`
-    renderer.domElement.style.transform = `scale(${1/scale})`
-    
-    // iPhone特殊處理
-    if (isIPhone) {
-      renderer.domElement.style.position = 'absolute'
-      renderer.domElement.style.top = '0'
-      renderer.domElement.style.left = '0'
-      renderer.domElement.style.zIndex = '1'
+    // 檢查記憶體
+    if ('memory' in performance) {
+      const memory = (performance as any).memory
+      if (memory.jsHeapSizeLimit < 100 * 1024 * 1024) { // 100MB
+        return true
+      }
     }
     
-    containerRef.value.appendChild(renderer.domElement)
-    scene = new THREE.Scene()
-    fluidScene = new THREE.Scene()
-    clock = new THREE.Clock()
-    cam = new THREE.OrthographicCamera(-w / 2, w / 2, h / 2, -h / 2, 0.1, 10)
-    cam.position.z = 1
-    rt0 = new THREE.WebGLRenderTarget(w, h)
-    rt1 = rt0.clone()
+    // 檢查WebGL支援
+    try {
+      const canvas = document.createElement('canvas')
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
+      if (!gl) return true
+      
+      const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE)
+      if (maxTextureSize < 2048) return true
+    } catch (error) {
+      return true
+    }
     
-    // 初始化顏色
-    persistColor = hexToRgb(props.textColor || props.startColor).map(
-      c => c / 255,
-    )
-    targetColor = [...persistColor]
-    
-    console.log('[InfiniteMenu] 創建著色器材質，顏色:', persistColor)
-    
-    // 創建著色器材質
-    quadMat = new THREE.ShaderMaterial({
-      uniforms: {
-        sampler: { value: null },
-        time: { value: 0 },
-        mousePos: { value: new THREE.Vector2(-1, 1) },
-        noiseFactor: { value: props.noiseFactor },
-        noiseScale: { value: props.noiseScale },
-        rgbPersistFactor: { value: props.rgbPersistFactor },
-        alphaPersistFactor: { value: props.alphaPersistFactor },
-      },
-      vertexShader: BASE_VERT,
-      fragmentShader: PERSIST_FRAG,
-      transparent: true,
-    })
-    
-    console.log('[InfiniteMenu] quadMat 創建成功')
-    
-    labelMat = new THREE.ShaderMaterial({
-      uniforms: {
-        sampler: { value: null },
-        color: { value: new THREE.Vector4(...persistColor) },
-      },
-      vertexShader: BASE_VERT,
-      fragmentShader: TEXT_FRAG,
-      transparent: true,
-    })
-    
-    console.log('[InfiniteMenu] labelMat 創建成功')
-    
-    quad = new THREE.Mesh(new THREE.PlaneGeometry(w, h), quadMat)
-    fluidScene.add(quad)
-    
-    label = new THREE.Mesh(
-      new THREE.PlaneGeometry(Math.min(w, h), Math.min(w, h)),
-      labelMat,
-    )
-    scene.add(label)
-    
-    await loadFont(props.fontFamily)
-    texCanvas = drawTextToCanvas(
-      props.text,
-      props.fontFamily,
-      props.fontWeight,
-      props.textColor,
-      props.supersample,
-      renderer,
-    )
-    labelMat.uniforms.sampler.value = new THREE.CanvasTexture(texCanvas)
-    
-  } catch (error) {
-    console.error('[InfiniteMenu] WebGL初始化失敗:', error)
+    return false
+  }
+  
+  // 如果是低性能設備，使用簡化版本
+  if (isLowPerformanceDevice()) {
+    console.log('[InfiniteMenu] 檢測到低性能設備，使用簡化版本')
+    isLowPerformance.value = true
     loading.value = false
     return
   }
+    
+  // 手機優化：檢測設備類型
+  const isMobileDevice = window.innerWidth < 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   
+  let w = containerRef.value.clientWidth
+  let h = containerRef.value.clientHeight
+  
+  // 手機優化：大幅降低渲染品質以提高性能
+  const pixelRatio = isMobileDevice ? 1 : window.devicePixelRatio || 1
+  const antialias = false // 手機端完全關閉抗鋸齒
+  
+  renderer = new THREE.WebGLRenderer({
+    antialias: antialias,
+    powerPreference: 'high-performance',
+    // 手機優化：減少記憶體使用
+    alpha: false,
+    stencil: false,
+    depth: false,
+  })
+  
+  renderer.setClearColor(new THREE.Color(props.backgroundColor), 1)
+  renderer.setPixelRatio(pixelRatio)
+  
+  // 手機優化：大幅降低解析度以提高性能
+  const scale = isMobileDevice ? 0.3 : 0.7
+  renderer.setSize(w * scale, h * scale)
+  renderer.domElement.style.width = `${w}px`
+  renderer.domElement.style.height = `${h}px`
+  renderer.domElement.style.transform = `scale(${1/scale})`
+  
+  containerRef.value.appendChild(renderer.domElement)
+  scene = new THREE.Scene()
+  fluidScene = new THREE.Scene()
+  clock = new THREE.Clock()
+  cam = new THREE.OrthographicCamera(-w / 2, w / 2, h / 2, -h / 2, 0.1, 10)
+  cam.position.z = 1
+  rt0 = new THREE.WebGLRenderTarget(w, h)
+  rt1 = rt0.clone()
+  quadMat = new THREE.ShaderMaterial({
+    uniforms: {
+      sampler: { value: null },
+      time: { value: 0 },
+      mousePos: { value: new THREE.Vector2(-1, 1) },
+      noiseFactor: { value: props.noiseFactor },
+      noiseScale: { value: props.noiseScale },
+      rgbPersistFactor: { value: props.rgbPersistFactor },
+      alphaPersistFactor: { value: props.alphaPersistFactor },
+    },
+    vertexShader: BASE_VERT,
+    fragmentShader: PERSIST_FRAG,
+    transparent: true,
+  })
+  quad = new THREE.Mesh(new THREE.PlaneGeometry(w, h), quadMat)
+  fluidScene.add(quad)
+  persistColor = hexToRgb(props.textColor || props.startColor).map(
+    c => c / 255,
+  )
+  targetColor = [...persistColor]
+  labelMat = new THREE.ShaderMaterial({
+    uniforms: {
+      sampler: { value: null },
+      color: { value: new THREE.Vector4(...persistColor) },
+    },
+    vertexShader: BASE_VERT,
+    fragmentShader: TEXT_FRAG,
+    transparent: true,
+  })
+  label = new THREE.Mesh(
+    new THREE.PlaneGeometry(Math.min(w, h), Math.min(w, h)),
+    labelMat,
+  )
+  scene.add(label)
+  await loadFont(props.fontFamily)
+  texCanvas = drawTextToCanvas(
+    props.text,
+    props.fontFamily,
+    props.fontWeight,
+    props.textColor,
+    props.supersample,
+    renderer,
+  )
+  labelMat.uniforms.sampler.value = new THREE.CanvasTexture(texCanvas)
   // pointermove 事件
   pointerMoveHandler = (e) => {
     const r = containerRef.value.getBoundingClientRect()
@@ -318,44 +364,20 @@ onMounted(async () => {
   // resize observer debounce
   ro = new window.ResizeObserver(
     debounce(() => {
-      const newW = containerRef.value.clientWidth
-      const newH = containerRef.value.clientHeight
-      
-      // 更新變數
-      w = newW
-      h = newH
-      
-      // 重新計算scale
-      const newScale = isIPhone ? 0.5 : (isMobileDevice ? 0.3 : 0.7)
-      
-      // 更新renderer尺寸
-      renderer.setSize(w * newScale, h * newScale)
-      renderer.domElement.style.width = `${w}px`
-      renderer.domElement.style.height = `${h}px`
-      renderer.domElement.style.transform = `scale(${1/newScale})`
-      
-      // 更新相機
+      w = containerRef.value.clientWidth
+      h = containerRef.value.clientHeight
+      renderer.setSize(w, h)
       cam.left = -w / 2
       cam.right = w / 2
       cam.top = h / 2
       cam.bottom = -h / 2
       cam.updateProjectionMatrix()
-      
-      // 更新幾何體
-      if (quad && quad.geometry) {
-        quad.geometry.dispose()
-        quad.geometry = new THREE.PlaneGeometry(w, h)
-      }
-      
-      // 更新渲染目標
-      if (rt0) rt0.setSize(w, h)
-      if (rt1) rt1.setSize(w, h)
-      
-      // 更新標籤幾何體
-      if (label && label.geometry) {
-        label.geometry.dispose()
-        label.geometry = new THREE.PlaneGeometry(Math.min(w, h), Math.min(w, h))
-      }
+      quad.geometry.dispose()
+      quad.geometry = new THREE.PlaneGeometry(w, h)
+      rt0.setSize(w, h)
+      rt1.setSize(w, h)
+      label.geometry.dispose()
+      label.geometry = new THREE.PlaneGeometry(Math.min(w, h), Math.min(w, h))
     }, 200),
   )
   ro.observe(containerRef.value)
@@ -374,9 +396,9 @@ onMounted(async () => {
     { threshold: 0.01 },
   )
   intersectionObserver.observe(containerRef.value)
-  // 動畫循環（iPhone優化：調整幀率）
+  // 動畫循環（手機優化：大幅降低幀率）
   let lastTime = 0
-  const targetFPS = isIPhone ? 30 : (isMobileDevice ? 15 : 30) // iPhone使用30fps
+  const targetFPS = isMobileDevice ? 15 : 30 // 手機降低到 15fps
   const frameInterval = 1000 / targetFPS
   
   function animate(now) {
@@ -386,23 +408,13 @@ onMounted(async () => {
     if (now - lastTime > frameInterval) {
       const dt = clock.getDelta()
       
-      // 添加調試信息
-      if (Math.floor(now / 1000) % 5 === 0) {
-        console.log('[InfiniteMenu] 動畫運行中:', {
-          time: clock.getElapsedTime(),
-          mouse: [mouse[0], mouse[1]],
-          target: [target[0], target[1]],
-          persistColor: persistColor
-        })
-      }
-      
-      // iPhone優化：簡化顏色動畫
-      if (props.animateColor && !props.textColor && !isIPhone) {
+      // 手機優化：簡化顏色動畫
+      if (props.animateColor && !props.textColor && !isMobileDevice) {
         for (let i = 0; i < 3; i++)
           persistColor[i] += (targetColor[i] - persistColor[i]) * dt
       }
       
-      const speed = dt * (isIPhone ? 3 : (isMobileDevice ? 1.5 : 5)) // iPhone適中的動畫速度
+      const speed = dt * (isMobileDevice ? 1.5 : 5) // 手機大幅降低動畫速度
       mouse[0] += (target[0] - mouse[0]) * speed
       mouse[1] += (target[1] - mouse[1]) * speed
       
@@ -410,9 +422,9 @@ onMounted(async () => {
       quadMat.uniforms.sampler.value = rt1.texture
       quadMat.uniforms.time.value = clock.getElapsedTime()
       
-      // iPhone優化：適中的特效強度
-      const noiseFactor = isIPhone ? props.noiseFactor * 0.5 : (isMobileDevice ? props.noiseFactor * 0.2 : props.noiseFactor)
-      const noiseScale = isIPhone ? props.noiseScale * 0.5 : (isMobileDevice ? props.noiseScale * 0.2 : props.noiseScale)
+      // 手機優化：大幅降低特效強度
+      const noiseFactor = isMobileDevice ? props.noiseFactor * 0.2 : props.noiseFactor
+      const noiseScale = isMobileDevice ? props.noiseScale * 0.2 : props.noiseScale
       
       quadMat.uniforms.noiseFactor.value = noiseFactor
       quadMat.uniforms.noiseScale.value = noiseScale
@@ -435,14 +447,10 @@ onMounted(async () => {
       requestAnimationFrame(animate)
   }
   animationActive = true
-  isVisible = true
-  console.log('[InfiniteMenu] 開始動畫循環')
   animate()
-  
   // 頁面隱藏時暫停動畫
   document.addEventListener('visibilitychange', () => {
     animationActive = document.visibilityState === 'visible'
-    console.log('[InfiniteMenu] 頁面可見性變化:', animationActive)
     if (animationActive)
       animate()
   })
@@ -473,11 +481,21 @@ onBeforeUnmount(() => {
       <LoadingSpinner />
     </div>
     
-    <!-- WebGL動畫版本 -->
-    <div v-if="!loading" class="w-full h-full"></div>
+    <!-- 低性能設備的簡化版本 -->
+    <div
+      v-if="!loading && isLowPerformance"
+      class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900"
+    >
+      <div class="text-center">
+        <h1 class="text-4xl md:text-6xl lg:text-8xl font-bold text-blue-300 mb-4 animate-pulse">
+          WURIDAO
+        </h1>
+        <p class="text-blue-200 text-lg md:text-xl opacity-80">
+          智慧家庭解決方案
+        </p>
+      </div>
+    </div>
   </div>
 </template>
 
-<style scoped>
-/* 保留基本樣式 */
-</style>
+<style scoped></style>

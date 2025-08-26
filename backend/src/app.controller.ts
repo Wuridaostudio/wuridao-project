@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Head, HttpCode, HttpStatus } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
@@ -11,5 +11,13 @@ export class AppController {
   @ApiOperation({ summary: '應用程式根端點' })
   getHello(): string {
     return this.appService.getHello();
+  }
+
+  @Head()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '健康檢查端點' })
+  healthCheck(): void {
+    // HEAD請求不需要返回內容，只需要返回200狀態碼
+    return;
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Head, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { HealthService } from './health.service';
 import { StatisticsService } from '../statistics/statistics.service';
@@ -15,6 +15,14 @@ export class HealthController {
   @ApiOperation({ summary: '基本健康檢查' })
   getHealth() {
     return this.healthService.getBasicHealth();
+  }
+
+  @Head()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: '健康檢查HEAD端點' })
+  healthCheckHead(): void {
+    // HEAD請求不需要返回內容，只需要返回200狀態碼
+    return;
   }
 
   @Get('api')

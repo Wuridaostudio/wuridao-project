@@ -39,12 +39,21 @@ const performanceMetrics = ref({
   }
 })
 
-// 響應式斷點配置 - 更精確的斷點設置
+// 響應式斷點配置 - 更穩定的斷點設置
 const BREAKPOINTS = {
-  mobile: 640,    // sm: 640px
-  tablet: 768,    // md: 768px
-  desktop: 1024   // lg: 1024px
+  mobile: 768,    // md: 768px - 更寬鬆的手機斷點
+  tablet: 1024,   // lg: 1024px - 標準平板斷點
+  desktop: 1025   // 桌面端：> 1024px
 }
+
+// 響應式狀態快取 - 避免不必要的重新計算
+const responsiveCache = ref({
+  lastWidth: 0,
+  lastHeight: 0,
+  lastBreakpoint: '',
+  lastOrientation: 0,
+  updateCount: 0
+})
 
 // 設備檢測和性能評估
 function detectDeviceAndPerformance() {
@@ -53,25 +62,37 @@ function detectDeviceAndPerformance() {
   const width = window.innerWidth || 1024 // SSR fallback
   const userAgent = navigator.userAgent || ''
   
-  // 響應式斷點檢測 - 修復重複邏輯
+  // 響應式斷點檢測 - 更穩定的邏輯
+  const oldBreakpoint = currentBreakpoint.value
+  
   if (width < BREAKPOINTS.mobile) {
-    // 手機端：< 640px
+    // 手機端：< 768px
     currentBreakpoint.value = 'mobile'
     isMobile.value = true
     isTablet.value = false
     isDesktop.value = false
-  } else if (width < BREAKPOINTS.desktop) {
-    // 平板端：640px - 1023px (包含小平板和大平板)
+  } else if (width < BREAKPOINTS.tablet) {
+    // 平板端：768px - 1024px
     currentBreakpoint.value = 'tablet'
     isMobile.value = false
     isTablet.value = true
     isDesktop.value = false
   } else {
-    // 桌面端：>= 1024px
+    // 桌面端：>= 1025px
     currentBreakpoint.value = 'desktop'
     isMobile.value = false
     isTablet.value = false
     isDesktop.value = true
+  }
+  
+  // 記錄斷點變化
+  if (oldBreakpoint !== currentBreakpoint.value) {
+    logger.log('[PLAN] 斷點變化:', {
+      from: oldBreakpoint,
+      to: currentBreakpoint.value,
+      width,
+      trigger: 'detectDeviceAndPerformance'
+    })
   }
 
   // iOS檢測
@@ -148,11 +169,11 @@ function detectPerformanceCapabilities() {
   }
 }
 
-// 響應式事件處理 - 更強大的響應式處理
+// 響應式事件處理 - 更穩定的處理
 function handleResize() {
   if (!process.client) return
 
-  // 防抖處理 - 減少延遲時間提高響應性
+  // 防抖處理 - 使用更長的延遲確保穩定性
   if (resizeTimer.value) {
     clearTimeout(resizeTimer.value)
   }
@@ -160,24 +181,30 @@ function handleResize() {
     const newWidth = window.innerWidth
     const newHeight = window.innerHeight
     const oldBreakpoint = currentBreakpoint.value
-    const oldOrientation = window.orientation || 0
     
+    // 強制重新檢測設備
     detectDeviceAndPerformance()
     
-    // 記錄詳細的響應式變化信息
+    // 記錄響應式變化
     if (oldBreakpoint !== currentBreakpoint.value) {
-      logger.log('[PLAN] 響應式斷點變化:', { 
+      logger.log('[PLAN] Resize觸發斷點變化:', { 
         from: oldBreakpoint, 
         to: currentBreakpoint.value,
         width: newWidth,
         height: newHeight,
-        orientation: oldOrientation
+        timestamp: Date.now()
+      })
+    } else {
+      logger.log('[PLAN] Resize但斷點未變化:', {
+        breakpoint: currentBreakpoint.value,
+        width: newWidth,
+        height: newHeight
       })
     }
-  }, 50) // 進一步減少到50ms提高響應性
+  }, 200) // 增加到200ms確保穩定性
 }
 
-// 方向變化處理
+// 方向變化處理 - 簡化版本
 function handleOrientationChange() {
   if (!process.client) return
   
@@ -186,16 +213,20 @@ function handleOrientationChange() {
     const width = window.innerWidth
     const height = window.innerHeight
     const orientation = window.orientation || 0
+    const oldBreakpoint = currentBreakpoint.value
     
     detectDeviceAndPerformance()
     
-    logger.log('[PLAN] 方向變化處理:', {
-      width,
-      height,
-      orientation,
-      breakpoint: currentBreakpoint.value
-    })
-  }, 300) // 給足夠時間讓方向變化完成
+    if (oldBreakpoint !== currentBreakpoint.value) {
+      logger.log('[PLAN] 方向變化觸發斷點變化:', {
+        from: oldBreakpoint,
+        to: currentBreakpoint.value,
+        width,
+        height,
+        orientation
+      })
+    }
+  }, 500) // 給更多時間讓方向變化完成
 }
 
 // 響應式計時器
@@ -344,7 +375,7 @@ onMounted(async () => {
   // 啟動性能監控
   stopPerformanceMonitoring = startPerformanceMonitoring()
   
-  // 添加響應式事件監聽 - 更全面的監聽
+  // 添加響應式事件監聽 - 更穩定的監聽
   if (process.client) {
     // 視窗大小變化
     window.addEventListener('resize', handleResize, { passive: true })
@@ -353,20 +384,26 @@ onMounted(async () => {
     window.addEventListener('orientationchange', handleOrientationChange, { passive: true })
     
     // 頁面載入完成
-    window.addEventListener('load', detectDeviceAndPerformance, { passive: true })
+    window.addEventListener('load', () => {
+      setTimeout(detectDeviceAndPerformance, 100)
+    }, { passive: true })
     
     // 確保在頁面完全載入後再次檢測
     if (document.readyState === 'complete') {
-      detectDeviceAndPerformance()
-    } else {
-      window.addEventListener('load', detectDeviceAndPerformance, { passive: true })
+      setTimeout(detectDeviceAndPerformance, 100)
     }
     
-    // 添加更多響應式事件監聽
+    // 視窗重新獲得焦點時檢測
     window.addEventListener('focus', () => {
-      // 當視窗重新獲得焦點時重新檢測
-      setTimeout(detectDeviceAndPerformance, 100)
+      setTimeout(detectDeviceAndPerformance, 200)
     }, { passive: true })
+    
+    // 添加DOMContentLoaded事件
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(detectDeviceAndPerformance, 100)
+      }, { passive: true })
+    }
   }
 
   // 組件載入策略
@@ -409,8 +446,7 @@ onUnmounted(() => {
   if (process.client) {
     window.removeEventListener('resize', handleResize)
     window.removeEventListener('orientationchange', handleOrientationChange)
-    window.removeEventListener('load', detectDeviceAndPerformance)
-    window.removeEventListener('focus', detectDeviceAndPerformance)
+    document.removeEventListener('DOMContentLoaded', detectDeviceAndPerformance)
   }
   
   // 清理計時器
@@ -437,6 +473,11 @@ watch([isMobile, isTablet, isDesktop, isLowPerformance], () => {
     width: process.client ? window.innerWidth : 'SSR',
     height: process.client ? window.innerHeight : 'SSR'
   })
+  
+  // 驗證響應式狀態
+  if (process.client) {
+    setTimeout(validateResponsiveState, 100)
+  }
 })
 
 // 響應式狀態監控器 - 用於調試
@@ -457,13 +498,36 @@ const responsiveDebugger = computed(() => {
     userAgent: navigator.userAgent.substring(0, 100)
   }
 })
+
+// 響應式狀態驗證函數
+function validateResponsiveState() {
+  if (!process.client) return
+  
+  const width = window.innerWidth
+  const expectedBreakpoint = width < BREAKPOINTS.mobile ? 'mobile' : 
+                            width < BREAKPOINTS.tablet ? 'tablet' : 'desktop'
+  
+  if (currentBreakpoint.value !== expectedBreakpoint) {
+    logger.warn('[PLAN] 響應式狀態不一致:', {
+      current: currentBreakpoint.value,
+      expected: expectedBreakpoint,
+      width,
+      isMobile: isMobile.value,
+      isTablet: isTablet.value,
+      isDesktop: isDesktop.value
+    })
+    
+    // 強制修正狀態
+    detectDeviceAndPerformance()
+  }
+}
 </script>
 
 <template>
   <ClientOnly>
-    <div class="relative bg-black min-h-screen">
+  <div class="relative bg-black min-h-screen">
       <!-- Hero 區塊（InfiniteMenu）- 優先載入 -->
-      <section style="height: 100vh; position: relative">
+    <section style="height: 100vh; position: relative">
         <Suspense>
           <template #default>
             <InfiniteMenu 
@@ -479,13 +543,13 @@ const responsiveDebugger = computed(() => {
             </div>
           </template>
         </Suspense>
-      </section>
+    </section>
     
     <!-- 表單區塊 -->
     <section v-if="isSmartFormLoaded">
       <Suspense>
         <template #default>
-          <SmartFormSection />
+      <SmartFormSection />
         </template>
         <template #fallback>
           <div class="w-full h-64 md:h-80 flex items-center justify-center bg-white">
@@ -495,7 +559,7 @@ const responsiveDebugger = computed(() => {
       </Suspense>
     </section>
     
-                                                                               <!-- 滾動堆疊區塊 -->
+    <!-- 滾動堆疊區塊 -->
         <section v-if="isScrollStackLoaded && isClient && isHydrated && isInitialized" class="min-h-screen flex justify-center" aria-label="服務流程步驟">
        <!-- 手機端和平板端：霧面玻璃設計，完全禁用動畫 -->
        <div v-if="isMobile || isTablet" class="w-full max-w-4xl px-4 py-8">
@@ -589,7 +653,7 @@ const responsiveDebugger = computed(() => {
        </div>
 
              <!-- 桌面端：使用ScrollStack動畫 -->
-       <ScrollStack
+      <ScrollStack
          v-else-if="isDesktop"
         :item-distance="scrollStackConfig.itemDistance"
         :item-scale="scrollStackConfig.itemScale"
@@ -673,8 +737,8 @@ const responsiveDebugger = computed(() => {
             </p>
           </div>
         </ScrollStackItem>
-               </ScrollStack>
-       </section>
+      </ScrollStack>
+    </section>
 
                    <!-- 性能監控面板（開發模式） -->
       <div v-if="isDev && performanceMetrics" class="fixed top-4 right-4 bg-black/80 text-white p-4 rounded-lg text-xs z-50 max-w-xs">
@@ -698,10 +762,10 @@ const responsiveDebugger = computed(() => {
      <template #fallback>
        <div class="relative bg-black min-h-screen flex items-center justify-center">
          <LoadingSpinner />
-       </div>
+  </div>
      </template>
    </ClientOnly>
- </template>
+</template>
 
 <style scoped>
 .infinite-menu-absolute {

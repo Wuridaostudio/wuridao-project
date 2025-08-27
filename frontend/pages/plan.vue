@@ -521,6 +521,44 @@ function validateResponsiveState() {
     detectDeviceAndPerformance()
   }
 }
+
+// 導航到 Typeform 諮詢表
+function navigateToTypeform() {
+  const typeformUrl = 'https://76a8vw1q07o.typeform.com/to/nERCiK95?typeform-source=localhost'
+  
+  logger.log('[PLAN] 導航到 Typeform 諮詢表:', typeformUrl)
+  
+  // 在新視窗中打開 Typeform
+  if (process.client) {
+    window.open(typeformUrl, '_blank', 'noopener,noreferrer')
+  }
+}
+
+// 導航到 LINE 好友連結
+function navigateToLine() {
+  const lineUrl = 'https://lin.ee/8vwfeus'
+  
+  console.log('[PLAN] 導航到 LINE 好友連結:', lineUrl)
+  logger.log('[PLAN] 導航到 LINE 好友連結:', lineUrl)
+  
+  // 在新視窗中打開 LINE 連結
+  if (process.client) {
+    try {
+      const newWindow = window.open(lineUrl, '_blank', 'noopener,noreferrer')
+      if (newWindow) {
+        console.log('[PLAN] LINE 連結已在新視窗中打開')
+      } else {
+        console.error('[PLAN] 無法打開新視窗，可能被瀏覽器阻擋')
+        // 備用方案：直接導航
+        window.location.href = lineUrl
+      }
+    } catch (error) {
+      console.error('[PLAN] 打開 LINE 連結時發生錯誤:', error)
+      // 備用方案：直接導航
+      window.location.href = lineUrl
+    }
+  }
+}
 </script>
 
 <template>
@@ -565,7 +603,7 @@ function validateResponsiveState() {
        <div v-if="isMobile || isTablet" class="w-full max-w-4xl px-4 py-8">
          <div class="space-y-6">
                        <!-- 步驟 1 -->
-            <div class="mobile-glass-card">
+            <div class="mobile-glass-card cursor-pointer" @click="navigateToTypeform">
               <div class="mobile-glass-content">
                 <div class="text-center">
                   <h3 class="mobile-card-title">
@@ -574,6 +612,14 @@ function validateResponsiveState() {
                   <p class="mobile-card-description">
                     詳細了解您的需求與預算
                   </p>
+                  <div class="mt-3">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                      </svg>
+                      點擊填寫
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -591,7 +637,7 @@ function validateResponsiveState() {
                   
                   <!-- LINE QR Code -->
                   <div class="flex justify-center">
-                    <div class="qr-code-container">
+                    <div class="qr-code-container cursor-pointer" @click="navigateToLine">
                       <img 
                         src="https://qr-official.line.me/gs/M_417qbotf_BW.png?oat_content=qr"
                         alt="LINE 好友 QR Code"
@@ -604,6 +650,14 @@ function validateResponsiveState() {
                   <p class="qr-code-text">
                     掃描加入 LINE 好友
                   </p>
+                  <div class="mt-2">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-300 border border-green-400/30 cursor-pointer hover:bg-green-500/30 transition-colors" @click.stop="navigateToLine">
+                      <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                      </svg>
+                      點擊加入
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -668,13 +722,21 @@ function validateResponsiveState() {
         aria-label="智慧家庭服務流程"
       >
         <ScrollStackItem role="article" aria-label="步驟 1：填寫諮詢表">
-          <div class="text-center px-2 sm:px-4">
+          <div class="text-center px-2 sm:px-4 cursor-pointer" @click="navigateToTypeform">
             <h3 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 leading-tight">
               1. 填寫諮詢表
             </h3>
             <p class="text-sm sm:text-sm md:text-base lg:text-lg text-gray-300 leading-relaxed">
               詳細了解您的需求與預算
             </p>
+            <div class="mt-3">
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                </svg>
+                點擊填寫
+              </span>
+            </div>
           </div>
         </ScrollStackItem>
 
@@ -689,7 +751,7 @@ function validateResponsiveState() {
             
             <!-- LINE QR Code - 響應式優化 -->
             <div class="flex justify-center">
-              <div class="bg-white p-2 rounded-lg inline-block">
+              <div class="bg-white p-2 rounded-lg inline-block cursor-pointer" @click="navigateToLine">
                 <img 
                   src="https://qr-official.line.me/gs/M_417qbotf_BW.png?oat_content=qr"
                   alt="LINE 好友 QR Code"
@@ -702,6 +764,14 @@ function validateResponsiveState() {
             <p class="text-xs text-gray-400 mt-2">
               掃描加入 LINE 好友
             </p>
+            <div class="mt-2">
+              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-300 border border-green-400/30 cursor-pointer hover:bg-green-500/30 transition-colors" @click.stop="navigateToLine">
+                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                </svg>
+                點擊加入
+              </span>
+            </div>
           </div>
         </ScrollStackItem>
 
@@ -980,6 +1050,13 @@ html {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.qr-code-container.cursor-pointer:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  border-color: rgba(34, 197, 94, 0.5);
 }
 
 .qr-code-image {
@@ -1003,6 +1080,15 @@ html {
       0 12px 40px rgba(0, 0, 0, 0.4),
       inset 0 1px 0 rgba(255, 255, 255, 0.15);
     border-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  /* 可點擊卡片的特殊懸停效果 */
+  .mobile-glass-card.cursor-pointer:hover {
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 
+      0 12px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      0 0 0 1px rgba(59, 130, 246, 0.3);
   }
 }
 

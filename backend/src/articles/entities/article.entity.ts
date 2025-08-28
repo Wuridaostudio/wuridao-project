@@ -88,6 +88,10 @@ export class Article {
   @Column({ nullable: true })
   geoPostalCode: string;
 
+  // 瀏覽次數
+  @Column({ default: 0 })
+  views: number;
+
   @VersionColumn()
   version: number;
 }

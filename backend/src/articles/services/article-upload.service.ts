@@ -34,7 +34,9 @@ export class ArticleUploadService {
       return null;
     }
 
-    this.logger.log('📤 [ArticleUploadService] Uploading content to Cloudinary...');
+    this.logger.log(
+      '📤 [ArticleUploadService] Uploading content to Cloudinary...',
+    );
 
     // 將文章內容轉換為 Buffer
     const contentBuffer = Buffer.from(content, 'utf-8');
@@ -59,7 +61,9 @@ export class ArticleUploadService {
     coverImageUrl: string,
     coverImagePublicId: string,
   ) {
-    this.logger.log('🔍 [ArticleUploadService] Checking existing cover image...');
+    this.logger.log(
+      '🔍 [ArticleUploadService] Checking existing cover image...',
+    );
     this.logger.log('🔍 [ArticleUploadService] Check info:', {
       coverImageUrl,
       coverImagePublicId,
@@ -78,7 +82,9 @@ export class ArticleUploadService {
       return null;
     }
 
-    this.logger.log('✅ [ArticleUploadService] Existing cover image validation successful');
+    this.logger.log(
+      '✅ [ArticleUploadService] Existing cover image validation successful',
+    );
     return {
       secure_url: coverImageUrl,
       public_id: coverImagePublicId,
@@ -93,7 +99,9 @@ export class ArticleUploadService {
 
     try {
       await this.cloudinaryService.safelyDeleteResource(publicId, resourceType);
-      this.logger.log(`✅ [ArticleUploadService] Cleaned up failed upload: ${publicId}`);
+      this.logger.log(
+        `✅ [ArticleUploadService] Cleaned up failed upload: ${publicId}`,
+      );
     } catch (error) {
       this.logger.error(
         `❌ [ArticleUploadService] 清理失敗: ${publicId}`,

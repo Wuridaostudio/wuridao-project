@@ -41,11 +41,17 @@ export class DatabaseHealthService {
           waiting: pool.waiting,
         };
 
-        this.logger.log('📊 [DatabaseHealth] Connection pool status', poolStats);
+        this.logger.log(
+          '📊 [DatabaseHealth] Connection pool status',
+          poolStats,
+        );
 
         // 檢查連接池健康狀況
         if (pool.waiting > 5) {
-          this.logger.warn('⚠️ [DatabaseHealth] Too many connections waiting in pool', poolStats);
+          this.logger.warn(
+            '⚠️ [DatabaseHealth] Too many connections waiting in pool',
+            poolStats,
+          );
         }
       }
     } catch (error) {
@@ -95,7 +101,10 @@ export class DatabaseHealthService {
       this.logger.log('✅ [DatabaseHealth] Database connection normal');
       return { status: 'healthy', message: 'Database connection is healthy' };
     } catch (error) {
-      this.logger.error('❌ [DatabaseHealth] Database connection failed:', error);
+      this.logger.error(
+        '❌ [DatabaseHealth] Database connection failed:',
+        error,
+      );
       return {
         status: 'unhealthy',
         message: 'Database connection failed',
@@ -118,7 +127,10 @@ export class DatabaseHealthService {
       this.logger.log('📊 [DatabaseHealth] Connection pool status', poolStats);
       return poolStats[0];
     } catch (error) {
-      this.logger.error('❌ [DatabaseHealth] Failed to get connection pool status:', error);
+      this.logger.error(
+        '❌ [DatabaseHealth] Failed to get connection pool status:',
+        error,
+      );
       return null;
     }
   }

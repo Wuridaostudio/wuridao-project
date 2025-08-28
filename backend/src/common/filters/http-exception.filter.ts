@@ -66,7 +66,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
       stack: exception.stack,
       response: exception.getResponse(),
     });
-    
+
     this.logger.error(
       `${request.method} ${request.url} - ${status} - ${exception.message}`,
       sanitizedErrorInfo,

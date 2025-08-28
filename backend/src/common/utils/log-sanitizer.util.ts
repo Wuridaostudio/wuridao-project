@@ -13,7 +13,7 @@ export class LogSanitizer {
 
     // 如果是陣列，遞迴處理每個元素
     if (Array.isArray(data)) {
-      return data.map(item => this.sanitize(item));
+      return data.map((item) => this.sanitize(item));
     }
 
     // 如果是物件，遞迴處理每個屬性
@@ -35,12 +35,20 @@ export class LogSanitizer {
     const lowerKey = key.toLowerCase();
 
     // 密碼相關欄位
-    if (lowerKey.includes('password') || lowerKey.includes('passwd') || lowerKey === 'pwd') {
+    if (
+      lowerKey.includes('password') ||
+      lowerKey.includes('passwd') ||
+      lowerKey === 'pwd'
+    ) {
       return value ? '[REDACTED]' : value;
     }
 
     // Token 相關欄位
-    if (lowerKey.includes('token') || lowerKey.includes('jwt') || lowerKey.includes('auth')) {
+    if (
+      lowerKey.includes('token') ||
+      lowerKey.includes('jwt') ||
+      lowerKey.includes('auth')
+    ) {
       if (typeof value === 'string' && value.length > 10) {
         return `${value.substring(0, 10)}...[REDACTED]`;
       }
@@ -48,7 +56,11 @@ export class LogSanitizer {
     }
 
     // API 金鑰相關欄位
-    if (lowerKey.includes('key') || lowerKey.includes('secret') || lowerKey.includes('api')) {
+    if (
+      lowerKey.includes('key') ||
+      lowerKey.includes('secret') ||
+      lowerKey.includes('api')
+    ) {
       if (typeof value === 'string' && value.length > 8) {
         return `${value.substring(0, 8)}...[REDACTED]`;
       }
@@ -56,7 +68,11 @@ export class LogSanitizer {
     }
 
     // 資料庫連線字串
-    if (lowerKey.includes('database') || lowerKey.includes('db') || lowerKey.includes('connection')) {
+    if (
+      lowerKey.includes('database') ||
+      lowerKey.includes('db') ||
+      lowerKey.includes('connection')
+    ) {
       if (typeof value === 'string' && value.includes('://')) {
         return '[DATABASE_URL_REDACTED]';
       }
@@ -67,14 +83,19 @@ export class LogSanitizer {
       if (typeof value === 'string' && value.includes('@')) {
         const [local, domain] = value.split('@');
         if (local && domain) {
-          const maskedLocal = local.length > 2 ? `${local.substring(0, 2)}***` : '***';
+          const maskedLocal =
+            local.length > 2 ? `${local.substring(0, 2)}***` : '***';
           return `${maskedLocal}@${domain}`;
         }
       }
     }
 
     // 手機號碼
-    if (lowerKey.includes('phone') || lowerKey.includes('mobile') || lowerKey.includes('tel')) {
+    if (
+      lowerKey.includes('phone') ||
+      lowerKey.includes('mobile') ||
+      lowerKey.includes('tel')
+    ) {
       if (typeof value === 'string' && value.length > 4) {
         return `${value.substring(0, 4)}****${value.substring(value.length - 2)}`;
       }
@@ -98,14 +119,20 @@ export class LogSanitizer {
     if (!str) return str;
 
     // 移除可能的密碼
-    str = str.replace(/password["\s]*[:=]["\s]*[^"\s,}]+/gi, 'password: [REDACTED]');
-    
+    str = str.replace(
+      /password["\s]*[:=]["\s]*[^"\s,}]+/gi,
+      'password: [REDACTED]',
+    );
+
     // 移除可能的 token
     str = str.replace(/token["\s]*[:=]["\s]*[^"\s,}]+/gi, 'token: [REDACTED]');
-    
+
     // 移除可能的 API 金鑰
-    str = str.replace(/api[_-]?key["\s]*[:=]["\s]*[^"\s,}]+/gi, 'api_key: [REDACTED]');
-    
+    str = str.replace(
+      /api[_-]?key["\s]*[:=]["\s]*[^"\s,}]+/gi,
+      'api_key: [REDACTED]',
+    );
+
     // 移除可能的資料庫連線字串
     str = str.replace(/postgresql?:\/\/[^"\s]+/gi, '[DATABASE_URL_REDACTED]');
     str = str.replace(/mysql:\/\/[^"\s]+/gi, '[DATABASE_URL_REDACTED]');
@@ -119,7 +146,7 @@ export class LogSanitizer {
   static safeLog(message: string, data?: any): { message: string; data?: any } {
     return {
       message,
-      data: data ? this.sanitize(data) : undefined
+      data: data ? this.sanitize(data) : undefined,
     };
   }
 

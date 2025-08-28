@@ -270,10 +270,3 @@ export class HealthService {
     };
   }
 }
-
-
-
-
-
-
-

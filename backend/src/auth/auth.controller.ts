@@ -48,7 +48,7 @@ export class AuthController {
       // 調用認證服務
       this.logger.log(`🔐 [LOGIN] Calling AuthService.login()`);
       const result = await this.authService.login(loginDto);
-      
+
       const sanitizedResult = LogSanitizer.sanitizeIfProduction({
         hasToken: !!result.access_token,
         tokenLength: result.access_token?.length,
@@ -56,7 +56,10 @@ export class AuthController {
         userId: result.user?.id,
         username: result.user?.username,
       });
-      this.logger.log(`🔐 [LOGIN] AuthService returned result:`, sanitizedResult);
+      this.logger.log(
+        `🔐 [LOGIN] AuthService returned result:`,
+        sanitizedResult,
+      );
 
       // ✅ [重要] 暫時移除 domain 設定，讓瀏覽器自動處理
       const cookieDomain = undefined; // 讓瀏覽器自動設定 domain
@@ -67,7 +70,10 @@ export class AuthController {
         hasToken: !!result.access_token,
         tokenLength: result.access_token?.length,
       });
-      this.logger.log(`🍪 [COOKIE] Preparing to set Cookie:`, sanitizedCookieInfo);
+      this.logger.log(
+        `🍪 [COOKIE] Preparing to set Cookie:`,
+        sanitizedCookieInfo,
+      );
 
       const cookieOptions = {
         httpOnly: false, // 允許前端 JavaScript 讀取
@@ -78,25 +84,29 @@ export class AuthController {
         domain: cookieDomain, // 設置跨域 domain
       };
 
-      const sanitizedCookieOptions = LogSanitizer.sanitizeIfProduction(cookieOptions);
+      const sanitizedCookieOptions =
+        LogSanitizer.sanitizeIfProduction(cookieOptions);
       this.logger.log(`🍪 [COOKIE] Cookie options:`, sanitizedCookieOptions);
 
       // 設置 Cookie
       response.cookie('auth-token', result.access_token, cookieOptions);
-      
+
       this.logger.log(`🍪 [COOKIE] ✅ Cookie has been set in response`);
 
       // 記錄響應標頭（已脫敏）
       const sanitizedHeaders = LogSanitizer.sanitizeIfProduction({
         'set-cookie': response.getHeader('Set-Cookie'),
-        'access-control-allow-origin': response.getHeader('Access-Control-Allow-Origin'),
-        'access-control-allow-credentials': response.getHeader('Access-Control-Allow-Credentials'),
+        'access-control-allow-origin': response.getHeader(
+          'Access-Control-Allow-Origin',
+        ),
+        'access-control-allow-credentials': response.getHeader(
+          'Access-Control-Allow-Credentials',
+        ),
       });
       this.logger.log(`📋 [RESPONSE] Response headers:`, sanitizedHeaders);
 
       this.logger.log(`✅ [LOGIN] Login successful, returning result`);
       return result;
-
     } catch (error) {
       const sanitizedError = LogSanitizer.sanitizeIfProduction({
         error: error.message,

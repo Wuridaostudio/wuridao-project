@@ -24,6 +24,30 @@ useSeoMeta({
   twitterCard: 'summary_large_image',
 })
 
+// 訪客追蹤功能
+const trackPageView = async (path: string) => {
+  if (!process.client) return
+  
+  // 排除管理頁面的訪問
+  if (path.startsWith('/admin')) {
+    logger.log('📊 [Analytics] 跳過管理頁面追蹤:', path)
+    return
+  }
+  
+  try {
+    const config = useRuntimeConfig()
+    await $fetch('/analytics/track', {
+      baseURL: config.public.apiBaseUrl,
+      params: { page: path },
+      method: 'GET',
+    })
+    
+    logger.log('📊 [Analytics] 頁面訪問已追蹤:', path)
+  } catch (error) {
+    logger.error('❌ [Analytics] 頁面訪問追蹤失敗:', error)
+  }
+}
+
 // 監聽路由變化以追蹤頁面瀏覽
 const route = useRoute()
 watch(
@@ -32,8 +56,11 @@ watch(
     // 只在客戶端記錄日誌
     if (process.client) {
       logger.log('Page view:', newPath)
+      // 追蹤頁面訪問
+      trackPageView(newPath)
     }
   },
+  { immediate: true } // 立即執行一次，追蹤初始頁面
 )
 </script>
 

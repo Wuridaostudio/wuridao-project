@@ -6,10 +6,3 @@ import { StatisticsService } from './statistics.service';
   exports: [StatisticsService],
 })
 export class StatisticsModule {}
-
-
-
-
-
-
-

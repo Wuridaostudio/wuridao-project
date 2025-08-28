@@ -1,5 +1,5 @@
 // backend/src/analytics/analytics.controller.ts
-import { Controller, Get, Query, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Query, Request, UseGuards, Body } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AnalyticsService } from './analytics.service';
@@ -25,6 +25,8 @@ export class AnalyticsController {
     await this.analyticsService.logVisitor(request, page || '/');
     return { success: true };
   }
+
+
 
   // 需要認證的 API
   @UseGuards(JwtAuthGuard)

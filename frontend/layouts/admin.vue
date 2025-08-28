@@ -82,12 +82,50 @@ async function handleLogout() {
   display: flex;
   min-height: 100vh;
 }
+
+.admin-sidebar {
+  width: 220px;
+  background: #18181b;
+  color: #fff;
+  min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  font-weight: bold;
+}
+
+.sidebar-link {
+  color: #fff;
+  font-weight: bold;
+  padding: 12px 32px;
+  display: block;
+  border-radius: 0 24px 24px 0;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  background: transparent;
+  margin-left: 4px;
+  text-align: center; /* 文字置中 */
+}
+
+.sidebar-link.router-link-active {
+  background: #2563eb;
+  color: #fff;
+}
+
+.sidebar-link:hover {
+  background: #222;
+  color: #fff;
+}
+
 .admin-main-container {
   flex: 1;
   margin-left: 220px; /* 與 sidebar 寬度一致 */
   display: flex;
   flex-direction: column;
 }
+
 .admin-header {
   display: flex;
   justify-content: flex-end;
@@ -99,14 +137,17 @@ async function handleLogout() {
   top: 0;
   z-index: 10;
 }
+
 .admin-main {
   flex: 1;
   background: #f8fafc;
   padding: 2rem;
 }
+
 .btn-primary {
   @apply bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors;
 }
+
 .btn-secondary {
   @apply bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-black transition-colors;
 }

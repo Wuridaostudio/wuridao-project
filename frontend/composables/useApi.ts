@@ -296,8 +296,19 @@ export function useApi() {
     searchUnsplash: (query: string) => api('/unsplash', { params: { query } }),
 
     // Analytics
-    getVisitorAnalytics: () =>
-      api('/analytics/visitors'),
+    getVisitorAnalytics: (timeRange = '30d') =>
+      api('/analytics/visitors', { params: { timeRange } }),
+
+    getRealtimeVisitors: () =>
+      api('/analytics/realtime'),
+
+    getPageViews: (days = 7) =>
+      api('/analytics/pageviews', { params: { days } }),
+
+    getVisitorTrends: (days = 7) =>
+      api('/analytics/trends', { params: { days } }),
+
+
 
     // Cloudinary
     getCloudinarySignature: (folder: string) => {

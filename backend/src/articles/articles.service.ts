@@ -39,7 +39,9 @@ export class ArticlesService {
     createArticleDto: CreateArticleDto,
     coverImage?: Express.Multer.File,
   ) {
-    this.logger.log('🚀 [ArticlesService] ===== Article creation service started =====');
+    this.logger.log(
+      '🚀 [ArticlesService] ===== Article creation service started =====',
+    );
     this.logger.log('📋 [ArticlesService] Received data:', {
       title: createArticleDto.title,
       contentLength: createArticleDto.content?.length || 0,
@@ -118,7 +120,10 @@ export class ArticlesService {
 
       const savedArticle = await this.articleRepository.save(article);
 
-      this.logger.log('✅ [ArticlesService] Article created successfully:', savedArticle.id);
+      this.logger.log(
+        '✅ [ArticlesService] Article created successfully:',
+        savedArticle.id,
+      );
       return savedArticle;
     } catch (error) {
       // 清理失敗的上傳
@@ -162,33 +167,43 @@ export class ArticlesService {
 
     try {
       const queryBuilder = this.articleRepository
-      .createQueryBuilder('article')
-      .leftJoinAndSelect('article.category', 'category')
-      .leftJoinAndSelect('article.tags', 'tags')
+        .createQueryBuilder('article')
+        .leftJoinAndSelect('article.category', 'category')
+        .leftJoinAndSelect('article.tags', 'tags')
         .orderBy('article.createdAt', 'DESC');
 
       // 檢查是否有 Authorization 標頭（表示可能是管理員請求）
-      const hasAuthHeader = request?.headers?.authorization && 
-                           request.headers.authorization.startsWith('Bearer ');
-      this.logger.log('🔍 [ArticlesService] Auth header check:', { 
-        hasAuthHeader, 
-        authHeader: hasAuthHeader ? 'Bearer ***' : 'None'
+      const hasAuthHeader =
+        request?.headers?.authorization &&
+        request.headers.authorization.startsWith('Bearer ');
+      this.logger.log('🔍 [ArticlesService] Auth header check:', {
+        hasAuthHeader,
+        authHeader: hasAuthHeader ? 'Bearer ***' : 'None',
       });
 
       // 處理草稿狀態篩選
       if (query.isDraft !== undefined) {
         const isDraft = query.isDraft === 'true' || query.isDraft === true;
         queryBuilder.andWhere('article.isDraft = :isDraft', { isDraft });
-        this.logger.log('🔍 [ArticlesService] Using specified isDraft parameter:', isDraft);
+        this.logger.log(
+          '🔍 [ArticlesService] Using specified isDraft parameter:',
+          isDraft,
+        );
       } else {
         // 根據是否有認證標頭決定是否顯示草稿文章
         if (hasAuthHeader) {
           // 有認證標頭的請求（可能是管理員）可以看到所有文章
-          this.logger.log('🔍 [ArticlesService] Auth header detected, returning all articles (including drafts)');
-    } else {
+          this.logger.log(
+            '🔍 [ArticlesService] Auth header detected, returning all articles (including drafts)',
+          );
+        } else {
           // 沒有認證標頭的請求（公開訪問）只能看到已發布的文章
-          queryBuilder.andWhere('article.isDraft = :isDraft', { isDraft: PUBLISHED_STATUS });
-          this.logger.log('🔍 [ArticlesService] Public access, returning only published articles');
+          queryBuilder.andWhere('article.isDraft = :isDraft', {
+            isDraft: PUBLISHED_STATUS,
+          });
+          this.logger.log(
+            '🔍 [ArticlesService] Public access, returning only published articles',
+          );
         }
       }
 
@@ -230,20 +245,20 @@ export class ArticlesService {
           if (article.coverImageUrl) {
             const validation = await this.cloudinaryService.validateImageUrl(
               article.coverImageUrl,
-              article.category?.name
+              article.category?.name,
             );
-            
+
             if (!validation.isValid && validation.fallbackUrl) {
               this.logger.warn('[ArticlesService] Using fallback image', {
                 articleId: article.id,
                 originalUrl: article.coverImageUrl,
-                fallbackUrl: validation.fallbackUrl
+                fallbackUrl: validation.fallbackUrl,
               });
               article.coverImageUrl = validation.fallbackUrl;
             }
           }
           return article;
-        })
+        }),
       );
 
       this.logger.log('✅ [ArticlesService] Articles list query successful');
@@ -270,7 +285,10 @@ export class ArticlesService {
         totalPages: Math.ceil(total / limit),
       };
     } catch (error) {
-      this.logger.error('❌ [ArticlesService] Articles list query failed:', error);
+      this.logger.error(
+        '❌ [ArticlesService] Articles list query failed:',
+        error,
+      );
       throw error;
     }
   }
@@ -319,6 +337,9 @@ export class ArticlesService {
     if (!article) {
       throw new NotFoundException('Article not found');
     }
+
+    // 增加瀏覽次數
+    await this.incrementViewCount(id);
 
     // 如果內容是 Cloudinary URL，需要從 Cloudinary 獲取實際內容
     if (
@@ -379,6 +400,16 @@ export class ArticlesService {
     const jsonLd = this.generateJsonLdForArticle(article);
 
     return { ...article, jsonLd };
+  }
+
+  // 增加文章瀏覽次數
+  async incrementViewCount(id: number) {
+    try {
+      await this.articleRepository.increment({ id }, 'views', 1);
+      this.logger.log(`📊 [ArticlesService] Incremented view count for article ID: ${id}`);
+    } catch (error) {
+      this.logger.error(`❌ [ArticlesService] Error incrementing view count for article ID ${id}:`, error);
+    }
   }
 
   // 異步載入文章內容（用於單篇文章詳情頁面）
@@ -460,7 +491,9 @@ export class ArticlesService {
     updateArticleDto: UpdateArticleDto,
     coverImage?: Express.Multer.File,
   ) {
-    this.logger.log('🔄 [ArticlesService] ===== Article update service started =====');
+    this.logger.log(
+      '🔄 [ArticlesService] ===== Article update service started =====',
+    );
     this.logger.log('📋 [ArticlesService] Update parameters:', {
       id,
       isDraft: updateArticleDto.isDraft,
@@ -470,7 +503,7 @@ export class ArticlesService {
     });
 
     const article = await this.findOne(id);
-    
+
     this.logger.log('📋 [ArticlesService] Original article state:', {
       id: article.id,
       title: article.title,
@@ -564,16 +597,25 @@ export class ArticlesService {
     // 處理 isDraft 欄位 - 確保不會被 Object.assign 覆蓋
     if (updateArticleDto.isDraft !== undefined) {
       article.isDraft = updateArticleDto.isDraft;
-      this.logger.log('[ArticleService][update] Setting isDraft:', updateArticleDto.isDraft);
+      this.logger.log(
+        '[ArticleService][update] Setting isDraft:',
+        updateArticleDto.isDraft,
+      );
     }
 
     // 創建一個不包含已處理欄位的 DTO 副本，避免 Object.assign 覆蓋
-    const { 
-      seoTitle, seoDescription, seoKeywords, 
-      aeoFaq, 
-      geoLatitude, geoLongitude, geoAddress, geoCity, geoPostalCode,
+    const {
+      seoTitle,
+      seoDescription,
+      seoKeywords,
+      aeoFaq,
+      geoLatitude,
+      geoLongitude,
+      geoAddress,
+      geoCity,
+      geoPostalCode,
       isDraft,
-      ...remainingDto 
+      ...remainingDto
     } = updateArticleDto;
 
     Object.assign(article, remainingDto);
@@ -587,8 +629,10 @@ export class ArticlesService {
         content: updatedArticle.content,
         isDraft: updatedArticle.isDraft,
       });
-      
-      this.logger.log('✅ [ArticlesService] ===== Article update service completed =====');
+
+      this.logger.log(
+        '✅ [ArticlesService] ===== Article update service completed =====',
+      );
       this.logger.log('📋 [ArticlesService] Updated article state:', {
         id: updatedArticle.id,
         title: updatedArticle.title,

@@ -5,7 +5,7 @@ import { Repository, Between } from 'typeorm';
 import { Request } from 'express';
 import { VisitorLog } from './entities/visitor-log.entity';
 import * as geoip from 'geoip-lite';
-import * as useragent from 'useragent';
+import UAParser from 'ua-parser-js';
 
 @Injectable()
 export class AnalyticsService {
@@ -16,32 +16,61 @@ export class AnalyticsService {
 
   // 記錄訪客
   async logVisitor(request: Request, page: string) {
+    // 排除管理頁面的訪問
+    if (page.startsWith('/admin')) {
+      return null;
+    }
+    
     const ip = this.getClientIp(request);
     const geo = geoip.lookup(ip);
-    const ua = useragent.parse(request.headers['user-agent']);
+    const ua = new UAParser(request.headers['user-agent']);
 
     const referrerHeader = request.headers.referer || request.headers.referrer;
     const referrer = Array.isArray(referrerHeader)
       ? referrerHeader.join(',')
       : referrerHeader;
+
+    // 檢查是否有同IP的最近訪問記錄，用於計算停留時間
+    const recentVisit = await this.visitorLogRepository.findOne({
+      where: { ip },
+      order: { timestamp: 'DESC' },
+    });
+
+    let duration = 0;
+    if (recentVisit) {
+      const timeDiff = Date.now() - recentVisit.timestamp.getTime();
+      // 如果時間差小於30分鐘，認為是同一次訪問
+      if (timeDiff < 30 * 60 * 1000) {
+        duration = Math.floor(timeDiff / 1000); // 轉換為秒
+        // 更新前一條記錄的停留時間
+        await this.visitorLogRepository.update(
+          { id: recentVisit.id },
+          { duration }
+        );
+      }
+    }
+
     const visitorLog = this.visitorLogRepository.create({
       ip,
       page,
       userAgent: request.headers['user-agent'],
-      browser: ua.toAgent(),
-      os: ua.os.toString(),
-      device: ua.device.toString(),
+      browser: ua.getBrowser().name || 'Unknown',
+      os: ua.getOS().name || 'Unknown',
+      device: ua.getDevice().type || 'desktop',
       country: geo?.country || 'Unknown',
       city: geo?.city || 'Unknown',
       region: geo?.region || 'Unknown',
       latitude: geo?.ll?.[0] || 0,
       longitude: geo?.ll?.[1] || 0,
       referrer,
+      duration: 0, // 新記錄的停留時間設為0
       timestamp: new Date(),
     });
 
     return this.visitorLogRepository.save(visitorLog);
   }
+
+
 
   // 獲取訪客統計
   async getVisitorStats(timeRange: string) {
@@ -176,13 +205,59 @@ export class AnalyticsService {
       .sort((a, b) => b.visitors - a.visitors);
   }
 
-  private calculateAvgDuration(visitors: VisitorLog[]): string {
-    // 簡化計算，實際應該基於 session
-    return '3:42';
+  private calculateAvgDuration(visitors: VisitorLog[]): number {
+    if (visitors.length === 0) return 0;
+    
+    // 基於訪問頻率計算模擬停留時間
+    const visitorSessions = new Map<string, number[]>();
+    
+    visitors.forEach(visitor => {
+      if (!visitorSessions.has(visitor.ip)) {
+        visitorSessions.set(visitor.ip, []);
+      }
+      visitorSessions.get(visitor.ip)?.push(visitor.timestamp.getTime());
+    });
+    
+    let totalDuration = 0;
+    let sessionCount = 0;
+    
+    visitorSessions.forEach(timestamps => {
+      if (timestamps.length > 1) {
+        // 計算會話內的時間差
+        for (let i = 1; i < timestamps.length; i++) {
+          const timeDiff = (timestamps[i] - timestamps[i - 1]) / 1000; // 轉換為秒
+          if (timeDiff < 1800) { // 小於30分鐘的間隔
+            totalDuration += timeDiff;
+            sessionCount++;
+          }
+        }
+      }
+    });
+    
+    // 如果沒有有效的會話數據，返回預設值
+    if (sessionCount === 0) {
+      return 180; // 預設3分鐘
+    }
+    
+    return Math.round(totalDuration / sessionCount);
   }
 
   private calculateBounceRate(visitors: VisitorLog[]): number {
-    // 簡化計算，實際應該基於 session
-    return 42.3;
+    if (visitors.length === 0) return 0;
+    
+    // 計算跳出率（只訪問一個頁面的訪客比例）
+    const visitorSessions = new Map<string, Set<string>>();
+    
+    visitors.forEach(visitor => {
+      if (!visitorSessions.has(visitor.ip)) {
+        visitorSessions.set(visitor.ip, new Set());
+      }
+      visitorSessions.get(visitor.ip)?.add(visitor.page);
+    });
+    
+    const singlePageVisitors = Array.from(visitorSessions.values())
+      .filter(pages => pages.size === 1).length;
+    
+    return Math.round((singlePageVisitors / visitorSessions.size) * 100);
   }
 }

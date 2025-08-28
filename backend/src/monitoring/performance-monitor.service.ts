@@ -78,7 +78,9 @@ export class PerformanceMonitorService {
 
       // 如果超過強制垃圾回收閾值，執行垃圾回收
       if (memoryUsage.heapUsed > memoryConfig.gc.forceGCThreshold) {
-        this.logger.log('🔄 [PerformanceMonitor] Executing forced garbage collection');
+        this.logger.log(
+          '🔄 [PerformanceMonitor] Executing forced garbage collection',
+        );
         if (global.gc) {
           global.gc();
         }

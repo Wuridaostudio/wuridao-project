@@ -75,6 +75,7 @@
     color 0.15s;
   background: transparent;
   margin-left: 4px;
+  text-align: center; /* 文字置中 */
 }
 .sidebar-link.router-link-active {
   background: #2563eb;

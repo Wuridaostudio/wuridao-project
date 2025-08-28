@@ -82,7 +82,7 @@ export class AuthService {
     // 生成 JWT Token
     this.logger.log(`🎫 [AUTH_SERVICE] Starting JWT Token generation`);
     const payload = { sub: user.id, username: user.username };
-    
+
     this.logger.log(`🎫 [AUTH_SERVICE] JWT Payload:`, {
       sub: payload.sub,
       username: payload.username,
@@ -91,11 +91,13 @@ export class AuthService {
     });
 
     const access_token = this.jwtService.sign(payload);
-    
+
     this.logger.log(`🎫 [AUTH_SERVICE] JWT Token generated successfully:`, {
       hasToken: !!access_token,
       tokenLength: access_token?.length,
-      tokenPreview: access_token ? `${access_token.substring(0, 20)}...` : 'null',
+      tokenPreview: access_token
+        ? `${access_token.substring(0, 20)}...`
+        : 'null',
     });
 
     this.logger.log(`✅ [AUTH_SERVICE] Login successful, returning result`);

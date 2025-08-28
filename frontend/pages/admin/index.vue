@@ -16,8 +16,90 @@ const stats = ref({
   tags: 0,
 })
 
+// 訪客統計數據
+const visitorStats = ref({
+  totalVisitors: 0,
+  uniqueVisitors: 0,
+  avgDuration: 0,
+  bounceRate: 0,
+  countries: [],
+  timeRange: '30d',
+})
+
+// 即時訪客數
+const realtimeVisitors = ref(0)
+
 const loading = ref(true)
+const visitorLoading = ref(true)
 const error = ref('')
+const visitorError = ref('')
+
+// 時間範圍選項
+const timeRangeOptions = [
+  { value: '7d', label: '最近 7 天' },
+  { value: '30d', label: '最近 30 天' },
+  { value: '90d', label: '最近 90 天' },
+  { value: '1y', label: '最近一年' },
+]
+
+// 載入訪客統計
+const loadVisitorStats = async (timeRange = '30d') => {
+  try {
+    visitorLoading.value = true
+    visitorError.value = ''
+    
+    logger.log('📊 [Dashboard] 開始載入訪客統計數據...')
+    
+    const { getVisitorAnalytics } = useApi()
+    const response = await getVisitorAnalytics(timeRange)
+    
+    logger.log('✅ [Dashboard] 訪客統計數據載入成功:', response)
+    
+    if (response && typeof response === 'object') {
+      visitorStats.value = {
+        totalVisitors: response.totalVisitors || 0,
+        uniqueVisitors: response.uniqueVisitors || 0,
+        avgDuration: response.avgDuration || 0,
+        bounceRate: response.bounceRate || 0,
+        countries: response.countries || [],
+        timeRange: response.timeRange || timeRange,
+      }
+    }
+    
+    visitorLoading.value = false
+  } catch (err) {
+    logger.error('❌ [Dashboard] 載入訪客統計數據失敗:', err)
+    visitorError.value = '無法載入訪客統計數據'
+    visitorLoading.value = false
+  }
+}
+
+// 載入即時訪客數
+const loadRealtimeVisitors = async () => {
+  try {
+    const { getRealtimeVisitors } = useApi()
+    const response = await getRealtimeVisitors()
+    
+    if (response && typeof response === 'object') {
+      realtimeVisitors.value = response.online || 0
+    }
+  } catch (err) {
+    logger.error('❌ [Dashboard] 載入即時訪客數失敗:', err)
+  }
+}
+
+// 格式化時間
+const formatDuration = (seconds: number) => {
+  if (seconds < 60) return `${Math.round(seconds)}秒`
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = Math.round(seconds % 60)
+  return `${minutes}分${remainingSeconds}秒`
+}
+
+// 格式化百分比
+const formatPercentage = (value: number) => {
+  return `${(value * 100).toFixed(1)}%`
+}
 
 onMounted(async () => {
   // 延遲載入數據，避免阻塞頁面渲染
@@ -28,24 +110,33 @@ onMounted(async () => {
       
       logger.log('📊 [Dashboard] 開始載入統計數據...')
       
-      // 從後端統計 API 獲取實際的資料庫數量
-      const config = useRuntimeConfig()
-      const response = await $fetch('/health/api/statistics', {
-        baseURL: config.public.apiBaseUrl,
-      })
-      
-      logger.log('✅ [Dashboard] 統計數據載入成功:', response)
-      
-      if (response && typeof response === 'object') {
-        stats.value = {
-          articles: response.articles || 0,
-          photos: response.photos || 0,
-          videos: response.videos || 0,
-          users: response.users || 0,
-          categories: response.categories || 0,
-          tags: response.tags || 0,
-        }
-      }
+      // 並行載入系統統計和訪客統計
+      await Promise.all([
+        // 載入系統統計
+        (async () => {
+          const config = useRuntimeConfig()
+          const response = await $fetch('/health/api/statistics', {
+            baseURL: config.public.apiBaseUrl,
+          })
+          
+          logger.log('✅ [Dashboard] 統計數據載入成功:', response)
+          
+          if (response && typeof response === 'object') {
+            stats.value = {
+              articles: response.articles || 0,
+              photos: response.photos || 0,
+              videos: response.videos || 0,
+              users: response.users || 0,
+              categories: response.categories || 0,
+              tags: response.tags || 0,
+            }
+          }
+        })(),
+        // 載入訪客統計
+        loadVisitorStats(),
+        // 載入即時訪客數
+        loadRealtimeVisitors(),
+      ])
       
       loading.value = false
     }
@@ -79,12 +170,23 @@ onMounted(async () => {
       }
     }
   }, 500)
+  
+  // 每 30 秒更新即時訪客數
+  setInterval(() => {
+    loadRealtimeVisitors()
+  }, 30000)
 })
+
+// 監聽時間範圍變化
+const onTimeRangeChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement
+  loadVisitorStats(target.value)
+}
 </script>
 
 <template>
   <div>
-    <h1 class="text-3xl font-bold mb-8">
+    <h1 class="text-3xl font-bold mb-8 text-center">
       儀表板
     </h1>
 
@@ -97,83 +199,179 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div class="card">
-        <h3 class="text-lg font-semibold mb-2">
-          文章總數
-        </h3>
-        <p v-if="loading" class="text-3xl font-bold text-primary">
-          載入中...
-        </p>
-        <p v-else class="text-3xl font-bold text-primary">
-          {{ stats.articles }}
-        </p>
+    <!-- 訪客統計區塊 -->
+    <div class="mb-8">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-bold">訪客統計</h2>
+        <div class="flex items-center space-x-4">
+          <label for="timeRange" class="text-sm font-medium">時間範圍：</label>
+          <select
+            id="timeRange"
+            v-model="visitorStats.timeRange"
+            @change="onTimeRangeChange"
+            class="bg-gray-800 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2"
+          >
+            <option v-for="option in timeRangeOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
       </div>
 
-      <div class="card">
-        <h3 class="text-lg font-semibold mb-2">
-          照片總數
-        </h3>
-        <p v-if="loading" class="text-3xl font-bold text-primary">
-          載入中...
-        </p>
-        <p v-else class="text-3xl font-bold text-primary">
-          {{ stats.photos }}
-        </p>
+      <div v-if="visitorError" class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+          </svg>
+          {{ visitorError }}
+        </div>
       </div>
 
-      <div class="card">
-        <h3 class="text-lg font-semibold mb-2">
-          影片總數
-        </h3>
-        <p v-if="loading" class="text-3xl font-bold text-primary">
-          載入中...
-        </p>
-        <p v-else class="text-3xl font-bold text-primary">
-          {{ stats.videos }}
-        </p>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="card text-center">
+          <h3 class="text-lg font-semibold mb-2">
+            總訪客數
+          </h3>
+          <p v-if="visitorLoading" class="text-3xl font-bold text-blue-400">
+            載入中...
+          </p>
+          <p v-else class="text-3xl font-bold text-blue-400">
+            {{ visitorStats.totalVisitors.toLocaleString() }}
+          </p>
+        </div>
+
+        <div class="card text-center">
+          <h3 class="text-lg font-semibold mb-2">
+            獨立訪客
+          </h3>
+          <p v-if="visitorLoading" class="text-3xl font-bold text-green-400">
+            載入中...
+          </p>
+          <p v-else class="text-3xl font-bold text-green-400">
+            {{ visitorStats.uniqueVisitors.toLocaleString() }}
+          </p>
+        </div>
+
+        <div class="card text-center">
+          <h3 class="text-lg font-semibold mb-2">
+            平均停留時間
+          </h3>
+          <p v-if="visitorLoading" class="text-3xl font-bold text-yellow-400">
+            載入中...
+          </p>
+          <p v-else class="text-3xl font-bold text-yellow-400">
+            {{ formatDuration(visitorStats.avgDuration) }}
+          </p>
+        </div>
+
+        <div class="card text-center">
+          <h3 class="text-lg font-semibold mb-2">
+            即時訪客
+          </h3>
+          <p class="text-3xl font-bold text-red-400">
+            {{ realtimeVisitors }}
+          </p>
+          <p class="text-sm text-gray-400 mt-1">最近 5 分鐘</p>
+        </div>
       </div>
 
-      <div class="card">
-        <h3 class="text-lg font-semibold mb-2">
-          用戶總數
-        </h3>
-        <p v-if="loading" class="text-3xl font-bold text-primary">
-          載入中...
-        </p>
-        <p v-else class="text-3xl font-bold text-primary">
-          {{ stats.users }}
-        </p>
+      <!-- 國家統計 -->
+      <div v-if="visitorStats.countries.length > 0" class="card mb-6">
+        <h3 class="text-lg font-semibold mb-4 text-center">訪客地區分布</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div
+            v-for="country in visitorStats.countries.slice(0, 6)"
+            :key="country.country"
+            class="flex justify-between items-center p-3 bg-gray-800 rounded"
+          >
+            <span class="font-medium">{{ country.country || '未知地區' }}</span>
+            <span class="text-blue-400 font-bold">{{ country.visitors }}</span>
+          </div>
+        </div>
       </div>
+    </div>
 
-      <div class="card">
-        <h3 class="text-lg font-semibold mb-2">
-          分類總數
-        </h3>
-        <p v-if="loading" class="text-3xl font-bold text-primary">
-          載入中...
-        </p>
-        <p v-else class="text-3xl font-bold text-primary">
-          {{ stats.categories }}
-        </p>
-      </div>
+    <!-- 系統統計區塊 -->
+    <div class="mb-8">
+      <h2 class="text-2xl font-bold mb-4 text-center">系統統計</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="card text-center">
+          <h3 class="text-lg font-semibold mb-2">
+            文章總數
+          </h3>
+          <p v-if="loading" class="text-3xl font-bold text-primary">
+            載入中...
+          </p>
+          <p v-else class="text-3xl font-bold text-primary">
+            {{ stats.articles }}
+          </p>
+        </div>
 
-      <div class="card">
-        <h3 class="text-lg font-semibold mb-2">
-          標籤總數
-        </h3>
-        <p v-if="loading" class="text-3xl font-bold text-primary">
-          載入中...
-        </p>
-        <p v-else class="text-3xl font-bold text-primary">
-          {{ stats.tags }}
-        </p>
+        <div class="card text-center">
+          <h3 class="text-lg font-semibold mb-2">
+            照片總數
+          </h3>
+          <p v-if="loading" class="text-3xl font-bold text-primary">
+            載入中...
+          </p>
+          <p v-else class="text-3xl font-bold text-primary">
+            {{ stats.photos }}
+          </p>
+        </div>
+
+        <div class="card text-center">
+          <h3 class="text-lg font-semibold mb-2">
+            影片總數
+          </h3>
+          <p v-if="loading" class="text-3xl font-bold text-primary">
+            載入中...
+          </p>
+          <p v-else class="text-3xl font-bold text-primary">
+            {{ stats.videos }}
+          </p>
+        </div>
+
+        <div class="card text-center">
+          <h3 class="text-lg font-semibold mb-2">
+            用戶總數
+          </h3>
+          <p v-if="loading" class="text-3xl font-bold text-primary">
+            載入中...
+          </p>
+          <p v-else class="text-3xl font-bold text-primary">
+            {{ stats.users }}
+          </p>
+        </div>
+
+        <div class="card text-center">
+          <h3 class="text-lg font-semibold mb-2">
+            分類總數
+          </h3>
+          <p v-if="loading" class="text-3xl font-bold text-primary">
+            載入中...
+          </p>
+          <p v-else class="text-3xl font-bold text-primary">
+            {{ stats.categories }}
+          </p>
+        </div>
+
+        <div class="card text-center">
+          <h3 class="text-lg font-semibold mb-2">
+            標籤總數
+          </h3>
+          <p v-if="loading" class="text-3xl font-bold text-primary">
+            載入中...
+          </p>
+          <p v-else class="text-3xl font-bold text-primary">
+            {{ stats.tags }}
+          </p>
+        </div>
       </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div class="card">
-        <h3 class="text-lg font-semibold mb-4">
+        <h3 class="text-lg font-semibold mb-4 text-center">
           快速操作
         </h3>
         <div class="space-y-3">
@@ -199,7 +397,7 @@ onMounted(async () => {
       </div>
 
       <div class="card">
-        <h3 class="text-lg font-semibold mb-4">
+        <h3 class="text-lg font-semibold mb-4 text-center">
           系統資訊
         </h3>
         <div class="space-y-2 text-sm">

@@ -10,7 +10,9 @@ export class StatisticsService {
 
   async getSystemStatistics() {
     try {
-      this.logger.log('📊 [StatisticsService] Starting to get system statistics data');
+      this.logger.log(
+        '📊 [StatisticsService] Starting to get system statistics data',
+      );
 
       // 獲取文章數量
       const articlesCount = await this.dataSource.query(
@@ -52,7 +54,10 @@ export class StatisticsService {
         timestamp: new Date().toISOString(),
       };
 
-      this.logger.log('✅ [StatisticsService] Statistics data retrieved successfully:', result);
+      this.logger.log(
+        '✅ [StatisticsService] Statistics data retrieved successfully:',
+        result,
+      );
       return result;
     } catch (error) {
       this.logger.error('❌ [StatisticsService] 獲取統計數據失敗:', error);
@@ -71,7 +76,9 @@ export class StatisticsService {
 
   async getDetailedStatistics() {
     try {
-      this.logger.log('📊 [StatisticsService] Starting to get detailed statistics data');
+      this.logger.log(
+        '📊 [StatisticsService] Starting to get detailed statistics data',
+      );
 
       const basicStats = await this.getSystemStatistics();
 
@@ -111,7 +118,9 @@ export class StatisticsService {
         tagStats,
       };
 
-      this.logger.log('✅ [StatisticsService] Detailed statistics data retrieved successfully');
+      this.logger.log(
+        '✅ [StatisticsService] Detailed statistics data retrieved successfully',
+      );
       return result;
     } catch (error) {
       this.logger.error('❌ [StatisticsService] 獲取詳細統計數據失敗:', error);

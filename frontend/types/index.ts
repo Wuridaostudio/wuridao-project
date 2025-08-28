@@ -24,6 +24,7 @@ export interface Article {
   isDraft: boolean
   createdAt: string
   updatedAt: string
+  views?: number
   category?: Category
   tags?: Tag[]
 }

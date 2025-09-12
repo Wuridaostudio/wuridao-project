@@ -411,7 +411,7 @@ onUnmounted(() => {
           </div>
 
           <!-- 快速連結 -->
-          <div class="md:-ml-12 lg:-ml-16">
+          <div class="col-span-1">
             <h3 class="font-semibold mb-4">
               快速連結
             </h3>

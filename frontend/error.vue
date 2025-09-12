@@ -78,8 +78,8 @@ async function reportError() {
   }
 }
 
-// 動畫
-onMounted(() => {
+// 動畫函數
+function initErrorAnimations() {
   // 錯誤圖示動畫
   if (errorIcon.value) {
     errorIcon.value.style.transition = 'opacity 0.8s ease-out'
@@ -95,42 +95,54 @@ onMounted(() => {
       }
     }, 300)
   }
+}
 
-  // 背景粒子動畫
-  const createParticle = () => {
-    if (!bgParticles.value)
-      return
+// 背景粒子動畫
+let particleInterval: NodeJS.Timeout | null = null
 
-    const particle = document.createElement('div')
-    particle.className = 'absolute w-1 h-1 bg-red-500 rounded-full opacity-30'
-    particle.style.left = `${Math.random() * 100}%`
-    particle.style.top = `${Math.random() * 100}%`
-    bgParticles.value.appendChild(particle)
+function createParticle() {
+  if (!bgParticles.value) return
 
-    // Use CSS animation instead of GSAP
-    particle.style.transition = 'opacity 3s ease-out'
-    setTimeout(() => {
-      if (particle && particle.parentNode) {
-        particle.style.opacity = '0'
-      }
-    }, 100)
+  const particle = document.createElement('div')
+  particle.className = 'absolute w-1 h-1 bg-red-500 rounded-full opacity-30'
+  particle.style.left = `${Math.random() * 100}%`
+  particle.style.top = `${Math.random() * 100}%`
+  bgParticles.value.appendChild(particle)
 
-    setTimeout(() => {
-      if (particle && particle.parentNode) {
-        particle.remove()
-      }
-    }, 3000)
-  }
+  particle.style.transition = 'opacity 3s ease-out'
+  setTimeout(() => {
+    if (particle && particle.parentNode) {
+      particle.style.opacity = '0'
+    }
+  }, 100)
 
-  // 定期產生粒子
-  const particleInterval = setInterval(createParticle, 300)
+  setTimeout(() => {
+    if (particle && particle.parentNode) {
+      particle.remove()
+    }
+  }, 3000)
+}
 
-  onUnmounted(() => {
+function startParticleAnimation() {
+  particleInterval = setInterval(createParticle, 300)
+}
+
+function stopParticleAnimation() {
+  if (particleInterval) {
     clearInterval(particleInterval)
-  })
+    particleInterval = null
+  }
+}
 
-  // 報告錯誤
+// 動畫
+onMounted(() => {
+  initErrorAnimations()
+  startParticleAnimation()
   reportError()
+})
+
+onUnmounted(() => {
+  stopParticleAnimation()
 })
 </script>
 

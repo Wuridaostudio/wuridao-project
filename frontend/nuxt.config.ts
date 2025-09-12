@@ -222,5 +222,5 @@ export default defineNuxtConfig({
   },
 
   // 日誌配置
-  logLevel: process.env.NODE_ENV === 'development' ? 'info' : 'error',
+  logLevel: process.env.NODE_ENV === 'development' ? 'info' : 'silent',
 })

@@ -25,6 +25,61 @@ useHead({
   ],
 })
 
+// 組織結構化資料
+const organizationJsonLd = generateOrganizationJsonLd({
+  name: 'WURIDAO 智慧家',
+  url: process.env.NODE_ENV === 'production' ? 'https://wuridaostudio.com' : 'http://localhost:3001',
+  logo: process.env.NODE_ENV === 'production' ? 'https://wuridaostudio.com/logo.png' : 'http://localhost:3001/logo.png',
+  description: 'WURIDAO 智慧家提供完整的智能家居解決方案，包括智能控制、安全守護、節能環保等功能。',
+  address: '台中市大墩七街112號',
+  city: '台中市',
+  postalCode: '408',
+  country: 'TW',
+  phone: '+886-4-1234-5678',
+  email: 'wuridaostudio@gmail.com',
+  socialMedia: [
+    'https://facebook.com/wuridao',
+    'https://instagram.com/wuridao',
+    'https://youtube.com/wuridao'
+  ]
+})
+
+// 網站結構化資料
+const websiteJsonLd = generateWebsiteJsonLd({
+  name: 'WURIDAO 智慧家',
+  url: process.env.NODE_ENV === 'production' ? 'https://wuridaostudio.com' : 'http://localhost:3001',
+  description: 'WURIDAO 智慧家提供完整的智能家居解決方案',
+  searchUrl: process.env.NODE_ENV === 'production' ? 'https://wuridaostudio.com/search' : 'http://localhost:3001/search'
+})
+
+// 服務結構化資料
+const serviceJsonLd = generateServiceJsonLd({
+  name: '智慧家居解決方案',
+  description: '提供完整的智能家居解決方案，包括智能控制、安全守護、節能環保等功能',
+  provider: 'WURIDAO 智慧家',
+  areaServed: '台灣',
+  serviceType: '智慧家居服務',
+  offerDescription: '客製化智慧家居規劃與安裝服務'
+})
+
+// 添加結構化資料到頁面
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify(organizationJsonLd)
+    },
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify(websiteJsonLd)
+    },
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify(serviceJsonLd)
+    }
+  ]
+})
+
 // ===== 動畫 refs =====
 
 const featuresSection = ref()

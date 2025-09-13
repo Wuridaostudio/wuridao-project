@@ -38,6 +38,66 @@ const {
   return null
 })
 
+// 動態 SEO Meta 和結構化資料
+watch(article, (newArticle) => {
+  if (newArticle?.data) {
+    const articleData = newArticle.data
+    const baseUrl = process.env.NODE_ENV === 'production' ? 'https://wuridaostudio.com' : 'http://localhost:3001'
+    const articleUrl = `${baseUrl}/articles/${articleData.id}`
+    
+    // 設置頁面標題和描述
+    useHead({
+      title: `${articleData.title} - WURIDAO 智慧家`,
+      meta: [
+        {
+          name: 'description',
+          content: articleData.excerpt || articleData.content?.substring(0, 160) || 'WURIDAO 智慧家文章'
+        },
+        { property: 'og:title', content: articleData.title },
+        { property: 'og:description', content: articleData.excerpt || articleData.content?.substring(0, 160) || '' },
+        { property: 'og:url', content: articleUrl },
+        { property: 'og:image', content: articleData.coverImageUrl || `${baseUrl}/og-image.jpg` },
+        { property: 'og:type', content: 'article' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: articleData.title },
+        { name: 'twitter:description', content: articleData.excerpt || articleData.content?.substring(0, 160) || '' },
+        { name: 'twitter:image', content: articleData.coverImageUrl || `${baseUrl}/og-image.jpg` }
+      ]
+    })
+    
+    // 生成文章結構化資料
+    const articleJsonLd = generateArticleJsonLd({
+      title: articleData.title,
+      description: articleData.excerpt || articleData.content?.substring(0, 160) || '',
+      image: articleData.coverImageUrl || `${baseUrl}/og-image.jpg`,
+      url: articleUrl,
+      publishedAt: articleData.createdAt,
+      updatedAt: articleData.updatedAt || articleData.createdAt
+    })
+    
+    // 生成麵包屑結構化資料
+    const breadcrumbJsonLd = generateBreadcrumbJsonLd([
+      { name: '首頁', url: baseUrl },
+      { name: '最新消息', url: `${baseUrl}/articles/news` },
+      { name: articleData.title, url: articleUrl }
+    ])
+    
+    // 添加結構化資料到頁面
+    useHead({
+      script: [
+        {
+          type: 'application/ld+json',
+          innerHTML: JSON.stringify(articleJsonLd)
+        },
+        {
+          type: 'application/ld+json',
+          innerHTML: JSON.stringify(breadcrumbJsonLd)
+        }
+      ]
+    })
+  }
+}, { immediate: true })
+
 // 格式化日期
 function formatDate(date: string) {
   if (!date) return ''

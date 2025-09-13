@@ -163,6 +163,179 @@ export function generateArticleJsonLd(article: {
   }
 }
 
+// 新增結構化資料類型
+
+// 組織結構化資料
+export interface OrganizationJsonLd {
+  '@context': 'https://schema.org'
+  '@type': 'Organization'
+  'name': string
+  'url': string
+  'logo': string
+  'description': string
+  'address': {
+    '@type': 'PostalAddress'
+    'streetAddress': string
+    'addressLocality': string
+    'postalCode': string
+    'addressCountry': string
+  }
+  'contactPoint': {
+    '@type': 'ContactPoint'
+    'telephone': string
+    'contactType': string
+    'email': string
+  }
+  'sameAs': string[]
+}
+
+// 網站結構化資料
+export interface WebsiteJsonLd {
+  '@context': 'https://schema.org'
+  '@type': 'WebSite'
+  'name': string
+  'url': string
+  'description': string
+  'potentialAction': {
+    '@type': 'SearchAction'
+    'target': string
+    'query-input': string
+  }
+}
+
+// 產品/服務結構化資料
+export interface ServiceJsonLd {
+  '@context': 'https://schema.org'
+  '@type': 'Service'
+  'name': string
+  'description': string
+  'provider': {
+    '@type': 'Organization'
+    'name': string
+  }
+  'areaServed': string
+  'serviceType': string
+  'offers': {
+    '@type': 'Offer'
+    'description': string
+  }
+}
+
+// 麵包屑結構化資料
+export interface BreadcrumbJsonLd {
+  '@context': 'https://schema.org'
+  '@type': 'BreadcrumbList'
+  'itemListElement': Array<{
+    '@type': 'ListItem'
+    'position': number
+    'name': string
+    'item': string
+  }>
+}
+
+// 生成組織結構化資料
+export function generateOrganizationJsonLd(org: {
+  name: string
+  url: string
+  logo: string
+  description: string
+  address: string
+  city: string
+  postalCode: string
+  country: string
+  phone: string
+  email: string
+  socialMedia: string[]
+}): OrganizationJsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    'name': org.name,
+    'url': org.url,
+    'logo': org.logo,
+    'description': org.description,
+    'address': {
+      '@type': 'PostalAddress',
+      'streetAddress': org.address,
+      'addressLocality': org.city,
+      'postalCode': org.postalCode,
+      'addressCountry': org.country,
+    },
+    'contactPoint': {
+      '@type': 'ContactPoint',
+      'telephone': org.phone,
+      'contactType': 'customer service',
+      'email': org.email,
+    },
+    'sameAs': org.socialMedia,
+  }
+}
+
+// 生成網站結構化資料
+export function generateWebsiteJsonLd(site: {
+  name: string
+  url: string
+  description: string
+  searchUrl: string
+}): WebsiteJsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    'name': site.name,
+    'url': site.url,
+    'description': site.description,
+    'potentialAction': {
+      '@type': 'SearchAction',
+      'target': site.searchUrl,
+      'query-input': 'required name=search_term_string',
+    },
+  }
+}
+
+// 生成服務結構化資料
+export function generateServiceJsonLd(service: {
+  name: string
+  description: string
+  provider: string
+  areaServed: string
+  serviceType: string
+  offerDescription: string
+}): ServiceJsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    'name': service.name,
+    'description': service.description,
+    'provider': {
+      '@type': 'Organization',
+      'name': service.provider,
+    },
+    'areaServed': service.areaServed,
+    'serviceType': service.serviceType,
+    'offers': {
+      '@type': 'Offer',
+      'description': service.offerDescription,
+    },
+  }
+}
+
+// 生成麵包屑結構化資料
+export function generateBreadcrumbJsonLd(breadcrumbs: Array<{
+  name: string
+  url: string
+}>): BreadcrumbJsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    'itemListElement': breadcrumbs.map((item, index) => ({
+      '@type': 'ListItem',
+      'position': index + 1,
+      'name': item.name,
+      'item': item.url,
+    })),
+  }
+}
+
 // SEO 分數計算
 export function calculateSeoScore(content: string, title: string, description?: string): number {
   let score = 0

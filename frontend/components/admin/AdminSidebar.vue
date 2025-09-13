@@ -43,6 +43,11 @@
           </NuxtLink>
         </li>
         <li>
+          <NuxtLink to="/admin/sitemap" class="sidebar-link">
+            Sitemap 管理
+          </NuxtLink>
+        </li>
+        <li>
           <NuxtLink to="/admin/change-password" class="sidebar-link">
             修改密碼
           </NuxtLink>

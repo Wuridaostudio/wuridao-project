@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# 禁止爬取管理後台
+Disallow: /admin/
+
+# 禁止爬取 API 端點
+Disallow: /api/
+
+# Sitemap 位置
+Sitemap: https://wuridaostudio.com/sitemap.xml
+
+# 爬取延遲
+Crawl-delay: 1

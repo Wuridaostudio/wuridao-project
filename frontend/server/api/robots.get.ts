@@ -1,4 +1,4 @@
-// server/api/robots.txt.get.ts - 動態生成 robots.txt
+// server/api/robots.get.ts - 動態生成 robots.txt
 import { generateRobotsTxt } from '~/utils/sitemap'
 
 export default defineEventHandler(async (event) => {
@@ -30,9 +30,8 @@ Disallow: /admin/
 Disallow: /api/
 
 # Sitemap 位置
-Sitemap: ${baseUrl}/sitemap.xml`
+Sitemap: ${baseUrl}/api/sitemap`
     
     return fallbackRobots
   }
 })
-

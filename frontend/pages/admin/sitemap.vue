@@ -29,11 +29,11 @@ async function generateSitemap() {
       : 'http://localhost:3001'
     
     // 生成 sitemap
-    const sitemapResponse = await $fetch(`${baseUrl}/api/sitemap.xml`)
+    const sitemapResponse = await $fetch(`${baseUrl}/api/sitemap`)
     sitemapContent.value = sitemapResponse
     
     // 生成 robots.txt
-    const robotsResponse = await $fetch(`${baseUrl}/api/robots.txt`)
+    const robotsResponse = await $fetch(`${baseUrl}/api/robots`)
     robotsContent.value = robotsResponse
     
     lastGenerated.value = new Date().toLocaleString('zh-TW')

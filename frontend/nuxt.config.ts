@@ -188,6 +188,13 @@ export default defineNuxtConfig({
     // 改善伺服器端效能
     compressPublicAssets: true,
     minify: true,
+    // 路由規則
+    routeRules: {
+      '/robots.txt': { headers: { 'Content-Type': 'text/plain' }, prerender: true },
+      '/sitemap.xml': { headers: { 'Content-Type': 'application/xml' }, prerender: true },
+      '/api/robots': { headers: { 'Content-Type': 'text/plain' } },
+      '/api/sitemap': { headers: { 'Content-Type': 'application/xml' } }
+    }
   },
 
   // TypeScript

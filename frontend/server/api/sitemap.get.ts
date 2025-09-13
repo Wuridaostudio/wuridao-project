@@ -1,4 +1,4 @@
-// server/api/sitemap.xml.get.ts - 動態生成 sitemap.xml
+// server/api/sitemap.get.ts - 動態生成 sitemap.xml
 import { generateSitemap } from '~/utils/sitemap'
 
 export default defineEventHandler(async (event) => {
@@ -51,4 +51,3 @@ export default defineEventHandler(async (event) => {
     return fallbackSitemap
   }
 })
-

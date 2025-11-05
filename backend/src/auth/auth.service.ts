@@ -1,5 +1,5 @@
 // src/auth/auth.service.ts
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -30,85 +30,111 @@ export class AuthService {
       environment: process.env.NODE_ENV,
     });
 
-    // 查找用戶
-    this.logger.log(`🔍 [AUTH_SERVICE] Looking up user: ${loginDto.username}`);
-    const user = await this.userRepository.findOne({
-      where: { username: loginDto.username },
-    });
+    try {
+      // 查找用戶
+      this.logger.log(`🔍 [AUTH_SERVICE] Looking up user: ${loginDto.username}`);
+      const user = await this.userRepository.findOne({
+        where: { username: loginDto.username },
+      });
 
-    if (!user) {
-      // 安全日誌：記錄失敗的登入嘗試
-      this.logger.warn(
-        `[SECURITY] Failed login attempt for username: ${loginDto.username} - User not found`,
-      );
-      this.logger.error(`❌ [AUTH_SERVICE] 用戶不存在: ${loginDto.username}`);
-      throw new UnauthorizedException('帳號或密碼錯誤');
-    }
+      if (!user) {
+        // 安全日誌：記錄失敗的登入嘗試
+        this.logger.warn(
+          `[SECURITY] Failed login attempt for username: ${loginDto.username} - User not found`,
+        );
+        this.logger.error(`❌ [AUTH_SERVICE] 用戶不存在: ${loginDto.username}`);
+        throw new UnauthorizedException('帳號或密碼錯誤');
+      }
 
-    this.logger.log(`✅ [AUTH_SERVICE] User found:`, {
-      userId: user.id,
-      username: user.username,
-      hasPassword: !!user.password,
-      passwordLength: user.password?.length,
-    });
-
-    // 驗證密碼
-    this.logger.log(`🔐 [AUTH_SERVICE] Starting password verification`);
-    const isPasswordValid = await bcrypt.compare(
-      loginDto.password,
-      user.password,
-    );
-
-    this.logger.log(`🔐 [AUTH_SERVICE] Password verification result:`, {
-      isPasswordValid,
-      providedPasswordLength: loginDto.password?.length,
-      storedPasswordLength: user.password?.length,
-    });
-
-    if (!isPasswordValid) {
-      // 安全日誌：記錄失敗的登入嘗試
-      this.logger.warn(
-        `[SECURITY] Failed login attempt for username: ${loginDto.username} - Invalid password`,
-      );
-      this.logger.error(`❌ [AUTH_SERVICE] 密碼驗證失敗: ${loginDto.username}`);
-      throw new UnauthorizedException('帳號或密碼錯誤');
-    }
-
-    // 安全日誌：記錄成功的登入
-    this.logger.log(
-      `[SECURITY] Successful login for username: ${loginDto.username} (User ID: ${user.id})`,
-    );
-
-    // 生成 JWT Token
-    this.logger.log(`🎫 [AUTH_SERVICE] Starting JWT Token generation`);
-    const payload = { sub: user.id, username: user.username };
-
-    this.logger.log(`🎫 [AUTH_SERVICE] JWT Payload:`, {
-      sub: payload.sub,
-      username: payload.username,
-      jwtSecret: process.env.JWT_SECRET ? '已設置' : '未設置',
-      jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
-    });
-
-    const access_token = this.jwtService.sign(payload);
-
-    this.logger.log(`🎫 [AUTH_SERVICE] JWT Token generated successfully:`, {
-      hasToken: !!access_token,
-      tokenLength: access_token?.length,
-      tokenPreview: access_token
-        ? `${access_token.substring(0, 20)}...`
-        : 'null',
-    });
-
-    this.logger.log(`✅ [AUTH_SERVICE] Login successful, returning result`);
-    return {
-      access_token,
-      user: {
-        id: user.id,
+      this.logger.log(`✅ [AUTH_SERVICE] User found:`, {
+        userId: user.id,
         username: user.username,
-        // 不返回密碼等敏感資訊
-      },
-    };
+        hasPassword: !!user.password,
+        passwordLength: user.password?.length,
+      });
+
+      // 驗證密碼
+      this.logger.log(`🔐 [AUTH_SERVICE] Starting password verification`);
+      const isPasswordValid = await bcrypt.compare(
+        loginDto.password,
+        user.password,
+      );
+
+      this.logger.log(`🔐 [AUTH_SERVICE] Password verification result:`, {
+        isPasswordValid,
+        providedPasswordLength: loginDto.password?.length,
+        storedPasswordLength: user.password?.length,
+      });
+
+      if (!isPasswordValid) {
+        // 安全日誌：記錄失敗的登入嘗試
+        this.logger.warn(
+          `[SECURITY] Failed login attempt for username: ${loginDto.username} - Invalid password`,
+        );
+        this.logger.error(`❌ [AUTH_SERVICE] 密碼驗證失敗: ${loginDto.username}`);
+        throw new UnauthorizedException('帳號或密碼錯誤');
+      }
+
+      // 安全日誌：記錄成功的登入
+      this.logger.log(
+        `[SECURITY] Successful login for username: ${loginDto.username} (User ID: ${user.id})`,
+      );
+
+      // 生成 JWT Token
+      this.logger.log(`🎫 [AUTH_SERVICE] Starting JWT Token generation`);
+      const payload = { sub: user.id, username: user.username };
+
+      this.logger.log(`🎫 [AUTH_SERVICE] JWT Payload:`, {
+        sub: payload.sub,
+        username: payload.username,
+        jwtSecret: process.env.JWT_SECRET ? '已設置' : '未設置',
+        jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+      });
+
+      const access_token = this.jwtService.sign(payload);
+
+      this.logger.log(`🎫 [AUTH_SERVICE] JWT Token generated successfully:`, {
+        hasToken: !!access_token,
+        tokenLength: access_token?.length,
+        tokenPreview: access_token
+          ? `${access_token.substring(0, 20)}...`
+          : 'null',
+      });
+
+      this.logger.log(`✅ [AUTH_SERVICE] Login successful, returning result`);
+      return {
+        access_token,
+        user: {
+          id: user.id,
+          username: user.username,
+          // 不返回密碼等敏感資訊
+        },
+      };
+    } catch (error) {
+      // 處理數據庫連接錯誤或其他未預期錯誤
+      this.logger.error(`❌ [AUTH_SERVICE] 登入過程發生錯誤:`, {
+        errorName: error.name,
+        errorMessage: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        username: loginDto.username,
+      });
+      
+      // 如果是已知的認證錯誤，保持原樣
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      
+      // 如果是數據庫連接錯誤
+      if (error.message?.includes('ECONNREFUSED') || 
+          error.message?.includes('connection') ||
+          error.name === 'QueryFailedError') {
+        this.logger.error(`❌ [AUTH_SERVICE] 數據庫連接錯誤`);
+        throw new InternalServerErrorException('數據庫連接失敗，請稍後再試');
+      }
+      
+      // 其他未預期錯誤
+      throw new InternalServerErrorException('登入服務暫時無法使用，請稍後再試');
+    }
   }
 
   // ✅ 刷新 Token

@@ -8,6 +8,7 @@ import {
   Get,
   Res,
   Logger,
+  HttpException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -113,9 +114,34 @@ export class AuthController {
         stack: error.stack,
         username: loginDto.username,
         environment: process.env.NODE_ENV,
+        errorName: error.name,
+        errorType: error.constructor?.name,
       });
       this.logger.error(`❌ [LOGIN] 登入失敗:`, sanitizedError);
-      throw error;
+      
+      // 如果是已知的認證錯誤，保持原樣
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      
+      // 如果是數據庫連接錯誤或其他未預期錯誤，返回友好的錯誤訊息
+      this.logger.error(`❌ [LOGIN] 未預期的錯誤類型:`, {
+        errorName: error.name,
+        errorMessage: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      });
+      
+      // 返回標準化的錯誤響應
+      throw new HttpException(
+        {
+          statusCode: 500,
+          message: '登入服務暫時無法使用，請稍後再試',
+          error: 'Internal Server Error',
+          timestamp: new Date().toISOString(),
+          path: '/auth/login',
+        },
+        500,
+      );
     }
   }
 

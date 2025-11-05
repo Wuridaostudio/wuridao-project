@@ -5,6 +5,7 @@ import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -63,8 +64,12 @@ async function bootstrap() {
     next();
   });
 
-  // 全局異常過濾器
-  app.useGlobalFilters(new HttpExceptionFilter(app.get(Logger)));
+  // 全局異常過濾器 - 先添加更具體的 HttpExceptionFilter，再添加全局過濾器
+  // HttpExceptionFilter 會先捕獲 HttpException，GlobalExceptionFilter 會捕獲其他所有錯誤
+  app.useGlobalFilters(
+    new HttpExceptionFilter(app.get(Logger)),
+    new GlobalExceptionFilter(),
+  );
 
   // 全局攔截器
   app.useGlobalInterceptors(new LoggingInterceptor());

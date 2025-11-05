@@ -56,6 +56,21 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       } else if (exception.message?.includes('not found')) {
         status = HttpStatus.NOT_FOUND;
         message = '找不到請求的資源';
+      } else if (exception.message?.includes('ENOTFOUND') || exception.message?.includes('getaddrinfo')) {
+        // 數據庫連接錯誤（DNS 解析失敗）
+        status = HttpStatus.INTERNAL_SERVER_ERROR;
+        message = '數據庫連接失敗：無法解析數據庫主機名。請檢查 DATABASE_URL 環境變數是否正確設置。';
+        this.logger.error('❌ [Database] DNS resolution failed. Please check DATABASE_URL environment variable.');
+      } else if (exception.message?.includes('ECONNREFUSED') || exception.message?.includes('connection')) {
+        // 數據庫連接被拒絕
+        status = HttpStatus.INTERNAL_SERVER_ERROR;
+        message = '數據庫連接失敗：無法連接到數據庫服務器。請檢查數據庫服務是否運行。';
+        this.logger.error('❌ [Database] Connection refused. Please check if database service is running.');
+      } else if (exception.message?.includes('authentication failed') || exception.message?.includes('password')) {
+        // 數據庫認證失敗
+        status = HttpStatus.INTERNAL_SERVER_ERROR;
+        message = '數據庫認證失敗：請檢查數據庫用戶名和密碼是否正確。';
+        this.logger.error('❌ [Database] Authentication failed. Please check database credentials.');
       }
     }
 

@@ -211,6 +211,32 @@ export class AppModule implements OnModuleInit {
   }
 
   async onModuleInit() {
+    // 數據庫連接診斷
+    this.logger.log('🔍 [Database] Checking database configuration...');
+    const hasDatabaseUrl = !!process.env.DATABASE_URL;
+    this.logger.log('🔍 [Database] DATABASE_URL exists:', hasDatabaseUrl);
+    
+    if (!hasDatabaseUrl) {
+      this.logger.error('❌ [Database] DATABASE_URL environment variable is not set!');
+      this.logger.error('❌ [Database] Please check your Render environment variables.');
+      this.logger.error('❌ [Database] Application may fail to start without database connection.');
+    } else {
+      // 檢查 DATABASE_URL 格式（不顯示完整 URL 以保護敏感資訊）
+      const dbUrl = process.env.DATABASE_URL;
+      const dbUrlPreview = dbUrl ? `${dbUrl.substring(0, 20)}...${dbUrl.substring(dbUrl.length - 10)}` : 'N/A';
+      this.logger.log('🔍 [Database] DATABASE_URL preview:', dbUrlPreview);
+      
+      // 嘗試解析主機名
+      try {
+        const url = new URL(dbUrl);
+        this.logger.log('🔍 [Database] Database host:', url.hostname);
+        this.logger.log('🔍 [Database] Database port:', url.port || '5432 (default)');
+        this.logger.log('🔍 [Database] Database name:', url.pathname?.substring(1) || 'N/A');
+      } catch (error) {
+        this.logger.warn('⚠️ [Database] Failed to parse DATABASE_URL:', error.message);
+      }
+    }
+    
     // 開發環境自動運行種子數據
     if (
       process.env.NODE_ENV === 'development' &&

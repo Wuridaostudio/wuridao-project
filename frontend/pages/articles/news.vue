@@ -126,8 +126,19 @@ const tags = computed(() => {
 // 載入更多內容
 async function loadMoreItems() {
   try {
+    const api = useApi()
+    // 使用公開 API 獲取更多文章
+    const { data, total } = await api.getPublicArticles({ 
+      page: articlesStore.currentPage + 1, 
+      limit: 15 
+    })
+    
+    // 追加新文章到列表
+    articlesStore.articles = [...articlesStore.articles, ...data]
+    articlesStore.totalArticles = total
+    articlesStore.currentPage = articlesStore.currentPage + 1
+    
     await Promise.all([
-      articlesStore.fetchArticles({ isDraft: false }), // 只獲取已發布的文章
       mediaStore.fetchCloudinaryPhotos('wuridao/photos', true), // 強制重新載入
       mediaStore.fetchCloudinaryVideos('wuridao/videos', true), // 強制重新載入
     ])
@@ -223,8 +234,24 @@ onMounted(async () => {
     logger.log('[news.vue] 開始載入數據，使用快取優先策略...')
 
     // 並行載入所有數據，利用快取機制
+    // 使用公開 API 獲取文章（不需要認證）
+    const api = useApi()
+    try {
+      const { data, total } = await api.getPublicArticles({ page: 1, limit: 50 })
+      articlesStore.articles = data
+      articlesStore.totalArticles = total
+      logger.log('[news.vue] 公開文章載入完成:', { count: data.length, total })
+    } catch (error) {
+      logger.error('❌ [news.vue] 載入公開文章失敗:', error)
+      // 如果公開 API 失敗，嘗試使用認證 API（如果用戶已登入）
+      try {
+        await articlesStore.fetchArticles({ isDraft: false })
+      } catch (err) {
+        logger.error('❌ [news.vue] 載入文章失敗:', err)
+      }
+    }
+
     await Promise.all([
-      articlesStore.fetchArticles({ isDraft: false }), // 只獲取已發布的文章
       mediaStore.fetchCloudinaryPhotos('wuridao/photos', false), // 使用快取
       mediaStore.fetchCloudinaryVideos('wuridao/videos', false), // 使用快取
       categoriesStore.fetchCategories(),

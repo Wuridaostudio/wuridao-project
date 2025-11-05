@@ -120,15 +120,42 @@ export const useAuthStore = defineStore('auth', {
         if (process.client) {
           logger.error('登入失敗', {
             error: e,
-            message: e.data?.message,
+            message: e.data?.message || e.message,
             status: e.status,
             statusCode: e.statusCode,
             response: e.data,
-            stack: e.stack,
+            stack: process.env.NODE_ENV === 'development' ? e.stack : undefined,
             timestamp: new Date().toISOString(),
           })
         }
-        this.error = e.data?.message || '登入失敗'
+        
+        // 提取錯誤訊息 - 處理多種錯誤格式
+        let errorMessage = '登入失敗'
+        
+        if (e.data) {
+          // 處理 NestJS 標準錯誤格式
+          if (typeof e.data === 'string') {
+            errorMessage = e.data
+          } else if (e.data.message) {
+            errorMessage = Array.isArray(e.data.message) 
+              ? e.data.message.join(', ')
+              : e.data.message
+          } else if (e.data.error) {
+            errorMessage = e.data.error
+          }
+        } else if (e.message) {
+          errorMessage = e.message
+        } else if (e.statusCode === 500) {
+          errorMessage = '伺服器發生錯誤，請稍後再試'
+        } else if (e.statusCode === 401) {
+          errorMessage = '帳號或密碼錯誤'
+        } else if (e.statusCode === 400) {
+          errorMessage = '請檢查輸入的帳號和密碼格式'
+        } else if (e.statusCode === 404) {
+          errorMessage = '找不到登入服務，請檢查網路連線'
+        }
+        
+        this.error = errorMessage
         throw e
       }
       finally {
